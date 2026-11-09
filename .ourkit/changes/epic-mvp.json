@@ -1,0 +1,77 @@
+{
+  "tier": "epic",
+  "tierReason": "earnm MVP spans accounts, projects/members, reminders, ideas and cost calculation; too large for one cycle",
+  "sensitiveAreas": [
+    "auth",
+    "data",
+    "schema"
+  ],
+  "notSensitiveReason": null,
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "MVP auth is email + password handled by the Express API; forgot-password is deferred",
+      "why": "Free, works in Expo Go, and the early user base is small enough for the Owner to reset passwords manually"
+    },
+    {
+      "id": 2,
+      "decision": "Project roles for MVP are Owner and Member; a project may have several Owners; Viewer is deferred",
+      "why": "Partners need equal rights and a project must not be orphaned if one person leaves"
+    },
+    {
+      "id": 3,
+      "decision": "Invites are single-use links/codes shared via the iOS share sheet, expire after 7 days, can be revoked by an Owner, and join as Member; the link opens a small web page with the code and install steps until the app is on the App Store; email invites are deferred",
+      "why": "Reaches people without the app, needs no email service or API key, and works in Expo Go"
+    },
+    {
+      "id": 4,
+      "decision": "Offline level B from the first feature: cached reads plus queued writes that sync when online; conflicting edits to the same record resolve last-write-wins",
+      "why": "The user wants offline editing from day one; full CRDT-style merging (level C) is out of scope"
+    },
+    {
+      "id": 5,
+      "decision": "Reminders belong to tasks: several reminder times per task, recipients default to assignees, repeat once/daily/weekly-on-days/monthly with optional end date, push shows title, due date and up to 3 latest 'remind-with' comments, device timezone, stop when the task is done",
+      "why": "Agreed in the Epic grill; keeps reminders tied to work that has an owner"
+    },
+    {
+      "id": 6,
+      "decision": "Task card has title, description, multiple checklists, assignees, due date, reminders, status (To do / Doing / Done), colour labels, comments with a remind-with flag, and image attachments; tasks are shown as a single list with status filters, not Kanban columns; custom columns and calendar view are deferred",
+      "why": "The user finds columns hard to read on a phone and needs photos such as receipts in MVP"
+    },
+    {
+      "id": 7,
+      "decision": "Task image attachments are stored on Cloudinary via server-signed uploads, compressed on device first, queued while offline, max 10 per task",
+      "why": "Free tier with no credit card, built-in thumbnails, and the API secret stays on the server"
+    },
+    {
+      "id": 8,
+      "decision": "Cost calculation: ingredients are measured by weight (g), volume (ml) or portion (pack makes N servings), with conversion only within kg/g and l/ml; unit cost shown per 1g/1ml/portion; products have S/M/L sizes each with recipe, extra costs (ice, water...) and selling price; ingredients and extra costs can be marked default to prefill new products and be unchecked; price suggestion is a small hint; UI is a vertical flow without tables and only shows fields for the chosen measuring mode; price history keeps the last 5 prices; fixed costs (rent, staff) live in a separate area, not in product cost",
+      "why": "Agreed in the Epic grill to keep cost entry simple on a phone and avoid g-to-ml density guesses"
+    },
+    {
+      "id": 9,
+      "decision": "Fixed costs are in MVP: items with monthly, weekly or one-time (spread over N months) amounts, a project-level expected cups per month, and an equal per-cup share added to each product's full cost; profit and the price hint use the full cost; break-even calculator and cash flow stay post-MVP",
+      "why": "The user wants rent and staff reflected in the price of each cup"
+    },
+    {
+      "id": 10,
+      "decision": "UI principle: screens are compact vertical flows with collapsible sections that start closed (e.g. fixed costs show only their total until opened), showing as little as possible at once",
+      "why": "The user wants each screen to stay short and readable on a phone"
+    },
+    {
+      "id": 11,
+      "decision": "Ideas have title, description, up to 10 images, author, status (New / Considering / Accepted / Dropped), comments, up/down votes and shared labels; an accepted idea can be turned into a task or a product prefilled with its title",
+      "why": "Agreed in the Epic grill; votes moved into MVP because they suit joint decisions"
+    },
+    {
+      "id": 12,
+      "decision": "Language (VI/EN) is a per-user setting defaulting to the device language; currency (VND or USD) is a per-project setting with no exchange conversion; VND shows no decimals, USD two, unit costs keep decimals; user content is not translated",
+      "why": "Agreed in the Epic grill; keeps money arithmetic simple and correct"
+    },
+    {
+      "id": 13,
+      "decision": "Activity push goes only to people involved and never to the actor: assignment to assignee, new comment to assignees and creator, task done to creator, new idea to the project, member joined to Owners; ingredient price changes are in-app only; bursts within 1 minute are batched; each user can mute types or a whole project, but reminders cannot be muted",
+      "why": "Agreed in the Epic grill to keep notifications useful rather than noisy"
+    }
+  ]
+}
