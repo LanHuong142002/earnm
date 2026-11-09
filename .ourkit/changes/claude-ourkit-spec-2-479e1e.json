@@ -124,6 +124,66 @@
         "severity": "non-blocking",
         "text": "Test coverage vs acceptance criteria: R10 random/expired token are tested only on a stub app, not on /me itself; R13 shape is mostly asserted via error.code only, not {error:{code,message}}.",
         "resolved": true
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "apps/api/src/http/errors.ts:78 — other body-parser 4xx errors (unsupported charset/encoding 415, aborted 400) fall into the generic 500 branch and get logged, so a client's own mistake looks like a server error (R13). Fix: if err.status is 4xx and err.expose, answer with that status and a stable code like bad_request.",
+        "resolved": true
+      },
+      {
+        "id": 16,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/password.ts:51-56 — dummyHash caches the first hashPassword promise; if it ever rejects, every unknown-email sign-in returns 500 while known emails get 401, revealing which accounts exist. Fix: clear the cache on rejection or compute it at startup.",
+        "resolved": true
+      },
+      {
+        "id": 17,
+        "severity": "non-blocking",
+        "text": "apps/api/src/app.ts:16 + .env.example — rollout note for #3: TRUST_PROXY=0 behind Render's proxy makes all clients share one IP (20 failures lock out all sign-ins, sign-up capped at 10 per 15 min for everyone); too high a value lets clients spoof IPs. #3 must set the exact hop count and verify req.ip.",
+        "resolved": false
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "apps/api/vitest.global-setup.ts:14 — the guard compares TEST_DATABASE_URL and DATABASE_URL as exact strings; two different strings for the same database pass and the tests would TRUNCATE dev tables. Fix: compare parsed host/port/database name, or require the test database name to end in _test.",
+        "resolved": true
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/sessions.ts:44 — expired and abandoned session rows are never deleted, and a server session stays valid up to 90 days after an offline sign-out (R20 accepts this). Fix later: delete rows where lastUsedAt < now - 90d.",
+        "resolved": false
+      },
+      {
+        "id": 20,
+        "severity": "blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx:187-197 + src/lib/api.ts:39 — signOut awaits apiSignOut before endSession and request() has no timeout; with the network up but the LAN server unreachable (cellular/other Wi-Fi) the fetch hangs ~60 s with no feedback, the token stays in the Keychain, and killing the app leaves it signed in (R20: sign out even if the server can't be reached). Fix: endSession first, fire-and-forget apiSignOut; AbortController timeout in request() mapped to ApiError('network').",
+        "resolved": true
+      },
+      {
+        "id": 21,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/lib/api.ts:39 — no request timeout, so an unreachable-but-online server leaves sign-in/sign-up spinning ~60 s before the R19 no-connection message (covered by the timeout in the blocking fix).",
+        "resolved": true
+      },
+      {
+        "id": 22,
+        "severity": "non-blocking",
+        "text": "apps/mobile AuthProvider.tsx:90-130 + settings.tsx:43 — the pending-sync note says 'when you're online' but retries happen only at launch, after sign-in or on the next tap; after an offline launch languagePendingSync stays false so the note hides. Fix: read the stored flag at launch and retry when the app returns to the foreground, or reword.",
+        "resolved": true
+      },
+      {
+        "id": 23,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/routes.ts:69 + rate-limit.ts:4 — the sign-up limit (10 per IP per 15 min, counting invalid bodies) isn't recorded in the spec or plan; friends on one shop Wi-Fi could block each other. Fix: record it in the spec as a deliberate addition, or count only valid attempts.",
+        "resolved": true
+      },
+      {
+        "id": 24,
+        "severity": "non-blocking",
+        "text": "apps/mobile/.gitignore:34 — only .env*.local is ignored, while .env.example invites a local .env that Expo reads; a .env could be committed by mistake (R28). Fix: add .env.",
+        "resolved": true
       }
     ]
   }
