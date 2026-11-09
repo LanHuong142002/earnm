@@ -42,16 +42,16 @@ export function createMeRouter(deps: {
     try {
       const body = patchSchema.parse(req.body);
       const userId = getAuth(res.locals).userId;
-      const existing = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-      if (!existing) throw notSignedIn();
-      const user = await prisma.user.update({
+      const { count } = await prisma.user.updateMany({
         where: { id: userId },
         data: { language: body.language },
+      });
+      if (count === 0) throw notSignedIn();
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
         select: profileSelect,
       });
+      if (!user) throw notSignedIn();
       res.json(user);
     } catch (err) {
       next(err);

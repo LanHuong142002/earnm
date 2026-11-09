@@ -33,6 +33,8 @@ import {
   saveToken,
 } from "./token-store";
 
+const MAX_FLUSH_ROUNDS = 3;
+
 export type AuthStatus = "loading" | "signedIn" | "signedOut";
 
 type AuthContextValue = {
@@ -67,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [languagePendingSync, setPendingSync] = useState(false);
   const tokenRef = useRef<string | null>(null);
   const flushingRef = useRef(false);
+  const rerunRef = useRef(false);
   const pendingRef = useRef(false);
   useEffect(() => {
     pendingRef.current = languagePendingSync;
@@ -92,24 +95,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /** Sends the local choice to the account; keeps the pending flag unless it succeeds. */
+  /**
+   * The one path for language PATCHes. One run at a time; a call during a run only asks the
+   * running one to go round again. Clears the pending flag only when the stored choice is
+   * still what was sent.
+   */
   const flushPendingLanguage = useCallback(
     async (token: string) => {
-      if (flushingRef.current) return;
+      if (flushingRef.current) {
+        rerunRef.current = true;
+        return;
+      }
       flushingRef.current = true;
       try {
-        const choice = await getLanguageChoice();
-        if (choice === null) {
+        for (let round = 0; round < MAX_FLUSH_ROUNDS; round += 1) {
+          rerunRef.current = false;
+          const choice = await getLanguageChoice();
+          if (choice === null) {
+            await deleteLanguagePendingSync();
+            setPendingSync(false);
+            return;
+          }
+          await updateLanguage(token, choice);
+          if (tokenRef.current !== token) return;
+          const latest = await getLanguageChoice();
+          if (latest !== choice || rerunRef.current) continue;
           await deleteLanguagePendingSync();
+          if (tokenRef.current !== token) return;
+          if (rerunRef.current) {
+            // A tap landed while the flag was being cleared: put it back and go again.
+            try {
+              await saveLanguagePendingSync();
+            } catch {
+              // Storage failure: the next round still sends the stored choice.
+            }
+            continue;
+          }
           setPendingSync(false);
+          setUser((current) => (current ? { ...current, language: choice } : current));
           return;
         }
-        await updateLanguage(token, choice);
-        if (tokenRef.current !== token) return;
-        await deleteLanguagePendingSync();
-        setPendingSync(false);
-        setUser((current) => (current ? { ...current, language: choice } : current));
+        // Still changing after several rounds: keep the flag and retry next time.
       } catch (error) {
+        if (tokenRef.current !== token) return;
         if (error instanceof ApiError && error.code === "not_signed_in") await endSession();
         // network or other errors: keep the flag and retry next time.
       } finally {
@@ -237,17 +265,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Storage failure: the request below may still succeed.
       }
       setPendingSync(true);
-      try {
-        await updateLanguage(token, language);
-        if (tokenRef.current !== token) return;
-        await deleteLanguagePendingSync();
-        setPendingSync(false);
-      } catch (error) {
-        if (error instanceof ApiError && error.code === "not_signed_in") await endSession();
-        // network or other errors: keep the local choice and the pending flag.
-      }
+      await flushPendingLanguage(token);
     },
-    [endSession],
+    [flushPendingLanguage],
   );
 
   const value = useMemo(

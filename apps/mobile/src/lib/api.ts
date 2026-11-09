@@ -36,40 +36,55 @@ export async function request<T>(
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  let response: Response;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  // The timer stays armed until the body has been read, so a stalled body cannot hang.
   try {
-    response = await fetch(`${process.env.EXPO_PUBLIC_API_URL ?? ""}${path}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: controller.signal,
-    });
-  } catch {
-    throw new ApiError("network");
+    let response: Response;
+    try {
+      response = await fetch(`${process.env.EXPO_PUBLIC_API_URL ?? ""}${path}`, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch {
+      throw new ApiError("network");
+    }
+
+    if (!response.ok) {
+      let text: string;
+      try {
+        text = await response.text();
+      } catch {
+        throw new ApiError("network");
+      }
+      let code = "internal_error";
+      let serverMessage: string | null = null;
+      try {
+        const data = JSON.parse(text) as { error?: { code?: unknown; message?: unknown } };
+        if (typeof data?.error?.code === "string") code = data.error.code;
+        if (typeof data?.error?.message === "string") serverMessage = data.error.message;
+      } catch {
+        // Non-JSON error body: keep the fallback code.
+      }
+      throw new ApiError(code, response.status, serverMessage);
+    }
+
+    if (response.status === 204) return undefined as T;
+    let text: string;
+    try {
+      text = await response.text();
+    } catch {
+      throw new ApiError("network");
+    }
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new ApiError("internal_error", response.status);
+    }
   } finally {
     clearTimeout(timer);
-  }
-
-  if (!response.ok) {
-    let code = "internal_error";
-    let serverMessage: string | null = null;
-    try {
-      const data = (await response.json()) as { error?: { code?: unknown; message?: unknown } };
-      if (typeof data?.error?.code === "string") code = data.error.code;
-      if (typeof data?.error?.message === "string") serverMessage = data.error.message;
-    } catch {
-      // Non-JSON error body: keep the fallback code.
-    }
-    throw new ApiError(code, response.status, serverMessage);
-  }
-
-  if (response.status === 204) return undefined as T;
-  try {
-    return (await response.json()) as T;
-  } catch {
-    throw new ApiError("internal_error", response.status);
   }
 }
 
