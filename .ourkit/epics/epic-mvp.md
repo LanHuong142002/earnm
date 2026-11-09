@@ -22,6 +22,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F1 People can create an account and sign in on iPhone
 
+GitHub issue: #2
+
 **Summary:** Email and password sign-up, sign-in and sign-out, with the app's VI/EN language setting.
 
 **User Story:** As a shop partner, I want my own account, so that the app knows which projects and tasks are mine.
@@ -37,6 +39,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 **Blocked by:** none
 
 ## F2 The API runs on Render and stays awake
+
+GitHub issue: #3
 
 **Summary:** The API is deployed to Render's free tier with a Neon database, and an outside cron keeps it awake through a protected tick endpoint.
 
@@ -54,6 +58,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F3 People can create projects and work on them offline
 
+GitHub issue: #4
+
 **Summary:** A signed-in person can create, rename and delete projects, pick each project's currency, and see every project they belong to, with offline reads and queued writes.
 
 **User Story:** As a shop partner, I want to keep separate projects for each business idea, so that plans for one shop don't mix with another.
@@ -69,6 +75,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 **Blocked by:** F1
 
 ## F4 Owners can invite people with a single-use link
+
+GitHub issue: #5
 
 **Summary:** An Owner shares a single-use, 7-day invite through the iOS share sheet; the person joins as Member, and Owners can manage members.
 
@@ -86,6 +94,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F5 Members can track tasks in a simple list
 
+GitHub issue: #6
+
 **Summary:** Tasks with title, description, status, assignees and due date, shown as one list with status, "my tasks" and "due soon" filters.
 
 **User Story:** As a shop partner, I want to see who is doing what and by when, so that nothing we planned gets forgotten.
@@ -101,6 +111,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 **Blocked by:** F3
 
 ## F6 Tasks can have checklists and colour labels
+
+GitHub issue: #7
 
 **Summary:** A task can hold several named checklists with progress, and colour labels shared across the project.
 
@@ -118,6 +130,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F7 Members can comment on tasks
 
+GitHub issue: #8
+
 **Summary:** Members can comment on a task and mark a comment "remind with" so it travels with the task's reminders.
 
 **User Story:** As a shop partner, I want to leave notes on a task, so that whoever does it knows the details when they're reminded.
@@ -133,6 +147,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 **Blocked by:** F5
 
 ## F8 Members can attach photos to tasks
+
+GitHub issue: #9
 
 **Summary:** Up to 10 photos per task, compressed on the phone and uploaded to Cloudinary through server-signed uploads, queued while offline.
 
@@ -150,6 +166,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F9 Assignees are reminded about tasks by push notification
 
+GitHub issue: #10
+
 **Summary:** Tasks can have several one-off or repeating reminders that arrive as push notifications on the lock screen and in Notification Center.
 
 **User Story:** As a shop partner, I want my phone to remind me about tasks, so that I don't forget to buy supplies or meet the landlord.
@@ -165,6 +183,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 **Blocked by:** F2, F7
 
 ## F10 Members can collect, discuss and vote on ideas
+
+GitHub issue: #11
 
 **Summary:** An ideas board with title, description, photos, status, comments, votes and labels; an accepted idea can become a task.
 
@@ -182,6 +202,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F11 Members can record ingredients and their unit cost
 
+GitHub issue: #12
+
 **Summary:** An ingredients list with what was bought and for how much, giving a unit cost per gram, millilitre or portion, plus the total spent.
 
 **User Story:** As a shop partner, I want to enter what I paid for supplies once, so that the app works out what each gram or portion costs.
@@ -197,6 +219,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 **Blocked by:** F3
 
 ## F12 Members can build products and see the cost of each cup
+
+GitHub issue: #13
 
 **Summary:** Products with S/M/L sizes, each with ingredients, extra costs and a selling price, showing cost, profit per cup and a small price hint.
 
@@ -214,6 +238,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F13 Fixed costs are shared across the price of each cup
 
+GitHub issue: #14
+
 **Summary:** A fixed costs area (rent, staff, equipment) whose monthly total, divided by expected cups per month, is added to each product's full cost.
 
 **User Story:** As a shop partner, I want rent and wages included in each cup's cost, so that our prices cover the whole business, not just ingredients.
@@ -230,6 +256,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 
 ## F14 An accepted idea can become a product
 
+GitHub issue: #15
+
 **Summary:** From an accepted idea, a member can create a product prefilled with the idea's title and linked back to it.
 
 **User Story:** As a shop partner, I want to turn an agreed drink idea straight into a product, so that we can cost it right away.
@@ -245,6 +273,8 @@ Deferred beyond this Epic: forgot-password, Viewer role, email invites, cash flo
 **Blocked by:** F10, F12
 
 ## F15 Members get push notifications for project activity
+
+GitHub issue: #16
 
 **Summary:** Push notifications for assignments, new comments, finished tasks, new ideas and new members, batched and mutable per type or project.
 
