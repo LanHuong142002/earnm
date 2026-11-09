@@ -1,0 +1,13 @@
+{
+  "ticket": "2",
+  "tier": "feature",
+  "tierReason": "Adds email/password auth, the first user data, the first Prisma schema and migration, and new public API endpoints",
+  "sensitiveAreas": [
+    "auth",
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "planApproval": "6a4d9e2bcc9113e069c9b40492d69654373d06c351f6fdb2406e2e63a1886a59"
+}
