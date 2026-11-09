@@ -262,6 +262,48 @@
         "severity": "non-blocking",
         "text": "apps/api/src/auth/routes.ts:39,46 + sign-up.tsx maxLength={50} — zod min/max and RN maxLength count UTF-16 code units, not characters (R3, R4): 26 emoji are refused as a 50-char name, 4 emoji pass as an 8-char password. Fix: count code points in a refine (optionally NFC-normalise), or state the unit in the spec.",
         "resolved": true
+      },
+      {
+        "id": 38,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/rate-limit.ts:7,135 + R12 — the 50-per-email cap applies even with the right password, so someone with 3 IPv4 addresses or one IPv6 /48 can keep a person locked out; on shared mobile IPv4 (CGNAT) strangers can use up the 20-per-IP and 10-sign-up limits for everyone. Spec accepts the first part. Revisit in #3 (e.g. let a known device past the email-wide cap).",
+        "resolved": false
+      },
+      {
+        "id": 39,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/routes.ts:46-48 — passwords aren't NFC-normalised while display names are; a Vietnamese password with diacritics typed in decomposed form on another keyboard would fail though it looks identical. Fix now, while no stored hashes exist: normalize('NFC') before hashing and verifying.",
+        "resolved": true
+      },
+      {
+        "id": 40,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/sessions.ts:71-83 — a sign-out landing between lookup and lastUsedAt update lets that one in-flight request still succeed. Harmless today; treat update count 0 as not signed in if it ever matters.",
+        "resolved": false
+      },
+      {
+        "id": 41,
+        "severity": "non-blocking",
+        "text": "apps/api/src/test/helpers.ts:37-39 + vitest.global-setup.ts — the first TRUNCATE of a run failed once with an empty Prisma error (2 tests in app.test.ts), and an identical rerun passed; likely a cold Neon connection. testing.md: a test that fails sometimes is a bug. Fix: warm the connection with retries in beforeAll, or raise the test connection timeout.",
+        "resolved": true
+      },
+      {
+        "id": 42,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/ui/Card.tsx:16 — paddingVertical spacing[0] (4pt) vs DESIGN.md's 12–16 card padding; the Settings language card has 4pt above the first row (R21).",
+        "resolved": true
+      },
+      {
+        "id": 43,
+        "severity": "non-blocking",
+        "text": "apps/mobile sign-in.tsx:55-62, sign-up.tsx:66-73, ui/Screen.tsx:39-49 — the form error and the switch link sit in the bottom footer with the primary button; DESIGN.md says only a form's main button may sit at the bottom.",
+        "resolved": true
+      },
+      {
+        "id": 44,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/app/(app)/index.tsx:16-22 — no loading or offline state: while getMe is pending or after an offline launch, user is null and the screen shows only the Settings link, with no placeholder or offline note (DESIGN.md States, frontend checklist).",
+        "resolved": true
       }
     ],
     "reviewed": "7680395867b46b9fd84d39f841a2a9aa6a17e154d81810cba49c3b35e85e69c4"
