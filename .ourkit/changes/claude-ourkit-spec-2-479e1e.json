@@ -304,6 +304,42 @@
         "severity": "non-blocking",
         "text": "apps/mobile/src/app/(app)/index.tsx:16-22 — no loading or offline state: while getMe is pending or after an offline launch, user is null and the screen shows only the Settings link, with no placeholder or offline note (DESIGN.md States, frontend checklist).",
         "resolved": true
+      },
+      {
+        "id": 45,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx:97-99 endSession — if deleteToken() fails it is swallowed and the token stays in the Keychain; with the fire-and-forget server sign-out also failing, the next launch reopens the old (still valid) session, e.g. on a shared phone. Needs two failures. Fix: retry once, then a signed-out marker checked at launch.",
+        "resolved": false
+      },
+      {
+        "id": 46,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/token-store.ts:32-35 clearKeychainOnFreshInstall — if marker.create() throws (storage full) every launch wipes the token and signs the person out; updating from a build without the marker signs out once. Fix: catch a failed create separately; note the one-time sign-out in the Test Handoff.",
+        "resolved": false
+      },
+      {
+        "id": 47,
+        "severity": "non-blocking",
+        "text": "apps/api/src/index.ts:11-16 — TRUST_PROXY accepts any non-negative integer; a typo like 10 behind Render's single proxy trusts client X-Forwarded-For hops and bypasses per-IP limits. Fix: log the value at startup and refuse values above a small bound (e.g. 3).",
+        "resolved": false
+      },
+      {
+        "id": 48,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx:222-223 + (app)/index.tsx:19 — a launch getMe failing with anything other than not_signed_in/network (e.g. 500) leaves profileStatus 'loading' forever: endless skeleton, no message or retry (frontend checklist, DESIGN.md States). Fix: an 'error' status with errors.generic and retry.",
+        "resolved": false
+      },
+      {
+        "id": 49,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx:233 + (app)/index.tsx:17 — after an offline launch, returning to the foreground only retries the language sync; Home keeps saying Offline until a cold start and never learns of a revoked session (R17). Fix: refetch getMe on 'active' when profileStatus !== 'ready'.",
+        "resolved": false
+      },
+      {
+        "id": 50,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/token-store.ts:31-35 (called at AuthProvider.tsx:192) — clearKeychainOnFreshInstall shares the try with reading the token; a persistent marker/delete failure signs the person out on every launch (R15). Fix: its own try/catch, or create the marker before deleting.",
+        "resolved": false
       }
     ],
     "reviewed": "7680395867b46b9fd84d39f841a2a9aa6a17e154d81810cba49c3b35e85e69c4"
