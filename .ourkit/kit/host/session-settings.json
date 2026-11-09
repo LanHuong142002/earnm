@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Task",
+      "Agent",
+      "Skill",
+      "Bash(node .ourkit/kit/bin/ourkit.js*)",
+      "Bash(git status*)",
+      "Bash(git rev-parse*)",
+      "Bash(git checkout -b *)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git switch*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push -u origin *)",
+      "Bash(gh issue *)",
+      "Bash(gh label *)",
+      "Bash(gh api *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)"
+    ],
+    "deny": [
+      "Bash(git merge*)",
+      "Bash(git push origin main*)",
+      "Bash(git push origin master*)",
+      "Bash(git push -u origin main*)",
+      "Bash(git push -u origin master*)",
+      "Bash(git push *:main*)",
+      "Bash(git push *:master*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh api *merge*)",
+      "Bash(gh issue close*)",
+      "Bash(gh issue delete*)"
+    ]
+  }
+}

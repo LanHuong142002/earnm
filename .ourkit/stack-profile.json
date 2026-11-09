@@ -1,0 +1,17 @@
+{
+  "technologies": [
+    "TypeScript",
+    "Expo (SDK 58, Expo Router)",
+    "React Native",
+    "Node.js",
+    "Express 5",
+    "Prisma 7",
+    "PostgreSQL (Neon)"
+  ],
+  "commands": {
+    "test": null,
+    "lint": "npm --prefix apps/mobile run lint",
+    "build": "npm --prefix apps/api run build",
+    "run": "npm --prefix apps/api run dev"
+  }
+}
