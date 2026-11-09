@@ -3,6 +3,8 @@
   "auth": {
     "signInTitle": "Đăng nhập",
     "signUpTitle": "Tạo tài khoản",
+    "signInSubtitle": "Chào mừng bạn quay lại earnm.",
+    "signUpSubtitle": "Tạo tài khoản để cùng lên kế hoạch.",
     "email": "Email",
     "password": "Mật khẩu",
     "displayName": "Tên hiển thị",

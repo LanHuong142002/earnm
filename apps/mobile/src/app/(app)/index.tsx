@@ -1,28 +1,32 @@
 import { Link } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Text } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../auth/AuthProvider";
+import { useTheme } from "../../theme/useTheme";
+import { Enter } from "../../ui/Enter";
+import { Screen } from "../../ui/Screen";
 
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { colors, typography, spacing } = useTheme();
   return (
-    <View style={styles.container}>
+    <Screen edges={["bottom"]}>
       {user ? (
-        <Text accessibilityRole="header" style={styles.title}>
-          {t("home.welcome", { name: user.displayName })}
-        </Text>
+        <Enter index={0}>
+          <Text accessibilityRole="header" style={[typography.screenTitle, { color: colors.text }]}>
+            {t("home.welcome", { name: user.displayName })}
+          </Text>
+        </Enter>
       ) : null}
-      <Link href="/settings" style={styles.link}>
-        {t("home.settingsLink")}
-      </Link>
-    </View>
+      <Enter index={1}>
+        <Link href="/settings" style={{ paddingVertical: spacing[2] }}>
+          <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>
+            {t("home.settingsLink")}
+          </Text>
+        </Link>
+      </Enter>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 16 },
-  title: { fontSize: 24, fontWeight: "700" },
-  link: { color: "#1a5fd0", fontSize: 16, paddingVertical: 8 },
-});

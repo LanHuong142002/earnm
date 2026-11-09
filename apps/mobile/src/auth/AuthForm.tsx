@@ -1,72 +1,37 @@
-import type { ReactNode } from "react";
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import type { TFunction } from "i18next";
-import { useTranslation } from "react-i18next";
+import { Text, View } from "react-native";
 
 import { ApiError } from "../lib/api";
+import { useTheme } from "../theme/useTheme";
 
 export function errorMessage(error: unknown, t: TFunction): string {
   const code = error instanceof ApiError ? error.code : "generic";
   return t(`errors.${code}`, { defaultValue: t("errors.generic") });
 }
 
-export function FormShell({ title, children }: { title: string; children: ReactNode }) {
+// Cup tile, screen title and one line of secondary text, shared by sign-in and sign-up.
+export function AuthHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  const { colors, typography, radius, spacing } = useTheme();
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
+    <View style={{ gap: spacing[1], alignItems: "flex-start" }}>
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: radius.tile,
+          backgroundColor: colors.tile,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: spacing[1],
+        }}
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          {title}
-        </Text>
-        <View style={styles.form}>{children}</View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <Ionicons name="cafe-outline" size={22} color={colors.accent} />
+      </View>
+      <Text accessibilityRole="header" style={[typography.screenTitle, { color: colors.text }]}>
+        {title}
+      </Text>
+      <Text style={[typography.body, { color: colors.textSecondary }]}>{subtitle}</Text>
+    </View>
   );
 }
-
-export function Spinner() {
-  const { t } = useTranslation();
-  return <ActivityIndicator accessibilityLabel={t("common.loading")} color="#fff" />;
-}
-
-export const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { flexGrow: 1, justifyContent: "center", padding: 24 },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 16 },
-  form: { gap: 10 },
-  label: { fontSize: 14, fontWeight: "600" },
-  input: {
-    borderWidth: 1,
-    borderColor: "#888",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  error: { color: "#b00020", fontSize: 14 },
-  button: {
-    backgroundColor: "#1a5fd0",
-    borderRadius: 8,
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 6,
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  link: { color: "#1a5fd0", fontSize: 15, paddingVertical: 12, textAlign: "center" },
-});

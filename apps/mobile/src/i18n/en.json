@@ -3,6 +3,8 @@
   "auth": {
     "signInTitle": "Sign in",
     "signUpTitle": "Create account",
+    "signInSubtitle": "Welcome back to earnm.",
+    "signUpSubtitle": "Create an account to plan together.",
     "email": "Email",
     "password": "Password",
     "displayName": "Display name",
