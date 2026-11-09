@@ -1,11 +1,51 @@
+import { isIPv6 } from "node:net";
+
 export const FAILURE_WINDOW_MS = 15 * 60 * 1000;
-export const EMAIL_FAILURE_LIMIT = 5;
+/** Failures for one email from one IP. */
+export const PAIR_FAILURE_LIMIT = 5;
+/** Failures for one email from any IP. */
+export const EMAIL_FAILURE_LIMIT = 50;
 export const IP_FAILURE_LIMIT = 20;
 export const SIGN_UP_IP_LIMIT = 10;
 const SWEEP_EVERY_WRITES = 100;
 
+/**
+ * Bucket key for an IP: IPv4-mapped IPv6 becomes plain IPv4, other IPv6 addresses are
+ * keyed by their /64 (first four hextets, expanded), anything else is kept as is.
+ */
+export function normalizeIp(ip: string): string {
+  const lower = ip.toLowerCase();
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(lower);
+  if (mapped) return mapped[1] as string;
+  if (!isIPv6(lower)) return ip;
+  let addr = lower;
+  const zone = addr.indexOf("%");
+  if (zone !== -1) addr = addr.slice(0, zone);
+  // An embedded IPv4 tail (a.b.c.d) occupies the last two hextets.
+  const v4 = /^(.*:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(addr);
+  if (v4) {
+    const [, head, a, b, c, d] = v4 as unknown as [string, string, string, string, string, string];
+    const hi = ((Number(a) << 8) | Number(b)).toString(16);
+    const lo = ((Number(c) << 8) | Number(d)).toString(16);
+    addr = `${head}${hi}:${lo}`;
+  }
+  const halves = addr.split("::");
+  const left = halves[0] ? halves[0].split(":") : [];
+  const right = halves[1] ? halves[1].split(":") : [];
+  const missing = 8 - left.length - right.length;
+  const groups =
+    halves.length === 2
+      ? [...left, ...Array<string>(Math.max(missing, 0)).fill("0"), ...right]
+      : left;
+  return groups
+    .slice(0, 4)
+    .map((g) => g.replace(/^0+(?=.)/, ""))
+    .join(":");
+}
+
 export interface SignInLimiterOptions {
   now: () => Date;
+  pairLimit?: number;
   emailLimit?: number;
   ipLimit?: number;
 }
@@ -17,8 +57,7 @@ export interface SignInKey {
 
 /** Opaque reservation returned by tryAcquire. Settle it with fail or release. */
 export interface AttemptHandle {
-  readonly email: string;
-  readonly ip: string;
+  readonly keys: readonly string[];
   settled: boolean;
 }
 
@@ -37,90 +76,95 @@ export interface SignInLimiter {
 }
 
 /**
- * In-memory sliding window of failure timestamps per email and per IP, plus a count of
- * in-flight attempts so parallel requests cannot all pass the check before any fails.
- * A failure counts while it is less than FAILURE_WINDOW_MS old, so at exactly
- * 15 minutes it no longer counts. Expired entries are pruned on read and swept for all
- * keys every SWEEP_EVERY_WRITES recordings. No timers. Keys are never logged.
+ * In-memory sliding window of failure timestamps per (email, IP) pair, per email and
+ * per IP, plus a count of in-flight attempts so parallel requests cannot all pass the
+ * check before any fails. IPs are bucketed with normalizeIp. A failure counts while it
+ * is less than FAILURE_WINDOW_MS old, so at exactly 15 minutes it no longer counts.
+ * Expired entries are pruned on read and swept for all keys every SWEEP_EVERY_WRITES
+ * recordings. No timers. Keys are never logged.
  */
 export function createSignInLimiter({
   now,
+  pairLimit = PAIR_FAILURE_LIMIT,
   emailLimit = EMAIL_FAILURE_LIMIT,
   ipLimit = IP_FAILURE_LIMIT,
 }: SignInLimiterOptions): SignInLimiter {
-  const byEmail = new Map<string, number[]>();
-  const byIp = new Map<string, number[]>();
-  const inflightEmail = new Map<string, number>();
-  const inflightIp = new Map<string, number>();
+  // One map per dimension. Keys are prefixed with the dimension index.
+  const limits = [pairLimit, emailLimit, ipLimit];
+  const failures = new Map<string, number[]>();
+  const inflight = new Map<string, number>();
   let writes = 0;
 
-  function live(map: Map<string, number[]>, key: string, nowMs: number): number[] {
-    const times = map.get(key);
+  function live(key: string, nowMs: number): number[] {
+    const times = failures.get(key);
     if (!times) return [];
     const kept = times.filter((t) => nowMs - t < FAILURE_WINDOW_MS);
-    if (kept.length === 0) map.delete(key);
-    else if (kept.length !== times.length) map.set(key, kept);
+    if (kept.length === 0) failures.delete(key);
+    else if (kept.length !== times.length) failures.set(key, kept);
     return kept;
   }
 
-  function sweep(map: Map<string, number[]>, nowMs: number): void {
-    for (const key of [...map.keys()]) live(map, key, nowMs);
+  function sweep(nowMs: number): void {
+    for (const key of [...failures.keys()]) live(key, nowMs);
   }
 
-  function add(map: Map<string, number[]>, key: string, nowMs: number): void {
-    const kept = live(map, key, nowMs);
-    kept.push(nowMs);
-    map.set(key, kept);
-  }
-
-  function bump(map: Map<string, number>, key: string, delta: number): void {
-    const next = (map.get(key) ?? 0) + delta;
-    if (next <= 0) map.delete(key);
-    else map.set(key, next);
+  function bump(key: string, delta: number): void {
+    const next = (inflight.get(key) ?? 0) + delta;
+    if (next <= 0) inflight.delete(key);
+    else inflight.set(key, next);
   }
 
   function settle(handle: AttemptHandle): boolean {
     if (handle.settled) return false;
     handle.settled = true;
-    bump(inflightEmail, handle.email, -1);
-    bump(inflightIp, handle.ip, -1);
+    for (const k of handle.keys) bump(k, -1);
     return true;
   }
 
   return {
     tryAcquire({ email, ip }) {
       const nowMs = now().getTime();
-      if (
-        live(byEmail, email, nowMs).length + (inflightEmail.get(email) ?? 0) >= emailLimit ||
-        live(byIp, ip, nowMs).length + (inflightIp.get(ip) ?? 0) >= ipLimit
-      ) {
-        return null;
+      const nip = normalizeIp(ip);
+      // Dimensions with an infinite limit are not tracked at all.
+      const keys = [`p|${email}|${nip}`, `e|${email}`, `i|${nip}`].filter(
+        (_, i) => Number.isFinite(limits[i]),
+      );
+      const active = limits.filter((l) => Number.isFinite(l));
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i] as string;
+        if (live(k, nowMs).length + (inflight.get(k) ?? 0) >= (active[i] as number)) {
+          return null;
+        }
       }
-      bump(inflightEmail, email, 1);
-      bump(inflightIp, ip, 1);
-      return { email, ip, settled: false };
+      for (const k of keys) bump(k, 1);
+      return { keys, settled: false };
     },
     fail(handle) {
       if (!settle(handle)) return;
       const nowMs = now().getTime();
-      add(byEmail, handle.email, nowMs);
-      add(byIp, handle.ip, nowMs);
-      writes += 1;
-      if (writes % SWEEP_EVERY_WRITES === 0) {
-        sweep(byEmail, nowMs);
-        sweep(byIp, nowMs);
+      for (const k of handle.keys) {
+        const kept = live(k, nowMs);
+        kept.push(nowMs);
+        failures.set(k, kept);
       }
+      writes += 1;
+      if (writes % SWEEP_EVERY_WRITES === 0) sweep(nowMs);
     },
     release(handle) {
       settle(handle);
     },
     size() {
-      return byEmail.size + byIp.size + inflightEmail.size + inflightIp.size;
+      return failures.size + inflight.size;
     },
   };
 }
 
 /** Per-IP limit on sign-up attempts of any outcome. */
 export function createSignUpLimiter({ now }: { now: () => Date }): SignInLimiter {
-  return createSignInLimiter({ now, emailLimit: Infinity, ipLimit: SIGN_UP_IP_LIMIT });
+  return createSignInLimiter({
+    now,
+    pairLimit: Infinity,
+    emailLimit: Infinity,
+    ipLimit: SIGN_UP_IP_LIMIT,
+  });
 }

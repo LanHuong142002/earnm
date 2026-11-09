@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dummyVerify, hashPassword, verifyPassword } from "./password.js";
+import { dummyVerify, hashPassword, verifyPassword, warmDummyHash } from "./password.js";
 
 describe("password hashing", () => {
   it("verifies the password it hashed", async () => {
@@ -50,5 +50,10 @@ describe("password hashing", () => {
 
   it("dummyVerify resolves false without throwing", async () => {
     expect(await dummyVerify("anything at all")).toBe(false);
+  });
+
+  it("warmDummyHash resolves without throwing, and dummyVerify still works after it", async () => {
+    await expect(warmDummyHash()).resolves.toBeUndefined();
+    expect(await dummyVerify("x")).toBe(false);
   });
 });

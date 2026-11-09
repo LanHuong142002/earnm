@@ -50,13 +50,26 @@ export async function verifyPassword(plain: string, stored: string): Promise<boo
 
 let dummyHash: Promise<string> | undefined;
 
-/** Does the same work as verifyPassword against a fixed hash; always false. */
-export async function dummyVerify(plain: string): Promise<false> {
+function ensureDummyHash(): Promise<string> {
   dummyHash ??= hashPassword("dummy-password-for-timing").catch((e: unknown) => {
     // Don't cache a failure: the next call tries again.
     dummyHash = undefined;
     throw e;
   });
-  await verifyPassword(plain, await dummyHash);
+  return dummyHash;
+}
+
+/** Builds the dummy hash ahead of the first request. Never rejects. */
+export async function warmDummyHash(): Promise<void> {
+  try {
+    await ensureDummyHash();
+  } catch {
+    // dummyVerify retries on demand.
+  }
+}
+
+/** Does the same work as verifyPassword against a fixed hash; always false. */
+export async function dummyVerify(plain: string): Promise<false> {
+  await verifyPassword(plain, await ensureDummyHash());
   return false;
 }

@@ -59,6 +59,7 @@ describe("auth routes", () => {
       ["email", { email: "not-an-email" }],
       ["password", { password: "1234567" }],
       ["password", { password: "a".repeat(129) }],
+      ["password", { password: "😀😀😀😀" }],
       ["displayName", { displayName: "" }],
       ["displayName", { displayName: "   " }],
       ["displayName", { displayName: "a".repeat(51) }],
@@ -71,6 +72,31 @@ describe("auth routes", () => {
       expect(res.body.error.code).toBe("validation_failed");
       expect(res.body.error.message).toContain(field);
       expect(await prisma.user.count()).toBe(0);
+    });
+
+    it("accepts a 26-emoji display name and counts characters, not UTF-16 units", async () => {
+      const { app } = fresh();
+      const res = await signUp(app, "emoji@example.com", PASSWORD, "😀".repeat(26));
+      expect(res.status).toBe(201);
+      expect(res.body.user.displayName).toBe("😀".repeat(26));
+      const tooLong = await signUp(app, "emoji2@example.com", PASSWORD, "😀".repeat(51));
+      expect(tooLong.status).toBe(400);
+    });
+
+    it("accepts an 8-emoji password and normalises the display name to NFC", async () => {
+      const { app } = fresh();
+      const res = await signUp(app, "nfc@example.com", "😀".repeat(8), "Café");
+      expect(res.status).toBe(201);
+      expect(res.body.user.displayName).toBe("Café");
+    });
+
+    it("names every failing field in the validation message, exactly", async () => {
+      const { app } = fresh();
+      const res = await request(app)
+        .post("/auth/sign-up")
+        .send({ email: "nope", password: "short", displayName: "Ana" });
+      expectError(res, 400, "validation_failed");
+      expect(res.body.error.message).toBe("Invalid fields: email, password.");
     });
 
     it("normalises the email", async () => {
@@ -159,7 +185,7 @@ describe("auth routes", () => {
       expectError(res, 400, "validation_failed");
     });
 
-    it("blocks the 6th failure for an email, even with the right password, until the window passes", async () => {
+    it("blocks the 6th failure for an email from one IP, even with the right password, until the window passes", async () => {
       const { app, clock } = fresh();
       await signUp(app);
       for (let i = 0; i < 5; i++) {
@@ -170,6 +196,32 @@ describe("auth routes", () => {
       clock.advanceMs(15 * MINUTE);
       expect((await signIn(app, "ana@example.com", PASSWORD)).status).toBe(200);
     });
+
+    it("lets the same email sign in from another IP while the first IP is blocked", async () => {
+      const { app } = fresh(1);
+      await signUp(app);
+      const from = (ip: string, password: string) =>
+        request(app)
+          .post("/auth/sign-in")
+          .set("X-Forwarded-For", ip)
+          .send({ email: "ana@example.com", password });
+      for (let i = 0; i < 5; i++) expect((await from("203.0.113.1", WRONG)).status).toBe(401);
+      expectError(await from("203.0.113.1", PASSWORD), 429, "too_many_attempts");
+      expect((await from("203.0.113.2", WRONG)).status).toBe(401);
+      expect((await from("203.0.113.2", PASSWORD)).status).toBe(200);
+    }, 30_000);
+
+    it("blocks the 51st failure for one email across many IPs", async () => {
+      const { app } = fresh(1);
+      const attempt = (i: number) =>
+        request(app)
+          .post("/auth/sign-in")
+          .set("X-Forwarded-For", `198.51.${100 + Math.floor(i / 200)}.${i % 200}`)
+          .send({ email: "ana@example.com", password: WRONG });
+      // Unknown email: each check costs one dummy scrypt. Sequential keeps it deterministic.
+      for (let i = 0; i < 50; i++) expect((await attempt(i)).status).toBe(401);
+      expectError(await attempt(50), 429, "too_many_attempts");
+    }, 120_000);
 
     it("blocks the 21st failure from one IP across different emails", async () => {
       const { app } = fresh(1);

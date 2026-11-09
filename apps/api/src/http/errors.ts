@@ -52,6 +52,8 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
     return;
   }
   if (err instanceof ZodError) {
+    // The `Invalid fields: a, b.` message format is a stable contract: the mobile app parses
+    // it to find the failing fields. The response carries `code` and `message` only (R13).
     const fields = [
       ...new Set(err.issues.map((i) => i.path.join(".") || "body")),
     ];

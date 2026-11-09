@@ -2,13 +2,13 @@ import { Router } from "express";
 import { z } from "zod";
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import { AppError } from "../http/errors.js";
-import { dummyVerify, hashPassword, verifyPassword } from "./password.js";
+import { dummyVerify, hashPassword, verifyPassword, warmDummyHash } from "./password.js";
 import {
   type AttemptHandle,
   createSignInLimiter, createSignUpLimiter,
 } from "./rate-limit.js";
 import { getAuth, requireAuth } from "./require-auth.js";
-import { createSession, generateToken, revokeSession } from "./sessions.js";
+import { cleanupExpiredSessions, createSession, generateToken, revokeSession } from "./sessions.js";
 
 export interface AuthRouterDeps {
   prisma: PrismaClient;
@@ -37,12 +37,25 @@ export function toPublicUser(user: {
 }
 
 const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email());
-const passwordSchema = z.string().min(8).max(128);
+
+/** Limits count characters (code points), not UTF-16 units, so an emoji counts as one. */
+function charLength(s: string): number {
+  return [...s].length;
+}
+
+const passwordSchema = z
+  .string()
+  .refine((s) => charLength(s) >= 8 && charLength(s) <= 128);
+const displayNameSchema = z
+  .string()
+  .trim()
+  .transform((s) => s.normalize("NFC"))
+  .refine((s) => charLength(s) >= 1 && charLength(s) <= 50);
 
 const signUpSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  displayName: z.string().trim().min(1).max(50),
+  displayName: displayNameSchema,
 });
 
 const signInSchema = z.object({
@@ -61,6 +74,8 @@ function isUniqueViolation(err: unknown): boolean {
 
 export function createAuthRouter({ prisma, now }: AuthRouterDeps): Router {
   const router = Router();
+  // Build the dummy hash now so the first unknown-email sign-in costs one scrypt like any other.
+  void warmDummyHash();
   const limiter = createSignInLimiter({ now });
   const signUpLimiter = createSignUpLimiter({ now });
 
@@ -73,6 +88,7 @@ export function createAuthRouter({ prisma, now }: AuthRouterDeps): Router {
       signUpLimiter.fail(handle);
       const passwordHash = await hashPassword(password);
       const { token, tokenHash } = generateToken();
+      await cleanupExpiredSessions(prisma, now());
       let user;
       try {
         user = await prisma.user.create({
