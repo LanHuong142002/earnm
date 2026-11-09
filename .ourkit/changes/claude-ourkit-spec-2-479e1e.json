@@ -38,5 +38,93 @@
     "9": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "apps/api/src/auth/routes.ts:85,92-97 — sign-in limiter checks isBlocked before the slow lookup+scrypt and records the failure only afterwards, so N parallel wrong-password requests for one email all pass the check: far more than 5 guesses per 15 min (R12). Fix: reserve a pending slot atomically with the check (tryAcquire), convert to failure or release after; add a test with 10 parallel wrong attempts expecting at most 5 password checks.",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "apps/api/src/app.ts:14 — trust proxy hard-coded to 1: when the API is reached directly (dev LAN now), a client can spoof X-Forwarded-For so each request is a new IP and the 20-per-IP limit never triggers; behind more than one proxy all users share one bucket (R12). Fix: read TRUST_PROXY from env, default off, document in .env.example, test that a spoofed X-Forwarded-For doesn't change the bucket when off.",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/rate-limit.ts:26-36 — maps only prune keys that are looked up again, so failures for many distinct emails/IPs stay in memory for the life of the process. Suggest a periodic sweep or size cap.",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/routes.ts:65,74 — sign-up creates user then session in two writes; if createSession fails the account exists without a returned token and a retry gets email_in_use. Suggest one transaction or nested create.",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/routes.ts:59 — sign-up has no rate limit: unlimited scrypt hashing (CPU) and an unthrottled email-exists lookup alongside the accepted R5 leak. Suggest a per-IP limit.",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/api/src/http/errors.ts:66 — logs full message+stack of unexpected errors; Prisma's default pretty error format can include query arguments (email, hash). Suggest errorFormat minimal in createPrismaClient or log only name and Prisma code.",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/sessions.ts:42 — lastUsedAt is touched at most hourly, so expiry can land up to 1 hour before '90 days after last use' (R9). Harmless; state it.",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "apps/mobile/.env.example — plain HTTP on the dev LAN carries passwords and tokens unencrypted; #3 must use HTTPS.",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "R12 per-email rule lets a third party lock a real user out for 15 minutes with 5 failures. Follows the spec; recorded as an accepted trade-off.",
+        "resolved": false
+      },
+      {
+        "id": 10,
+        "severity": "blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx setLanguage — if PATCH /me fails (offline or server error) the error is swallowed and the UI shows the choice as saved; on next launch getMe returns the old account value and syncLanguage overwrites the local choice, so the app silently reverts (R24, frontend checklist 'failed requests give a clear message'). Also a SecureStore failure in saveLanguageChoice becomes an unhandled rejection via void setLanguage(lang) in settings.tsx.",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "apps/api/src/test/helpers.ts + vitest.global-setup.ts — every run truncates User/Session in one shared test database, so two concurrent runs (other worktrees, parallel reviewers) wipe each other's rows and tests flake (seen by both reviewers). Suggest a per-run schema or documenting one run at a time.",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx endSession — the previous account's language choice survives sign-out, so the sign-in screen keeps it instead of the phone's language (R23); matters when someone else signs in on the same phone.",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/app/(auth)/sign-in.tsx and sign-up.tsx — invalid={error !== null} paints the password field red for every error (network, email_in_use, too_many_attempts), and validation errors are one generic message though the server names the field (DESIGN.md: field errors under the field).",
+        "resolved": true
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "Test coverage vs acceptance criteria: R10 random/expired token are tested only on a stub app, not on /me itself; R13 shape is mostly asserted via error.code only, not {error:{code,message}}.",
+        "resolved": true
+      }
+    ]
   }
 }
