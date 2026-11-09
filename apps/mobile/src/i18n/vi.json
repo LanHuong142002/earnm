@@ -1,0 +1,32 @@
+{
+  "common": { "appName": "earnm", "loading": "Đang tải" },
+  "auth": {
+    "signInTitle": "Đăng nhập",
+    "signUpTitle": "Tạo tài khoản",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "displayName": "Tên hiển thị",
+    "signInButton": "Đăng nhập",
+    "signUpButton": "Đăng ký",
+    "goToSignUp": "Chưa có tài khoản? Đăng ký",
+    "goToSignIn": "Đã có tài khoản? Đăng nhập"
+  },
+  "home": { "welcome": "Xin chào, {{name}}", "settingsLink": "Cài đặt" },
+  "settings": {
+    "title": "Cài đặt",
+    "language": "Ngôn ngữ",
+    "currentLanguage": "Hiện tại: {{language}}",
+    "signOut": "Đăng xuất"
+  },
+  "language": { "vi": "Tiếng Việt", "en": "English" },
+  "errors": {
+    "validation_failed": "Vui lòng kiểm tra lại thông tin đã nhập.",
+    "email_in_use": "Email này đã được đăng ký.",
+    "invalid_credentials": "Email hoặc mật khẩu không đúng.",
+    "too_many_attempts": "Quá nhiều lần thử. Vui lòng chờ rồi thử lại.",
+    "not_signed_in": "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
+    "network": "Không kết nối được máy chủ. Kiểm tra kết nối mạng.",
+    "internal_error": "Đã có lỗi xảy ra. Vui lòng thử lại.",
+    "generic": "Đã có lỗi xảy ra. Vui lòng thử lại."
+  }
+}
