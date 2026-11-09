@@ -250,7 +250,20 @@
         "severity": "non-blocking",
         "text": "apps/mobile/src/auth/AuthForm.tsx:41-42 — header tile hard-codes 48x48 instead of DESIGN.md's 52x48 tile; the plan says Review checks no component hard-codes sizes. Fix: add a tile size token and use it.",
         "resolved": false
+      },
+      {
+        "id": 36,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/password.ts:91-101 dummyVerify — the dummy hash is built lazily, so the first unknown-email sign-in after each process start costs two scrypt runs vs one for a known email: a small, repeatable timing difference against R7, reopened on every Render wake-up (#3). Fix: build it at startup or use a precomputed constant.",
+        "resolved": false
+      },
+      {
+        "id": 37,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/routes.ts:39,46 + sign-up.tsx maxLength={50} — zod min/max and RN maxLength count UTF-16 code units, not characters (R3, R4): 26 emoji are refused as a 50-char name, 4 emoji pass as an 8-char password. Fix: count code points in a refine (optionally NFC-normalise), or state the unit in the spec.",
+        "resolved": false
       }
-    ]
+    ],
+    "reviewed": "7680395867b46b9fd84d39f841a2a9aa6a17e154d81810cba49c3b35e85e69c4"
   }
 }
