@@ -188,7 +188,8 @@ describe("auth routes", () => {
       expect(blocked.status).toBe(429);
       expect(blocked.body.error.code).toBe("too_many_attempts");
       expect((await attempt("user99@example.com", "203.0.113.8")).status).toBe(401);
-    });
+      // 22 deliberately slow password checks against a remote database exceed the 5 s default.
+    }, 30_000);
   });
 
   describe("sign-out", () => {
