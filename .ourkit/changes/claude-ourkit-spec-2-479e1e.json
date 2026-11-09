@@ -184,6 +184,36 @@
         "severity": "non-blocking",
         "text": "apps/mobile/.gitignore:34 — only .env*.local is ignored, while .env.example invites a local .env that Expo reads; a .env could be committed by mistake (R28). Fix: add .env.",
         "resolved": true
+      },
+      {
+        "id": 25,
+        "severity": "non-blocking",
+        "text": "apps/api/src/auth/rate-limit.ts tryAcquire (used via req.ip in routes.ts) — IP limits key on the exact address; an IPv6 host controls a /64, so rotating addresses gets past the sign-in IP limit (password spraying across emails) and the sign-up limit (unlimited scrypt). The per-email limit still holds. Fix: bucket IPv6 by /64 after normalising IPv4-mapped addresses, or defer to #3.",
+        "resolved": false
+      },
+      {
+        "id": 26,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx setLanguage and flushPendingLanguage catches — on not_signed_in they call endSession() without checking tokenRef.current === token, so a slow request from a signed-out account A can sign out a newer account B on the same phone. Fix: return early when the token changed.",
+        "resolved": true
+      },
+      {
+        "id": 27,
+        "severity": "non-blocking",
+        "text": "apps/api/src/me/routes.ts PATCH — existence check and update are separate, so a user deleted in between raises P2025 → 500. Unreachable today (no account deletion). Fix: updateMany and return 401 when count is 0.",
+        "resolved": true
+      },
+      {
+        "id": 28,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx flushPendingLanguage + setLanguage — a background retry and a fresh Settings tap can overlap; the retry clears the pending flag without checking the stored choice still equals what it sent, so the account can stay 'en' while the phone shows 'vi', and the next launch silently switches back (R24/R26). Fix: re-read the choice after success and clear the flag only if unchanged, or route setLanguage through the same one-at-a-time path.",
+        "resolved": true
+      },
+      {
+        "id": 29,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/lib/api.ts request() — clearTimeout runs right after fetch resolves, so the 15 s timeout covers only the headers; a stalled body leaves sign-in spinning indefinitely instead of the R19 no-connection message. Fix: clear the timer after reading the body and map an abort there to ApiError('network').",
+        "resolved": true
       }
     ]
   }
