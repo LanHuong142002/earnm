@@ -81,7 +81,7 @@
         "id": 7,
         "severity": "non-blocking",
         "text": "apps/api/src/auth/sessions.ts:42 — lastUsedAt is touched at most hourly, so expiry can land up to 1 hour before '90 days after last use' (R9). Harmless; state it.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 8,
@@ -93,7 +93,7 @@
         "id": 9,
         "severity": "non-blocking",
         "text": "R12 per-email rule lets a third party lock a real user out for 15 minutes with 5 failures. Follows the spec; recorded as an accepted trade-off.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 10,
@@ -153,7 +153,7 @@
         "id": 19,
         "severity": "non-blocking",
         "text": "apps/api/src/auth/sessions.ts:44 — expired and abandoned session rows are never deleted, and a server session stays valid up to 90 days after an offline sign-out (R20 accepts this). Fix later: delete rows where lastUsedAt < now - 90d.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 20,
@@ -189,7 +189,7 @@
         "id": 25,
         "severity": "non-blocking",
         "text": "apps/api/src/auth/rate-limit.ts tryAcquire (used via req.ip in routes.ts) — IP limits key on the exact address; an IPv6 host controls a /64, so rotating addresses gets past the sign-in IP limit (password spraying across emails) and the sign-up limit (unlimited scrypt). The per-email limit still holds. Fix: bucket IPv6 by /64 after normalising IPv4-mapped addresses, or defer to #3.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 26,
@@ -219,19 +219,19 @@
         "id": 30,
         "severity": "non-blocking",
         "text": "apps/mobile/src/auth/AuthForm.tsx:26 parses the human-readable validation message from apps/api/src/http/errors.ts:61 ('Invalid fields: email, password.') to mark fields, so that wording has become an implicit API contract (R13 says message is free text). Fix: pin the format with an API test and document it, or add a structured fields array deliberately.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 31,
         "severity": "non-blocking",
         "text": "apps/mobile/src/auth/AuthProvider.tsx flushPendingLanguage — if A's flush is in flight when A signs out and B signs in, B's flush only sets rerunRef and A's run returns early on the token change without picking it up, so B's pending language reaches the account only at the next foreground or launch. No data loss. Fix: restart the flush for the current token on those early returns, or reset the refs in endSession.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 32,
         "severity": "non-blocking",
         "text": "apps/mobile/src/auth/token-store.ts — iOS keeps Keychain items after the app is deleted, so a reinstall opens signed in as the previous account. Fits R15/R16; record as known behaviour or clear the token on first launch after install.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 33,
@@ -243,25 +243,25 @@
         "id": 34,
         "severity": "non-blocking",
         "text": "apps/mobile src/app/(auth)/sign-in.tsx, sign-up.tsx, (app)/index.tsx — text links are about 37pt tall (paddingVertical 8 + lineHeight 21), below DESIGN.md's 44pt touch target. Fix: minHeight layout.controlHeight with centring, or hitSlop.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 35,
         "severity": "non-blocking",
         "text": "apps/mobile/src/auth/AuthForm.tsx:41-42 — header tile hard-codes 48x48 instead of DESIGN.md's 52x48 tile; the plan says Review checks no component hard-codes sizes. Fix: add a tile size token and use it.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 36,
         "severity": "non-blocking",
         "text": "apps/api/src/auth/password.ts:91-101 dummyVerify — the dummy hash is built lazily, so the first unknown-email sign-in after each process start costs two scrypt runs vs one for a known email: a small, repeatable timing difference against R7, reopened on every Render wake-up (#3). Fix: build it at startup or use a precomputed constant.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 37,
         "severity": "non-blocking",
         "text": "apps/api/src/auth/routes.ts:39,46 + sign-up.tsx maxLength={50} — zod min/max and RN maxLength count UTF-16 code units, not characters (R3, R4): 26 emoji are refused as a 50-char name, 4 emoji pass as an 8-char password. Fix: count code points in a refine (optionally NFC-normalise), or state the unit in the spec.",
-        "resolved": false
+        "resolved": true
       }
     ],
     "reviewed": "7680395867b46b9fd84d39f841a2a9aa6a17e154d81810cba49c3b35e85e69c4"
