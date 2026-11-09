@@ -13,7 +13,7 @@ export function Card({ children }: { children: ReactNode }) {
         borderColor: colors.border,
         borderRadius: radius.card,
         paddingHorizontal: spacing[2],
-        paddingVertical: spacing[0],
+        paddingVertical: spacing[2],
       }}
     >
       {children}

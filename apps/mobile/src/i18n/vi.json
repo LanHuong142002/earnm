@@ -13,7 +13,7 @@
     "goToSignUp": "Chưa có tài khoản? Đăng ký",
     "goToSignIn": "Đã có tài khoản? Đăng nhập"
   },
-  "home": { "welcome": "Xin chào, {{name}}", "settingsLink": "Cài đặt" },
+  "home": { "welcome": "Xin chào, {{name}}", "settingsLink": "Cài đặt", "offline": "Đang ngoại tuyến" },
   "settings": {
     "title": "Cài đặt",
     "language": "Ngôn ngữ",

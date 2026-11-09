@@ -30,11 +30,12 @@ export default function SettingsScreen() {
           </Text>
           <Card>
             <View accessibilityRole="radiogroup">
-              {LANGUAGES.map((lang) => (
+              {LANGUAGES.map((lang, i) => (
                 <ChoiceRow
                   key={lang}
                   label={t(`language.${lang}`)}
                   selected={lang === current}
+                  divider={i > 0}
                   onPress={() => setLanguage(lang).catch(() => undefined)}
                 />
               ))}

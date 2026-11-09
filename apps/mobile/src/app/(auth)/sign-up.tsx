@@ -61,13 +61,7 @@ export default function SignUpScreen() {
 
   return (
     <Screen
-      footer={
-        <>
-          {formError ? <ErrorText message={formError} /> : null}
-          <Button label={t("auth.signUpButton")} loading={busy} onPress={submit} />
-          <TextLink href="/sign-in" label={t("auth.goToSignIn")} />
-        </>
-      }
+      footer={<Button label={t("auth.signUpButton")} loading={busy} onPress={submit} />}
     >
       <Enter index={0}>
         <AuthHeader title={t("auth.signUpTitle")} subtitle={t("auth.signUpSubtitle")} />
@@ -111,6 +105,12 @@ export default function SignUpScreen() {
             editable={!busy}
             onSubmitEditing={submit}
           />
+        </View>
+      </Enter>
+      <Enter index={2}>
+        <View style={{ gap: spacing[2] }}>
+          {formError ? <ErrorText message={formError} /> : null}
+          <TextLink href="/sign-in" label={t("auth.goToSignIn")} />
         </View>
       </Enter>
     </Screen>

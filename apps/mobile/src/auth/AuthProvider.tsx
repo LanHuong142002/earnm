@@ -37,10 +37,13 @@ import {
 const MAX_FLUSH_ROUNDS = 3;
 
 export type AuthStatus = "loading" | "signedIn" | "signedOut";
+export type ProfileStatus = "loading" | "ready" | "offline";
 
 type AuthContextValue = {
   status: AuthStatus;
   user: User | null;
+  /** State of the background profile fetch at launch. */
+  profileStatus: ProfileStatus;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -67,6 +70,7 @@ async function syncLanguage(accountLanguage: Language | null): Promise<void> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<User | null>(null);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
   const [languagePendingSync, setPendingSync] = useState(false);
   const tokenRef = useRef<string | null>(null);
   const flushingRef = useRef(false);
@@ -81,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenRef.current = null;
     rerunRef.current = false;
     setUser(null);
+    setProfileStatus("loading");
     setPendingSync(false);
     setStatus("signedOut");
     // The next person sees the phone's language, not this account's choice (R23).
@@ -204,15 +209,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // Unreadable flag: treat as not pending.
       }
+      setProfileStatus("loading");
       try {
         const me = await getMe(token);
         if (cancelled || tokenRef.current !== token) return;
         setUser(me);
+        setProfileStatus("ready");
         await reconcileLanguage(token, me.language);
       } catch (error) {
         if (cancelled || tokenRef.current !== token) return;
         if (error instanceof ApiError && error.code === "not_signed_in") await endSession();
-        // network or other errors: stay signed in.
+        else if (error instanceof ApiError && error.code === "network") setProfileStatus("offline");
+        // other errors: stay signed in.
       }
     })();
     return () => {
@@ -233,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveToken(token);
     tokenRef.current = token;
     setUser(me);
+    setProfileStatus("ready");
     setStatus("signedIn");
     await reconcileLanguage(token, me.language);
   }, [reconcileLanguage]);
@@ -285,8 +294,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ status, user, signIn, signUp, signOut, setLanguage, languagePendingSync }),
-    [status, user, signIn, signUp, signOut, setLanguage, languagePendingSync],
+    () => ({ status, user, profileStatus, signIn, signUp, signOut, setLanguage, languagePendingSync }),
+    [status, user, profileStatus, signIn, signUp, signOut, setLanguage, languagePendingSync],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
