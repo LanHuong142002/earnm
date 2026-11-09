@@ -214,6 +214,42 @@
         "severity": "non-blocking",
         "text": "apps/mobile/src/lib/api.ts request() — clearTimeout runs right after fetch resolves, so the 15 s timeout covers only the headers; a stalled body leaves sign-in spinning indefinitely instead of the R19 no-connection message. Fix: clear the timer after reading the body and map an abort there to ApiError('network').",
         "resolved": true
+      },
+      {
+        "id": 30,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthForm.tsx:26 parses the human-readable validation message from apps/api/src/http/errors.ts:61 ('Invalid fields: email, password.') to mark fields, so that wording has become an implicit API contract (R13 says message is free text). Fix: pin the format with an API test and document it, or add a structured fields array deliberately.",
+        "resolved": false
+      },
+      {
+        "id": 31,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx flushPendingLanguage — if A's flush is in flight when A signs out and B signs in, B's flush only sets rerunRef and A's run returns early on the token change without picking it up, so B's pending language reaches the account only at the next foreground or launch. No data loss. Fix: restart the flush for the current token on those early returns, or reset the refs in endSession.",
+        "resolved": false
+      },
+      {
+        "id": 32,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/token-store.ts — iOS keeps Keychain items after the app is deleted, so a reinstall opens signed in as the previous account. Fits R15/R16; record as known behaviour or clear the token on first launch after install.",
+        "resolved": false
+      },
+      {
+        "id": 33,
+        "severity": "non-blocking",
+        "text": "apps/api/package.json scripts + .gitignore (/generated/prisma) — nothing runs prisma generate: no postinstall/pretest/prebuild, and global setup runs only migrate deploy. On a fresh clone or in CI, npm test / npm run build fail with 'Cannot find module ../generated/prisma/client.js'. Fix: add postinstall 'prisma generate --config prisma7.config.ts'.",
+        "resolved": true
+      },
+      {
+        "id": 34,
+        "severity": "non-blocking",
+        "text": "apps/mobile src/app/(auth)/sign-in.tsx, sign-up.tsx, (app)/index.tsx — text links are about 37pt tall (paddingVertical 8 + lineHeight 21), below DESIGN.md's 44pt touch target. Fix: minHeight layout.controlHeight with centring, or hitSlop.",
+        "resolved": false
+      },
+      {
+        "id": 35,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthForm.tsx:41-42 — header tile hard-codes 48x48 instead of DESIGN.md's 52x48 tile; the plan says Review checks no component hard-codes sizes. Fix: add a tile size token and use it.",
+        "resolved": false
       }
     ]
   }
