@@ -9,15 +9,21 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/** A fresh random token and the hash that is stored in place of it. */
+export function generateToken(): { token: string; tokenHash: string } {
+  const token = randomBytes(32).toString("base64url");
+  return { token, tokenHash: hashToken(token) };
+}
+
 /** Creates a session and returns the raw token. Only its sha256 hash is stored. */
 export async function createSession(
   prisma: PrismaClient,
   userId: string,
   now: Date,
 ): Promise<string> {
-  const token = randomBytes(32).toString("base64url");
+  const { token, tokenHash } = generateToken();
   await prisma.session.create({
-    data: { userId, tokenHash: hashToken(token), lastUsedAt: now },
+    data: { userId, tokenHash, lastUsedAt: now },
   });
   return token;
 }

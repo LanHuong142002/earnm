@@ -2,9 +2,9 @@ import express from "express";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { hashPassword } from "../auth/password.js";
-import { createSession } from "../auth/sessions.js";
+import { SESSION_LIFETIME_MS, createSession } from "../auth/sessions.js";
 import { errorHandler, notFoundHandler } from "../http/errors.js";
-import { createClock, prisma, useTestApp } from "../test/helpers.js";
+import { createClock, expectError, prisma, useTestApp } from "../test/helpers.js";
 import { createMeRouter } from "./routes.js";
 
 describe("/me", () => {
@@ -70,5 +70,17 @@ describe("/me", () => {
     expect(get.body.error.code).toBe("not_signed_in");
     const patch = await request(app).patch("/me").send({ language: "en" });
     expect(patch.status).toBe(401);
+  });
+
+  it("returns the exact not_signed_in error for a random token", async () => {
+    const res = await request(app).get("/me").set(...auth("not-a-real-token"));
+    expectError(res, 401, "not_signed_in");
+  });
+
+  it("returns the exact not_signed_in error for an expired token", async () => {
+    const { token } = await signedInUser();
+    clock.advanceMs(SESSION_LIFETIME_MS);
+    const res = await request(app).get("/me").set(...auth(token));
+    expectError(res, 401, "not_signed_in");
   });
 });

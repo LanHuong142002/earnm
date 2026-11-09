@@ -2,7 +2,7 @@ import type { Express } from "express";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
-import { createClock, prisma, useTestApp, type TestClock } from "../test/helpers.js";
+import { createClock, expectError, prisma, useTestApp, type TestClock } from "../test/helpers.js";
 import { verifyPassword } from "./password.js";
 import { hashToken } from "./sessions.js";
 
@@ -15,9 +15,9 @@ describe("auth routes", () => {
   // limiter state never leaks between tests.
   useTestApp();
 
-  function fresh(): { app: Express; clock: TestClock } {
+  function fresh(trustProxy = 0): { app: Express; clock: TestClock } {
     const clock = createClock();
-    return { app: createApp({ prisma, now: clock.now }), clock };
+    return { app: createApp({ prisma, now: clock.now, trustProxy }), clock };
   }
 
   function signUp(
@@ -115,8 +115,7 @@ describe("auth routes", () => {
       const { app } = fresh();
       expect((await signUp(app)).status).toBe(201);
       const res = await signUp(app, "ANA@example.com");
-      expect(res.status).toBe(409);
-      expect(res.body.error.code).toBe("email_in_use");
+      expectError(res, 409, "email_in_use");
     });
 
     it("creates exactly one user for two parallel sign-ups", async () => {
@@ -157,8 +156,7 @@ describe("auth routes", () => {
     it("rejects malformed input with a validation error", async () => {
       const { app } = fresh();
       const res = await signIn(app, "nope", "x");
-      expect(res.status).toBe(400);
-      expect(res.body.error.code).toBe("validation_failed");
+      expectError(res, 400, "validation_failed");
     });
 
     it("blocks the 6th failure for an email, even with the right password, until the window passes", async () => {
@@ -168,14 +166,13 @@ describe("auth routes", () => {
         expect((await signIn(app, "ana@example.com", WRONG)).status).toBe(401);
       }
       const blocked = await signIn(app, "ana@example.com", PASSWORD);
-      expect(blocked.status).toBe(429);
-      expect(blocked.body.error.code).toBe("too_many_attempts");
+      expectError(blocked, 429, "too_many_attempts");
       clock.advanceMs(15 * MINUTE);
       expect((await signIn(app, "ana@example.com", PASSWORD)).status).toBe(200);
     });
 
     it("blocks the 21st failure from one IP across different emails", async () => {
-      const { app } = fresh();
+      const { app } = fresh(1);
       const attempt = (email: string, ip: string) =>
         request(app)
           .post("/auth/sign-in")
@@ -185,11 +182,69 @@ describe("auth routes", () => {
         expect((await attempt(`user${i}@example.com`, "203.0.113.7")).status).toBe(401);
       }
       const blocked = await attempt("user99@example.com", "203.0.113.7");
-      expect(blocked.status).toBe(429);
-      expect(blocked.body.error.code).toBe("too_many_attempts");
+      expectError(blocked, 429, "too_many_attempts");
       expect((await attempt("user99@example.com", "203.0.113.8")).status).toBe(401);
       // 22 deliberately slow password checks against a remote database exceed the 5 s default.
     }, 30_000);
+    it("ignores a spoofed X-Forwarded-For when no proxy is trusted", async () => {
+      const { app } = fresh();
+      for (let i = 0; i < 5; i++) {
+        const res = await request(app)
+          .post("/auth/sign-in")
+          .set("X-Forwarded-For", `198.51.100.${i}`)
+          .send({ email: "ana@example.com", password: WRONG });
+        expect(res.status).toBe(401);
+      }
+      // A new forged address does not give the caller a fresh email bucket.
+      const res = await request(app)
+        .post("/auth/sign-in")
+        .set("X-Forwarded-For", "198.51.100.99")
+        .send({ email: "ana@example.com", password: WRONG });
+      expectError(res, 429, "too_many_attempts");
+    });
+
+    it("does not let a spoofed X-Forwarded-For escape the IP limit", async () => {
+      const { app } = fresh();
+      for (let i = 0; i < 20; i++) {
+        const res = await request(app)
+          .post("/auth/sign-in")
+          .set("X-Forwarded-For", `198.51.100.${i}`)
+          .send({ email: `user${i}@example.com`, password: WRONG });
+        expect(res.status).toBe(401);
+      }
+      const res = await request(app)
+        .post("/auth/sign-in")
+        .set("X-Forwarded-For", "198.51.100.200")
+        .send({ email: "other@example.com", password: WRONG });
+      expectError(res, 429, "too_many_attempts");
+    }, 30_000);
+
+    it("lets at most 5 of 10 parallel wrong-password attempts reach the password check", async () => {
+      const { app } = fresh();
+      await signUp(app);
+      const results = await Promise.all(
+        Array.from({ length: 10 }, () => signIn(app, "ana@example.com", WRONG)),
+      );
+      const blocked = results.filter((r) => r.status === 429);
+      expect(blocked.length).toBeGreaterThanOrEqual(5);
+      for (const r of results) {
+        if (r.status === 429) expectError(r, 429, "too_many_attempts");
+        else expectError(r, 401, "invalid_credentials");
+      }
+    });
+  });
+
+  describe("sign-up limit", () => {
+    it("blocks the 11th sign-up attempt from one IP and frees it after 15 minutes", async () => {
+      const { app, clock } = fresh();
+      for (let i = 0; i < 10; i++) {
+        // Invalid bodies still count as attempts and are cheap.
+        expect((await signUp(app, "nope")).status).toBe(400);
+      }
+      expectError(await signUp(app, "late@example.com"), 429, "too_many_attempts");
+      clock.advanceMs(15 * MINUTE);
+      expect((await signUp(app, "late@example.com")).status).toBe(201);
+    });
   });
 
   describe("sign-out", () => {
@@ -204,8 +259,7 @@ describe("auth routes", () => {
       const again = await request(app)
         .post("/auth/sign-out")
         .set("Authorization", `Bearer ${first.body.token}`);
-      expect(again.status).toBe(401);
-      expect(again.body.error.code).toBe("not_signed_in");
+      expectError(again, 401, "not_signed_in");
       const other = await request(app)
         .post("/auth/sign-out")
         .set("Authorization", `Bearer ${second.body.token}`);
@@ -215,8 +269,7 @@ describe("auth routes", () => {
     it("requires a token", async () => {
       const { app } = fresh();
       const res = await request(app).post("/auth/sign-out");
-      expect(res.status).toBe(401);
-      expect(res.body.error.code).toBe("not_signed_in");
+      expectError(res, 401, "not_signed_in");
     });
   });
 });

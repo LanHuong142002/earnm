@@ -27,6 +27,21 @@ function isBodyTooLarge(err: unknown): boolean {
   return (err as { type?: unknown } | null)?.type === "entity.too.large";
 }
 
+/**
+ * Logs the error name, Prisma code and stack frames only. The message is left out
+ * because Prisma messages can carry query arguments such as emails or hashes.
+ */
+function logUnexpected(err: unknown): void {
+  const e = err instanceof Error ? err : new Error("non-error thrown");
+  const code = (e as { code?: unknown }).code;
+  const frames = (e.stack ?? "")
+    .split("\n")
+    .filter((line) => line.trimStart().startsWith("at "))
+    .join("\n");
+  const codePart = typeof code === "string" ? ` (${code})` : "";
+  console.error(`${e.name}${codePart}\n${frames}`);
+}
+
 export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
   if (res.headersSent) {
     next(err);
@@ -60,9 +75,7 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
       .json({ error: { code: "payload_too_large", message: "Request body is too large." } });
     return;
   }
-  // Log only the error name and stack, never request data.
-  const e = err instanceof Error ? err : new Error("non-error thrown");
-  console.error(`${e.name}: ${e.stack ?? ""}`);
+  logUnexpected(err);
   res
     .status(500)
     .json({ error: { code: "internal_error", message: "Something went wrong." } });

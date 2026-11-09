@@ -3,9 +3,12 @@ import { z } from "zod";
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import { AppError } from "../http/errors.js";
 import { dummyVerify, hashPassword, verifyPassword } from "./password.js";
-import { createSignInLimiter } from "./rate-limit.js";
+import {
+  type AttemptHandle,
+  createSignInLimiter, createSignUpLimiter,
+} from "./rate-limit.js";
 import { getAuth, requireAuth } from "./require-auth.js";
-import { createSession, revokeSession } from "./sessions.js";
+import { createSession, generateToken, revokeSession } from "./sessions.js";
 
 export interface AuthRouterDeps {
   prisma: PrismaClient;
@@ -48,6 +51,10 @@ const signInSchema = z.object({
   password: z.string().max(1024),
 });
 
+function tooManyAttempts(): AppError {
+  return new AppError(429, "too_many_attempts", "Too many attempts. Try again later.");
+}
+
 function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: unknown } | null)?.code === "P2002";
 }
@@ -55,15 +62,26 @@ function isUniqueViolation(err: unknown): boolean {
 export function createAuthRouter({ prisma, now }: AuthRouterDeps): Router {
   const router = Router();
   const limiter = createSignInLimiter({ now });
+  const signUpLimiter = createSignUpLimiter({ now });
 
   router.post("/sign-up", async (req, res, next) => {
+    // Every attempt counts toward the per-IP limit, whatever its outcome.
+    const handle = signUpLimiter.tryAcquire({ email: "", ip: req.ip ?? "unknown" });
     try {
+      if (!handle) throw tooManyAttempts();
+      signUpLimiter.fail(handle);
       const { email, password, displayName } = signUpSchema.parse(req.body);
       const passwordHash = await hashPassword(password);
+      const { token, tokenHash } = generateToken();
       let user;
       try {
         user = await prisma.user.create({
-          data: { email, passwordHash, displayName },
+          data: {
+            email,
+            passwordHash,
+            displayName,
+            sessions: { create: { tokenHash, lastUsedAt: now() } },
+          },
         });
       } catch (err) {
         if (isUniqueViolation(err)) {
@@ -71,7 +89,6 @@ export function createAuthRouter({ prisma, now }: AuthRouterDeps): Router {
         }
         throw err;
       }
-      const token = await createSession(prisma, user.id, now());
       res.status(201).json({ token, user: toPublicUser(user) });
     } catch (err) {
       next(err);
@@ -79,28 +96,26 @@ export function createAuthRouter({ prisma, now }: AuthRouterDeps): Router {
   });
 
   router.post("/sign-in", async (req, res, next) => {
+    let handle: AttemptHandle | null = null;
     try {
       const { email, password } = signInSchema.parse(req.body);
-      const key = { email, ip: req.ip ?? "unknown" };
-      if (limiter.isBlocked(key)) {
-        throw new AppError(
-          429,
-          "too_many_attempts",
-          "Too many attempts. Try again later.",
-        );
-      }
+      handle = limiter.tryAcquire({ email, ip: req.ip ?? "unknown" });
+      if (!handle) throw tooManyAttempts();
       const user = await prisma.user.findUnique({ where: { email } });
       const ok = user
         ? await verifyPassword(password, user.passwordHash)
         : await dummyVerify(password);
       if (!user || !ok) {
-        limiter.recordFailure(key);
+        limiter.fail(handle);
         throw new AppError(401, "invalid_credentials", "Wrong email or password.");
       }
       const token = await createSession(prisma, user.id, now());
       res.status(200).json({ token, user: toPublicUser(user) });
     } catch (err) {
       next(err);
+    } finally {
+      // No-op after fail(); frees the reserved slot on success or any thrown error.
+      if (handle) limiter.release(handle);
     }
   });
 

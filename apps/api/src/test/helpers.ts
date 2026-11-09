@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import type { Express } from "express";
-import { beforeEach, afterAll } from "vitest";
+import { beforeEach, afterAll, expect } from "vitest";
 import { createApp } from "../app.js";
 import { createPrismaClient } from "../db.js";
 
@@ -41,4 +41,18 @@ export function useTestApp(): { app: Express; clock: TestClock } {
     await prisma.$disconnect();
   });
   return { app, clock };
+}
+
+/** Asserts the exact error response shape: { error: { code, message } } and nothing else. */
+export function expectError(
+  res: { status: number; body: unknown },
+  status: number,
+  code: string,
+): void {
+  expect(res.status).toBe(status);
+  expect(Object.keys(res.body as object)).toEqual(["error"]);
+  const error = (res.body as { error: Record<string, unknown> }).error;
+  expect(Object.keys(error).sort()).toEqual(["code", "message"]);
+  expect(error["code"]).toBe(code);
+  expect(typeof error["message"]).toBe("string");
 }

@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { config } from "dotenv";
 
+// The test database is shared state: tests truncate tables, so only ONE test run may use
+// it at a time. Two concurrent runs cause unique and foreign-key failures that move around.
 export default function setup(): void {
   config({ quiet: true });
   const testUrl = process.env["TEST_DATABASE_URL"];

@@ -7,11 +7,13 @@ import { createMeRouter } from "./me/routes.js";
 export interface AppDeps {
   prisma: PrismaClient;
   now: () => Date;
+  /** Number of reverse-proxy hops to trust for X-Forwarded-For. 0 (default) trusts none. */
+  trustProxy?: number;
 }
 
 export function createApp(deps: AppDeps): Express {
   const app = express();
-  app.set("trust proxy", 1);
+  app.set("trust proxy", deps.trustProxy ?? 0);
   app.use(express.json({ limit: "10kb" }));
 
   app.get("/health", (_req, res) => {
