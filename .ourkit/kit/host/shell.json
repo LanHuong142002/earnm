@@ -1,0 +1,16 @@
+{
+  "host": "claude-code",
+  "stagesDir": ".claude/skills",
+  "agentsDir": ".claude/agents",
+  "rulesDir": ".claude/rules",
+  "session": {
+    "command": "claude",
+    "args": ["-p", "--output-format", "stream-json", "--verbose", "--model", "opus", "--settings", ".ourkit/kit/host/session-settings.json"],
+    "reportsUsage": true
+  },
+  "models": {
+    "strong": "opus",
+    "balanced": "sonnet",
+    "cheap": "haiku"
+  }
+}
