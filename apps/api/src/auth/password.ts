@@ -52,7 +52,11 @@ let dummyHash: Promise<string> | undefined;
 
 /** Does the same work as verifyPassword against a fixed hash; always false. */
 export async function dummyVerify(plain: string): Promise<false> {
-  dummyHash ??= hashPassword("dummy-password-for-timing");
+  dummyHash ??= hashPassword("dummy-password-for-timing").catch((e: unknown) => {
+    // Don't cache a failure: the next call tries again.
+    dummyHash = undefined;
+    throw e;
+  });
   await verifyPassword(plain, await dummyHash);
   return false;
 }

@@ -235,12 +235,23 @@ describe("auth routes", () => {
   });
 
   describe("sign-up limit", () => {
-    it("blocks the 11th sign-up attempt from one IP and frees it after 15 minutes", async () => {
-      const { app, clock } = fresh();
+    it("does not count invalid bodies toward the limit", async () => {
+      const { app } = fresh();
       for (let i = 0; i < 10; i++) {
-        // Invalid bodies still count as attempts and are cheap.
         expect((await signUp(app, "nope")).status).toBe(400);
       }
+      expect((await signUp(app, "first@example.com")).status).toBe(201);
+    });
+
+    it("blocks the 11th valid attempt from one IP and frees it after 15 minutes", { timeout: 60_000 }, async () => {
+      const { app, clock } = fresh();
+      expect((await signUp(app, "u0@example.com")).status).toBe(201);
+      // A 409 still counts.
+      expect((await signUp(app, "u0@example.com")).status).toBe(409);
+      for (let i = 1; i < 9; i++) {
+        expect((await signUp(app, `u${i}@example.com`)).status).toBe(201);
+      }
+      // 10 attempts so far (9 created + 1 conflict).
       expectError(await signUp(app, "late@example.com"), 429, "too_many_attempts");
       clock.advanceMs(15 * MINUTE);
       expect((await signUp(app, "late@example.com")).status).toBe(201);

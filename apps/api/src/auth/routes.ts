@@ -65,12 +65,12 @@ export function createAuthRouter({ prisma, now }: AuthRouterDeps): Router {
   const signUpLimiter = createSignUpLimiter({ now });
 
   router.post("/sign-up", async (req, res, next) => {
-    // Every attempt counts toward the per-IP limit, whatever its outcome.
-    const handle = signUpLimiter.tryAcquire({ email: "", ip: req.ip ?? "unknown" });
     try {
+      // Only attempts with a valid body count toward the per-IP limit.
+      const { email, password, displayName } = signUpSchema.parse(req.body);
+      const handle = signUpLimiter.tryAcquire({ email: "", ip: req.ip ?? "unknown" });
       if (!handle) throw tooManyAttempts();
       signUpLimiter.fail(handle);
-      const { email, password, displayName } = signUpSchema.parse(req.body);
       const passwordHash = await hashPassword(password);
       const { token, tokenHash } = generateToken();
       let user;

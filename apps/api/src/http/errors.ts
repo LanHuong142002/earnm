@@ -75,6 +75,18 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
       .json({ error: { code: "payload_too_large", message: "Request body is too large." } });
     return;
   }
+  const e = err as { status?: unknown; expose?: unknown } | null;
+  if (
+    typeof e?.status === "number" &&
+    e.status >= 400 &&
+    e.status <= 499 &&
+    e.expose === true
+  ) {
+    res
+      .status(e.status)
+      .json({ error: { code: "bad_request", message: "The request couldn't be read." } });
+    return;
+  }
   logUnexpected(err);
   res
     .status(500)

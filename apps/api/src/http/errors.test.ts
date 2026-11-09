@@ -26,4 +26,21 @@ describe("error handler logging", () => {
     expect(logged).toContain("P2002");
     expect(logged).toContain("at ");
   });
+
+  it("answers other body-parser client errors with 400-range bad_request and does not log", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const app = express();
+    app.use(express.json());
+    app.post("/x", (_req, res) => {
+      res.json({ ok: true });
+    });
+    app.use(errorHandler);
+
+    const res = await request(app)
+      .post("/x")
+      .set("Content-Type", "application/json; charset=not-a-charset")
+      .send("{}");
+    expectError(res, 415, "bad_request");
+    expect(spy).not.toHaveBeenCalled();
+  });
 });
