@@ -37,7 +37,8 @@ After the work, run `ourkit gate run test`, `ourkit gate run lint` and `ourkit g
 
 - A `not-run` result means nothing was verified. Report it as not run, and never guess a replacement command.
 - Judge only files in `ourkit gate scope`. Failures that come only from older code are for reporting, not fixing here.
-- New behaviour needs tests when the project can run them. If it can't be tested here, add it to the Test Handoff with step-by-step instructions.
+- New behaviour needs tests when the project can run them, written first as `.ourkit/kit/core/testing.md` describes. If it can't be tested here, add it to the Test Handoff with step-by-step instructions.
+- Check each diff against `.ourkit/kit/core/security.md` as well as the task. A test that was skipped, disabled or loosened to pass is a failure, not a pass.
 
 ## Handing over
 

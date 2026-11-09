@@ -20,7 +20,7 @@ Keep notes as you go at the path from `ourkit gate path bug`, in the `##` sectio
 ## Reproduce
 
 1. **Write down the Symptom:** what happens, what should happen, and where it was reported.
-2. **Reproduce it,** using the `ourkit-runner` subagent for commands. Prefer a failing automated test, run with `ourkit gate run test`, because it then guards against the bug returning. Record the exact steps and what you saw under **Reproduction**.
+2. **Reproduce it,** using the `ourkit-runner` subagent for commands. Prefer a failing automated test, run with `ourkit gate run test`, because it then guards against the bug returning. Unless the bug is trivial, have a separate `ourkit-implementer` subagent write that test from the Symptom alone, before anyone works on the fix (`.ourkit/kit/core/testing.md`). Record the exact steps and what you saw under **Reproduction**.
 3. **If you can't reproduce it, don't fix anything.** A change made without seeing the bug can't be shown to work. In Pair, tell the user what you tried and ask for more detail. In Hands-off, add it to the Question Batch and stop.
 
 ## Set the Tier

@@ -13,7 +13,8 @@ Check that:
 - the change does what the spec asks, requirement by requirement, and adds nothing it doesn't ask for
 - every applicable checklist item holds
 - the code is correct, including edge cases and failure paths
-- tests really verify the behaviour
+- tests really verify the behaviour, as `.ourkit/kit/core/testing.md` describes, and none was skipped, disabled or loosened to pass
+- nothing breaks `.ourkit/kit/core/security.md`
 
 Report each finding with its file and line, what's wrong, a concrete way it fails, and a suggested fix. Mark it:
 - **blocking:** it's wrong, breaks a requirement, or fails a checklist item
