@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": false },
+  "include": ["src", "generated"],
+  "exclude": ["src/**/*.test.ts", "src/test"]
+}
