@@ -14,7 +14,7 @@ const LANGUAGES: Language[] = ["vi", "en"];
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
-  const { setLanguage, signOut } = useAuth();
+  const { setLanguage, signOut, languagePendingSync } = useAuth();
   const { colors, typography, spacing } = useTheme();
   const current: Language = i18n.language === "vi" ? "vi" : "en";
 
@@ -35,11 +35,16 @@ export default function SettingsScreen() {
                   key={lang}
                   label={t(`language.${lang}`)}
                   selected={lang === current}
-                  onPress={() => void setLanguage(lang)}
+                  onPress={() => setLanguage(lang).catch(() => undefined)}
                 />
               ))}
             </View>
           </Card>
+          {languagePendingSync ? (
+            <Text style={[typography.label, { color: colors.textSecondary }]}>
+              {t("settings.pendingSync")}
+            </Text>
+          ) : null}
         </View>
       </Enter>
       <Enter index={1}>

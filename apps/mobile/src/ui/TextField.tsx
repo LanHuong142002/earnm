@@ -4,15 +4,19 @@ import { useState } from "react";
 import { Text, TextInput, View, type TextInputProps } from "react-native";
 
 import { useTheme } from "../theme/useTheme";
+import { ErrorText } from "./ErrorText";
 
 type Props = Omit<TextInputProps, "style"> & {
   label: string;
   icon: ComponentProps<typeof Ionicons>["name"];
   invalid?: boolean;
+  /** Message shown under the field; also marks it invalid. */
+  error?: string | null;
 };
 
-export function TextField({ label, icon, invalid = false, onFocus, onBlur, ...rest }: Props) {
+export function TextField({ label, icon, invalid: invalidProp = false, error, onFocus, onBlur, ...rest }: Props) {
   const { colors, typography, layout, radius, spacing } = useTheme();
+  const invalid = invalidProp || !!error;
   const [focused, setFocused] = useState(false);
   const borderColor = invalid ? colors.danger : focused ? colors.accent : "transparent";
 
@@ -48,6 +52,7 @@ export function TextField({ label, icon, invalid = false, onFocus, onBlur, ...re
           style={[typography.body, { flex: 1, color: colors.text, paddingVertical: 0 }]}
         />
       </View>
+      {error ? <ErrorText message={error} /> : null}
     </View>
   );
 }

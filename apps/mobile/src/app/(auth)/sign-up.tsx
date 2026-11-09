@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { AuthHeader, errorMessage } from "../../auth/AuthForm";
+import { AuthHeader, fieldError, type AuthField } from "../../auth/AuthForm";
 import { useAuth } from "../../auth/AuthProvider";
 import { useTheme } from "../../theme/useTheme";
 import { Button } from "../../ui/Button";
@@ -19,9 +19,14 @@ export default function SignUpScreen() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErr, setFieldErr] = useState<{ field: AuthField | null; message: string } | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+
+  const errorFor = (field: AuthField) => (fieldErr?.field === field ? fieldErr.message : null);
+  const formError = fieldErr && fieldErr.field === null ? fieldErr.message : null;
 
   async function submit() {
     if (inFlight.current) return;
@@ -33,16 +38,22 @@ export default function SignUpScreen() {
       name.length < 1 ||
       name.length > 50
     ) {
-      setError(t("errors.validation_failed"));
+      const field: AuthField =
+        name.length < 1 || name.length > 50
+          ? "displayName"
+          : email.trim() === ""
+            ? "email"
+            : "password";
+      setFieldErr({ field, message: t("errors.validation_failed") });
       return;
     }
     inFlight.current = true;
     setBusy(true);
-    setError(null);
+    setFieldErr(null);
     try {
       await signUp(email.trim(), password, name);
     } catch (e) {
-      setError(errorMessage(e, t));
+      setFieldErr(fieldError(e, t));
       setPassword("");
     } finally {
       inFlight.current = false;
@@ -54,6 +65,7 @@ export default function SignUpScreen() {
     <Screen
       footer={
         <>
+          {formError ? <ErrorText message={formError} /> : null}
           <Button label={t("auth.signUpButton")} loading={busy} onPress={submit} />
           <Link href="/sign-in" style={{ paddingVertical: spacing[2], textAlign: "center" }}>
             <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>
@@ -70,6 +82,7 @@ export default function SignUpScreen() {
         <View style={{ gap: spacing[2] }}>
           <TextField
             label={t("auth.displayName")}
+            error={errorFor("displayName")}
             icon="person-outline"
             value={displayName}
             onChangeText={setDisplayName}
@@ -80,6 +93,7 @@ export default function SignUpScreen() {
           />
           <TextField
             label={t("auth.email")}
+            error={errorFor("email")}
             icon="mail-outline"
             value={email}
             onChangeText={setEmail}
@@ -93,7 +107,7 @@ export default function SignUpScreen() {
           <TextField
             label={t("auth.password")}
             icon="lock-closed-outline"
-            invalid={error !== null}
+            error={errorFor("password")}
             value={password}
             onChangeText={setPassword}
             autoCapitalize="none"
@@ -104,7 +118,6 @@ export default function SignUpScreen() {
             editable={!busy}
             onSubmitEditing={submit}
           />
-          {error ? <ErrorText message={error} /> : null}
         </View>
       </Enter>
     </Screen>

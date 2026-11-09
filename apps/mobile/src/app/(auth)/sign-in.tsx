@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { AuthHeader, errorMessage } from "../../auth/AuthForm";
+import { AuthHeader, fieldError, type AuthField } from "../../auth/AuthForm";
 import { useAuth } from "../../auth/AuthProvider";
 import { useTheme } from "../../theme/useTheme";
 import { Button } from "../../ui/Button";
@@ -18,23 +18,31 @@ export default function SignInScreen() {
   const { colors, typography, spacing } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErr, setFieldErr] = useState<{ field: AuthField | null; message: string } | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+
+  const errorFor = (field: AuthField) => (fieldErr?.field === field ? fieldErr.message : null);
+  const formError = fieldErr && fieldErr.field === null ? fieldErr.message : null;
 
   async function submit() {
     if (inFlight.current) return;
     if (email.trim() === "" || password === "") {
-      setError(t("errors.validation_failed"));
+      setFieldErr({
+        field: email.trim() === "" ? "email" : "password",
+        message: t("errors.validation_failed"),
+      });
       return;
     }
     inFlight.current = true;
     setBusy(true);
-    setError(null);
+    setFieldErr(null);
     try {
       await signIn(email.trim(), password);
     } catch (e) {
-      setError(errorMessage(e, t));
+      setFieldErr(fieldError(e, t));
       setPassword("");
     } finally {
       inFlight.current = false;
@@ -46,6 +54,7 @@ export default function SignInScreen() {
     <Screen
       footer={
         <>
+          {formError ? <ErrorText message={formError} /> : null}
           <Button label={t("auth.signInButton")} loading={busy} onPress={submit} />
           <Link href="/sign-up" style={{ paddingVertical: spacing[2], textAlign: "center" }}>
             <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>
@@ -62,6 +71,7 @@ export default function SignInScreen() {
         <View style={{ gap: spacing[2] }}>
           <TextField
             label={t("auth.email")}
+            error={errorFor("email")}
             icon="mail-outline"
             value={email}
             onChangeText={setEmail}
@@ -75,7 +85,7 @@ export default function SignInScreen() {
           <TextField
             label={t("auth.password")}
             icon="lock-closed-outline"
-            invalid={error !== null}
+            error={errorFor("password")}
             value={password}
             onChangeText={setPassword}
             autoCapitalize="none"
@@ -86,7 +96,6 @@ export default function SignInScreen() {
             editable={!busy}
             onSubmitEditing={submit}
           />
-          {error ? <ErrorText message={error} /> : null}
         </View>
       </Enter>
     </Screen>

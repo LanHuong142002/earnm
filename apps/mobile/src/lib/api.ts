@@ -12,12 +12,15 @@ export type AuthResult = { token: string; user: User };
 export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
+  /** The server's human-readable message, when it sent one (used to find invalid fields). */
+  readonly serverMessage: string | null;
 
-  constructor(code: string, status = 0) {
+  constructor(code: string, status = 0, serverMessage: string | null = null) {
     super(code);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
+    this.serverMessage = serverMessage;
   }
 }
 
@@ -44,13 +47,15 @@ export async function request<T>(
 
   if (!response.ok) {
     let code = "internal_error";
+    let serverMessage: string | null = null;
     try {
-      const data = (await response.json()) as { error?: { code?: unknown } };
+      const data = (await response.json()) as { error?: { code?: unknown; message?: unknown } };
       if (typeof data?.error?.code === "string") code = data.error.code;
+      if (typeof data?.error?.message === "string") serverMessage = data.error.message;
     } catch {
       // Non-JSON error body: keep the fallback code.
     }
-    throw new ApiError(code, response.status);
+    throw new ApiError(code, response.status, serverMessage);
   }
 
   if (response.status === 204) return undefined as T;
