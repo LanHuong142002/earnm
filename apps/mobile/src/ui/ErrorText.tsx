@@ -14,7 +14,7 @@ import { useTheme } from "../theme/useTheme";
 
 // Alert icon + message. Fades in and shakes on mount; Reduce Motion: fade only.
 export function ErrorText({ message }: { message: string }) {
-  const { colors, typography, spacing } = useTheme();
+  const { colors, typography, spacing, iconSize } = useTheme();
   const reduced = useReducedMotion();
   const opacity = useSharedValue(0);
   const shift = useSharedValue(0);
@@ -42,7 +42,7 @@ export function ErrorText({ message }: { message: string }) {
       accessibilityRole="alert"
       style={[{ flexDirection: "row", alignItems: "flex-start", gap: spacing[1] }, animated]}
     >
-      <Ionicons name="alert-circle-outline" size={20} color={colors.danger} />
+      <Ionicons name="alert-circle-outline" size={iconSize.sm} color={colors.danger} />
       <Text style={[typography.label, { flex: 1, color: colors.danger }]}>{message}</Text>
     </Animated.View>
   );

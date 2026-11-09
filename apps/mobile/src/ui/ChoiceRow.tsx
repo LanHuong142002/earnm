@@ -14,7 +14,7 @@ export function ChoiceRow({
   selected: boolean;
   onPress: () => void;
 }) {
-  const { colors, typography, layout } = useTheme();
+  const { colors, typography, layout, iconSize } = useTheme();
   return (
     <PressableScale
       accessibilityRole="radio"
@@ -31,7 +31,7 @@ export function ChoiceRow({
       <Text style={[selected ? typography.bodyStrong : typography.body, { color: colors.text }]}>
         {label}
       </Text>
-      {selected ? <Ionicons name="checkmark" size={22} color={colors.accent} /> : null}
+      {selected ? <Ionicons name="checkmark" size={iconSize.md} color={colors.accent} /> : null}
     </PressableScale>
   );
 }

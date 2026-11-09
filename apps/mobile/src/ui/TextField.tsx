@@ -15,7 +15,7 @@ type Props = Omit<TextInputProps, "style"> & {
 };
 
 export function TextField({ label, icon, invalid: invalidProp = false, error, onFocus, onBlur, ...rest }: Props) {
-  const { colors, typography, layout, radius, spacing } = useTheme();
+  const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
   const invalid = invalidProp || !!error;
   const [focused, setFocused] = useState(false);
   const borderColor = invalid ? colors.danger : focused ? colors.accent : "transparent";
@@ -36,7 +36,7 @@ export function TextField({ label, icon, invalid: invalidProp = false, error, on
           backgroundColor: invalid ? colors.dangerBg : colors.field,
         }}
       >
-        <Ionicons name={icon} size={20} color={colors.placeholder} />
+        <Ionicons name={icon} size={iconSize.sm} color={colors.placeholder} />
         <TextInput
           {...rest}
           accessibilityLabel={label}

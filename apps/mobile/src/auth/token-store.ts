@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { File, Paths } from "expo-file-system";
 
 import type { Language } from "../i18n";
 
@@ -23,3 +24,13 @@ export async function getLanguagePendingSync(): Promise<boolean> {
 }
 export const saveLanguagePendingSync = () => SecureStore.setItemAsync(PENDING_KEY, "1");
 export const deleteLanguagePendingSync = () => SecureStore.deleteItemAsync(PENDING_KEY);
+
+// iOS keeps Keychain items after the app is deleted. A marker file in the document
+// directory is removed with the app, so a missing marker means a fresh install and any
+// Keychain leftovers (token, language, pending flag) must go before they are read.
+export async function clearKeychainOnFreshInstall(): Promise<void> {
+  const marker = new File(Paths.document, "launched.marker");
+  if (marker.exists) return;
+  await Promise.all([deleteToken(), deleteLanguageChoice(), deleteLanguagePendingSync()]);
+  marker.create();
+}

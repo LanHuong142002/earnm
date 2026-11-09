@@ -1,6 +1,5 @@
-import { Link } from "expo-router";
 import { useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { AuthHeader, fieldError, type AuthField } from "../../auth/AuthForm";
@@ -11,11 +10,12 @@ import { Enter } from "../../ui/Enter";
 import { ErrorText } from "../../ui/ErrorText";
 import { Screen } from "../../ui/Screen";
 import { TextField } from "../../ui/TextField";
+import { TextLink } from "../../ui/TextLink";
 
 export default function SignUpScreen() {
   const { t } = useTranslation();
   const { signUp } = useAuth();
-  const { colors, typography, spacing } = useTheme();
+  const { spacing } = useTheme();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,16 +30,14 @@ export default function SignUpScreen() {
 
   async function submit() {
     if (inFlight.current) return;
-    const name = displayName.trim();
-    if (
-      email.trim() === "" ||
-      password.length < 8 ||
-      password.length > 128 ||
-      name.length < 1 ||
-      name.length > 50
-    ) {
+    // Lengths count characters (code points), not UTF-16 units; the name is NFC-normalised.
+    const name = displayName.trim().normalize("NFC");
+    const nameLength = [...name].length;
+    const passwordLength = [...password].length;
+    const nameOk = nameLength >= 1 && nameLength <= 50;
+    if (email.trim() === "" || passwordLength < 8 || passwordLength > 128 || !nameOk) {
       const field: AuthField =
-        name.length < 1 || name.length > 50
+        !nameOk
           ? "displayName"
           : email.trim() === ""
             ? "email"
@@ -67,11 +65,7 @@ export default function SignUpScreen() {
         <>
           {formError ? <ErrorText message={formError} /> : null}
           <Button label={t("auth.signUpButton")} loading={busy} onPress={submit} />
-          <Link href="/sign-in" style={{ paddingVertical: spacing[2], textAlign: "center" }}>
-            <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>
-              {t("auth.goToSignIn")}
-            </Text>
-          </Link>
+          <TextLink href="/sign-in" label={t("auth.goToSignIn")} />
         </>
       }
     >
@@ -88,7 +82,6 @@ export default function SignUpScreen() {
             onChangeText={setDisplayName}
             autoComplete="name"
             textContentType="name"
-            maxLength={50}
             editable={!busy}
           />
           <TextField

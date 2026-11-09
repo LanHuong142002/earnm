@@ -1,6 +1,5 @@
-import { Link } from "expo-router";
 import { useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { AuthHeader, fieldError, type AuthField } from "../../auth/AuthForm";
@@ -11,11 +10,12 @@ import { Enter } from "../../ui/Enter";
 import { ErrorText } from "../../ui/ErrorText";
 import { Screen } from "../../ui/Screen";
 import { TextField } from "../../ui/TextField";
+import { TextLink } from "../../ui/TextLink";
 
 export default function SignInScreen() {
   const { t } = useTranslation();
   const { signIn } = useAuth();
-  const { colors, typography, spacing } = useTheme();
+  const { spacing } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErr, setFieldErr] = useState<{ field: AuthField | null; message: string } | null>(
@@ -56,11 +56,7 @@ export default function SignInScreen() {
         <>
           {formError ? <ErrorText message={formError} /> : null}
           <Button label={t("auth.signInButton")} loading={busy} onPress={submit} />
-          <Link href="/sign-up" style={{ paddingVertical: spacing[2], textAlign: "center" }}>
-            <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>
-              {t("auth.goToSignUp")}
-            </Text>
-          </Link>
+          <TextLink href="/sign-up" label={t("auth.goToSignUp")} />
         </>
       }
     >

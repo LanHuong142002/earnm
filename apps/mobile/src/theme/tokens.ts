@@ -82,6 +82,10 @@ export const spacing = [4, 8, 12, 16, 20, 24, 32] as const;
 
 export const layout = { screenPadding: 20, sectionGap: 24, controlHeight: 44 } as const;
 
+export const tile = { width: 52, height: 48 } as const;
+
+export const iconSize = { sm: 20, md: 22 } as const;
+
 export const radius = { field: 12, button: 12, tile: 14, card: 16, checkbox: 6 } as const;
 
 export const motion = {

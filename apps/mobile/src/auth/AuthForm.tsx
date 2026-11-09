@@ -34,13 +34,13 @@ export function fieldError(
 
 // Cup tile, screen title and one line of secondary text, shared by sign-in and sign-up.
 export function AuthHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  const { colors, typography, radius, spacing } = useTheme();
+  const { colors, typography, radius, spacing, tile, iconSize } = useTheme();
   return (
     <View style={{ gap: spacing[1], alignItems: "flex-start" }}>
       <View
         style={{
-          width: 48,
-          height: 48,
+          width: tile.width,
+          height: tile.height,
           borderRadius: radius.tile,
           backgroundColor: colors.tile,
           alignItems: "center",
@@ -48,7 +48,7 @@ export function AuthHeader({ title, subtitle }: { title: string; subtitle: strin
           marginBottom: spacing[1],
         }}
       >
-        <Ionicons name="cafe-outline" size={22} color={colors.accent} />
+        <Ionicons name="cafe-outline" size={iconSize.md} color={colors.accent} />
       </View>
       <Text accessibilityRole="header" style={[typography.screenTitle, { color: colors.text }]}>
         {title}

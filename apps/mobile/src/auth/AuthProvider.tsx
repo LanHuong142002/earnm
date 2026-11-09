@@ -22,6 +22,7 @@ import {
 } from "../lib/api";
 import { applyLanguage, resolveLanguage, type Language } from "../i18n";
 import {
+  clearKeychainOnFreshInstall,
   deleteLanguageChoice,
   deleteLanguagePendingSync,
   deleteToken,
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const tokenRef = useRef<string | null>(null);
   const flushingRef = useRef(false);
   const rerunRef = useRef(false);
+  const flushRef = useRef<(token: string) => Promise<void>>(async () => {});
   const pendingRef = useRef(false);
   useEffect(() => {
     pendingRef.current = languagePendingSync;
@@ -77,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const endSession = useCallback(async () => {
     tokenRef.current = null;
+    rerunRef.current = false;
     setUser(null);
     setPendingSync(false);
     setStatus("signedOut");
@@ -101,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * still what was sent.
    */
   const flushPendingLanguage = useCallback(
-    async (token: string) => {
+    async (token: string): Promise<void> => {
       if (flushingRef.current) {
         rerunRef.current = true;
         return;
@@ -113,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const choice = await getLanguageChoice();
           if (choice === null) {
             await deleteLanguagePendingSync();
-            setPendingSync(false);
+            if (tokenRef.current === token) setPendingSync(false);
             return;
           }
           await updateLanguage(token, choice);
@@ -142,10 +145,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // network or other errors: keep the flag and retry next time.
       } finally {
         flushingRef.current = false;
+        // A request for another session arrived while this run was in flight and was
+        // dropped when the token changed: serve it now for the current token.
+        const current = tokenRef.current;
+        if (current !== null && current !== token && rerunRef.current) {
+          rerunRef.current = false;
+          void flushRef.current(current);
+        }
       }
     },
     [endSession],
   );
+  useEffect(() => {
+    flushRef.current = flushPendingLanguage;
+  }, [flushPendingLanguage]);
 
   /** Account language wins unless a local choice is still waiting to sync. */
   const reconcileLanguage = useCallback(
@@ -171,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       let token: string | null = null;
       try {
+        await clearKeychainOnFreshInstall();
         const choice = await getLanguageChoice();
         await applyLanguage(resolveLanguage(choice));
         token = await getToken();
