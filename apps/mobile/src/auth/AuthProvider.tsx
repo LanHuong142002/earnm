@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { AppState } from "react-native";
 
 import {
   ApiError,
@@ -65,6 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [languagePendingSync, setPendingSync] = useState(false);
   const tokenRef = useRef<string | null>(null);
+  const flushingRef = useRef(false);
+  const pendingRef = useRef(false);
+  useEffect(() => {
+    pendingRef.current = languagePendingSync;
+  }, [languagePendingSync]);
 
   const endSession = useCallback(async () => {
     tokenRef.current = null;
@@ -89,6 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /** Sends the local choice to the account; keeps the pending flag unless it succeeds. */
   const flushPendingLanguage = useCallback(
     async (token: string) => {
+      if (flushingRef.current) return;
+      flushingRef.current = true;
       try {
         const choice = await getLanguageChoice();
         if (choice === null) {
@@ -104,6 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (error instanceof ApiError && error.code === "not_signed_in") await endSession();
         // network or other errors: keep the flag and retry next time.
+      } finally {
+        flushingRef.current = false;
       }
     },
     [endSession],
@@ -147,6 +157,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tokenRef.current = token;
       setStatus("signedIn");
       try {
+        // Show the pending note even if the network call below fails.
+        if (await getLanguagePendingSync()) setPendingSync(true);
+      } catch {
+        // Unreadable flag: treat as not pending.
+      }
+      try {
         const me = await getMe(token);
         if (cancelled || tokenRef.current !== token) return;
         setUser(me);
@@ -162,7 +178,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [endSession, reconcileLanguage]);
 
-  const startSession = useCallback(async ({ token, user: me }: AuthResult) => {
+  // Retry a pending language sync when the app returns to the foreground.
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      const token = tokenRef.current;
+      if (state === "active" && token && pendingRef.current) void flushPendingLanguage(token);
+    });
+    return () => subscription.remove();
+  }, [flushPendingLanguage]);
+
+  const startSession =useCallback(async ({ token, user: me }: AuthResult) => {
     await saveToken(token);
     tokenRef.current = token;
     setUser(me);
@@ -186,14 +211,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const token = tokenRef.current;
-    if (token) {
-      try {
-        await apiSignOut(token);
-      } catch {
-        // Ignored: the phone forgets the session either way.
-      }
-    }
+    // Forget the session first so a slow or unreachable server cannot keep it alive (R20).
     await endSession();
+    if (token) {
+      // Fire and forget: the server call must never block or undo the sign-out.
+      apiSignOut(token).catch(() => {});
+    }
   }, [endSession]);
 
   const setLanguage = useCallback(

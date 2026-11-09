@@ -18,7 +18,7 @@
     "title": "Settings",
     "language": "Language",
     "currentLanguage": "Current: {{language}}",
-    "pendingSync": "Will save to your account when you're online.",
+    "pendingSync": "Will save to your account once you're back online.",
     "signOut": "Sign out"
   },
   "language": { "vi": "Tiếng Việt", "en": "English" },

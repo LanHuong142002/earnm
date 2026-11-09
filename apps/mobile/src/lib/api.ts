@@ -24,6 +24,8 @@ export class ApiError extends Error {
   }
 }
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
 type RequestOptions = { method?: string; body?: unknown; token?: string | null };
 
 export async function request<T>(
@@ -35,14 +37,19 @@ export async function request<T>(
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response: Response;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     response = await fetch(`${process.env.EXPO_PUBLIC_API_URL ?? ""}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch {
     throw new ApiError("network");
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!response.ok) {

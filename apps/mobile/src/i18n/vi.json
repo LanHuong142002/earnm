@@ -18,7 +18,7 @@
     "title": "Cài đặt",
     "language": "Ngôn ngữ",
     "currentLanguage": "Hiện tại: {{language}}",
-    "pendingSync": "Sẽ lưu vào tài khoản khi có mạng.",
+    "pendingSync": "Sẽ lưu vào tài khoản khi kết nối lại.",
     "signOut": "Đăng xuất"
   },
   "language": { "vi": "Tiếng Việt", "en": "English" },

@@ -29,6 +29,8 @@ Today the API has only `GET /health`, the Prisma schema has no models and no mig
 10. Every API request that needs a signed-in person checks the token on the server and refuses a missing, unknown or expired one with a "not signed in" error.
 11. Signing out ends the current session on the server immediately: its token stops working at once. Sessions on the person's other devices keep working.
 12. Sign-in attempts are limited: after 5 failed attempts for the same email within 15 minutes, further attempts for that email are refused with a "too many attempts, try again later" error until the window passes. The same applies to 20 failed attempts from one IP address within 15 minutes.
+12a. Sign-up attempts are limited too: after 10 sign-up attempts with valid input from one IP address within 15 minutes, further attempts from that IP are refused with "too many attempts" until the window passes. Input that fails validation doesn't count. (Added at Review to stop unlimited password hashing and unthrottled "email in use" lookups.)
+12b. The client IP used by the limits comes from the connection unless the API is configured to trust a known number of proxy hops, so a client can't change its IP by sending an `X-Forwarded-For` header. (Added at Review.)
 13. API errors use one JSON shape, `{ "error": { "code": "<stable code>", "message": "<human text>" } }`, with conventional HTTP status codes, and never include stack traces, query text or other internals. Later features reuse this shape.
 14. An authenticated endpoint returns the signed-in person's own profile: id, email, display name and language choice. It never returns the password hash or session data.
 
@@ -66,6 +68,7 @@ Automated tests cover the API requirements; the project currently has no test co
 - **R10:** API tests: the profile endpoint with no token, a random token and an expired token each returns "not signed in".
 - **R11:** API test: after sign-out, that token is refused; a second session for the same person still works.
 - **R12:** API tests: the 6th failed attempt for one email within 15 minutes is refused with "too many attempts" even with the right password; it succeeds after the window; the IP limit triggers at the 21st failure across different emails.
+- **R12a–R12b:** API tests: the 11th valid sign-up from one IP within 15 minutes gets `429`, invalid bodies don't count; with no trusted proxy, a spoofed `X-Forwarded-For` doesn't change the bucket; parallel wrong-password sign-ins can't exceed the R12 limit.
 - **R13:** API tests: every error case above matches the error shape; an unexpected server error returns a generic message with no stack trace.
 - **R14:** API test: the profile response contains exactly id, email, display name and language choice.
 - **R15–R20:** Test Handoff on an iPhone with Expo Go: sign up, kill and reopen the app (still signed in), sign out (back to sign-in), sign in again; revoke the session from another device or by sign-out elsewhere, then reopen (back to sign-in); turn on Airplane mode and reopen (still signed in); trigger each error message; double-tap submit sends one request. Code review confirms the token is written only to secure storage.
@@ -85,6 +88,8 @@ Automated tests cover the API requirements; the project currently has no test co
 - Offline queuing of writes (#4); this feature only avoids signing someone out while offline.
 - Push notifications and push tokens (#10, #16).
 - Visual design direction beyond Decision 10; `/ourkit-design` can be run separately.
+
+Known trade-offs recorded at Review: a session's last-used time is refreshed at most once an hour, so it can expire up to an hour before "90 days after last use" (R9); expired session rows aren't cleaned up yet; the per-email limit lets someone lock a user out for 15 minutes; the development API runs over plain HTTP on the LAN, and #3 must use HTTPS and set the exact proxy hop count.
 
 ## Open Questions
 
