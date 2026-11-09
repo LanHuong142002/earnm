@@ -45,6 +45,7 @@ function charLength(s: string): number {
 
 const passwordSchema = z
   .string()
+  .transform((s) => s.normalize("NFC"))
   .refine((s) => charLength(s) >= 8 && charLength(s) <= 128);
 const displayNameSchema = z
   .string()
@@ -61,7 +62,7 @@ const signUpSchema = z.object({
 const signInSchema = z.object({
   email: emailSchema,
   // Not length-limited tightly: a wrong-length password is just a wrong password.
-  password: z.string().max(1024),
+  password: z.string().max(1024).transform((s) => s.normalize("NFC")),
 });
 
 function tooManyAttempts(): AppError {

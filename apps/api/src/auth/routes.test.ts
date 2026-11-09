@@ -153,6 +153,16 @@ describe("auth routes", () => {
   });
 
   describe("sign-in", () => {
+    it("accepts a decomposed (NFD) form of a password created in NFC", async () => {
+      const { app } = fresh();
+      const nfc = "mật khẩu việt".normalize("NFC");
+      const nfd = nfc.normalize("NFD");
+      expect(nfd).not.toBe(nfc);
+      expect((await signUp(app, "ana@example.com", nfc)).status).toBe(201);
+      const res = await signIn(app, "ana@example.com", nfd);
+      expect(res.status).toBe(200);
+    });
+
     it("returns a token and user, and stores only the token hash", async () => {
       const { app } = fresh();
       await signUp(app);

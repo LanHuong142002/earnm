@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import type { Express } from "express";
-import { beforeEach, afterAll, expect } from "vitest";
+import { beforeAll, beforeEach, afterAll, expect } from "vitest";
 import { createApp } from "../app.js";
 import { createPrismaClient } from "../db.js";
 
@@ -30,10 +30,31 @@ export function createClock(start = new Date("2026-01-01T00:00:00Z")): TestClock
   };
 }
 
+async function connectWithRetry(attempts = 5): Promise<void> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await prisma.$connect();
+      await prisma.$queryRaw`SELECT 1`;
+      return;
+    } catch (err) {
+      last = err;
+      await new Promise((r) => setTimeout(r, 200 * 2 ** i));
+    }
+  }
+  throw new Error(`Test database unreachable after ${attempts} attempts: ${String(last)}`, {
+    cause: last,
+  });
+}
+
 /** Builds an app on the test database and truncates Session and User before each test. */
 export function useTestApp(): { app: Express; clock: TestClock } {
   const clock = createClock();
   const app = createApp({ prisma, now: clock.now });
+  // The first query of a run can hit a cold database connection and fail; wake it up first.
+  beforeAll(async () => {
+    await connectWithRetry();
+  }, 30_000);
   beforeEach(async () => {
     await prisma.$executeRawUnsafe('TRUNCATE TABLE "Session", "User" CASCADE');
   });
