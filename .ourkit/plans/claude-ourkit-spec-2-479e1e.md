@@ -80,6 +80,12 @@ The user chose this hand-built approach over Better Auth, because Better Auth do
   - `src/app/(app)/index.tsx` is a simple signed-in home that links to Settings. `src/app/(app)/settings.tsx` has a VI/EN choice and a sign-out button.
   - Everything is laid out as compact vertical forms with no tables (R21).
   - The placeholder `src/app/index.tsx` moves into `(app)`.
+- **Design (R21), added after `DESIGN.md` was agreed:**
+  - `src/theme/tokens.ts` holds the light and dark colours, type, spacing, radius and motion from `DESIGN.md`. `src/theme/useTheme.ts` picks the set from `useColorScheme()`.
+  - Plus Jakarta Sans (weights 400, 600 and 800) is bundled through `@expo-google-fonts/plus-jakarta-sans` and loaded with `expo-font` in `_layout.tsx`, while the splash screen stays up.
+  - Small shared components in `src/ui/`: `Screen`, `Button`, `TextField`, `Card`, `ChoiceRow`, `ErrorText` and `Pressable` with press scale. Entrance, press and shake motion use `react-native-reanimated` and respect Reduce Motion through `useReducedMotion()`.
+  - The four screens are rewritten on these components, with no hard-coded colours or sizes.
+  - The `app.json` splash background changes from `#208AEF` to the theme background.
 
 ### Project
 
@@ -96,7 +102,8 @@ The user chose this hand-built approach over Better Auth, because Better Auth do
 - **Tests wiping real data.** The test setup refuses to run without a separate `TEST_DATABASE_URL`.
 - **Running on the iPhone.** Expo Go reaches the API only over the LAN, through `EXPO_PUBLIC_API_URL`, and plain `http` must work in Expo Go. If it doesn't, the Test Handoff notes a tunnel instead.
 - **Your setup step.** There's no PostgreSQL on your machine yet. You'll need to install one and create a test database before the test Gate can run. This goes into `ourkit pending`.
-- **New dependencies:** `zod`, `@prisma/adapter-pg`, `vitest`, `supertest`, `expo-secure-store`, `expo-localization`, `i18next`, `react-i18next` and `eslint-plugin-i18next`. All are widely used and well maintained. Approving this plan approves adding them.
+- **Font package.** `@expo-google-fonts/plus-jakarta-sans` is maintained by the Expo team. The font files ship inside the app, so nothing loads from the web at run time. Vietnamese diacritics must render correctly, which goes in the Test Handoff.
+- **New dependencies:** `@expo-google-fonts/plus-jakarta-sans`, `zod`, `@prisma/adapter-pg`, `vitest`, `supertest`, `expo-secure-store`, `expo-localization`, `i18next`, `react-i18next` and `eslint-plugin-i18next`. All are widely used and well maintained. Approving this plan approves adding them.
 
 ## Test Strategy
 
@@ -119,7 +126,7 @@ The project has no test command today. This plan adds `vitest` and sets `command
 - **Build (`ourkit gate run build`):** the API type-checks.
 - **Test Handoff (iPhone with Expo Go, cannot be automated here):**
   - R15–R20: sign up, kill and reopen the app (still signed in), sign out, sign in again; sign out on another device and reopen (back to sign-in); Airplane mode and reopen (still signed in); trigger each error message; double-tap submit sends one request.
-  - R21: compact vertical layout.
+  - R21: compact vertical layout that matches `DESIGN.md` in light and dark mode on an iPhone SE-sized and a Pro Max-sized screen; Vietnamese diacritics render in Plus Jakarta Sans; with Reduce Motion on, screens only fade. Review also checks that no component hard-codes colours or sizes.
   - R23–R26: phone set to Vietnamese or French before sign-in; choose English in Settings; the choice applies on a second phone set to Vietnamese.
   - Code review confirms the token is written only through `expo-secure-store` (R16).
 - **R28:** checked in review. `.env.example` exists with placeholders, and `git check-ignore` shows `.env` is ignored.

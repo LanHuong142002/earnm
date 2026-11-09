@@ -188,3 +188,31 @@ In `apps/mobile`:
 
 Depends on: 7
 Verify: `ourkit gate run lint` passes. `npx tsc --noEmit` in `apps/mobile` has no errors. The user checks the rest on an iPhone with Expo Go against the running API, as the Test Handoff for spec R15–R26: sign up; reopen, still signed in; sign out; sign in; signed out elsewhere, then reopen, back to sign-in; Airplane mode, then reopen, still signed in; each error message; double tap sends one request; phone set to Vietnamese or French before sign-in; choose English, and the choice applies on a second phone.
+
+### 9. Apply DESIGN.md to the mobile screens
+
+In `apps/mobile`, make the screens from task 8 follow `DESIGN.md` at the project root. Read the whole file first: its tokens, Density, Components, States, Motion and Avoid sections are the requirements.
+
+- Run `npx expo install @expo-google-fonts/plus-jakarta-sans`. Load weights 400, 600 and 800 with `useFonts` in `src/app/_layout.tsx`, and keep the splash screen up until the fonts are ready, using `expo-splash-screen`, which is already installed.
+- Add `src/theme/tokens.ts` with the light and dark colour sets, typography, spacing, layout, radius and motion values exactly as in `DESIGN.md`'s front matter. Add `src/theme/useTheme.ts`, which returns the set for `useColorScheme()`.
+- Add small shared components in `src/ui/`, each built only from tokens:
+  - `Screen`: safe area, `screenPadding`, content top-aligned, `background`.
+  - `Button`: primary and secondary variants plus a danger text variant, with the loading spinner and press scale.
+  - `TextField`: label, leading icon, focus border, error border and background.
+  - `Card` and `ChoiceRow`: a selected row shows a ✓ icon, with `accessibilityRole="radio"`.
+  - `ErrorText`: alert icon, with the shake and fade-in motion.
+  - `PressableScale`.
+- Use `@expo/vector-icons`, which ships with Expo, for outline icons. If it isn't installed, use `npx expo install @expo/vector-icons`.
+- Add an entrance helper on `react-native-reanimated`: fade, rise 8px, stagger 40ms. Every motion checks `useReducedMotion()` and falls back to fade only.
+- Rewrite `src/app/(auth)/sign-in.tsx`, `src/app/(auth)/sign-up.tsx`, `src/app/(app)/index.tsx` and `src/app/(app)/settings.tsx` on these components.
+  - Keep all behaviour from task 8 unchanged.
+  - Keep the screens small and uncluttered as the Density section says.
+  - On sign-in and sign-up, use a 48×48 `tile` with a cup icon, the `screenTitle`, one line of `textSecondary`, the fields, and the primary button at the bottom.
+  - Home shows the display name and a link to Settings; don't add any feature UI that doesn't exist yet.
+  - Settings shows a language card with two `ChoiceRow`s and a secondary sign-out button in `danger`.
+- Remove `src/auth/AuthForm.tsx`'s hard-coded styles, or replace the file with the new components. No hex colours or raw font sizes may remain in `src/app` or `src/auth`.
+- Change the `expo-splash-screen` `backgroundColor` in `app.json` to `#FFFFFF`, and add `dark: { backgroundColor: "#121212" }` if the plugin supports it.
+- Add any new strings to both `vi.json` and `en.json`.
+
+Depends on: 8
+Verify: `ourkit gate run lint` passes. `npx tsc --noEmit` in `apps/mobile` has no errors. Searching `src/app` and `src/auth` for `#[0-9a-fA-F]{3,6}` and `fontSize:` finds nothing. The user checks the look in the Test Handoff: light and dark mode on a small and a large iPhone; Vietnamese diacritics in Plus Jakarta Sans; entrance, press and error-shake motion; only fades with Reduce Motion on.
