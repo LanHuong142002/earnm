@@ -1,6 +1,0 @@
-[
-  {
-    "id": 1,
-    "text": "Install PostgreSQL locally (e.g. the EDB installer for Windows), create an empty database for tests, and put its connection string in apps/api/.env as TEST_DATABASE_URL (separate from DATABASE_URL)"
-  }
-]
