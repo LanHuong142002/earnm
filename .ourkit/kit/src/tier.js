@@ -6,7 +6,7 @@ const { readChange, updateChange } = require('./change-state');
 const TIERS = ['patch', 'feature', 'epic'];
 const ROUTES = {
   patch: ['Build', 'Review'],
-  feature: ['Spec', 'Plan', 'Tasks', 'Build', 'Review', 'Ship'],
+  feature: ['Spec', 'Plan', 'Tasks', 'Build', 'Review', 'QA', 'Ship'],
   epic: ['Grill', 'Split into Features'],
 };
 const AREAS = {

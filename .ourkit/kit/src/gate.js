@@ -142,6 +142,8 @@ function main(args) {
   } else if (action === 'review') {
     // Required here because src/review.js builds on this file.
     result = require('./review').reviewGate(projectDir, record, change);
+  } else if (action === 'qa') {
+    result = require('./qa').qaGate(projectDir, record, change);
   } else if (action === 'ship') {
     result = require('./ship').shipGate(projectDir, record, change);
   } else if (action === 'approval') {
@@ -159,7 +161,7 @@ function main(args) {
     }
   } else {
     const documents = Object.keys(ARTIFACTS).join('|');
-    return fail(`usage: ourkit gate <scope | floor | review | ship | approval | approve-plan | approve-ship | run <${RUNNABLE.join('|')}> | path <${documents}> | artifact <${documents}>>`);
+    return fail(`usage: ourkit gate <scope | floor | review | qa | ship | approval | approve-plan | approve-ship | run <${RUNNABLE.join('|')}> | path <${documents}> | artifact <${documents}>>`);
   }
   console.log(JSON.stringify(result, null, 2));
   return result.severity === 'block' ? 1 : 0;

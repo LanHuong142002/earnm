@@ -30,7 +30,17 @@ If a command fails, or the person isn't found, leave that fact out of the file.
 
 ## Change status
 
-GitHub Issues has only open and closed, so progress is shown with labels. A ticket has one at a time, so remove whichever others it has.
+GitHub Issues has only open and closed, so progress shows elsewhere. Run `ourkit tracker status` and read `progress`:
+
+- `labels`: use **With labels** below.
+- `project`: use **On a Project board** below.
+- `both`: do both.
+
+Never close an issue or move its card to Done yourself, because that would claim the work is merged when it isn't.
+
+### With labels
+
+A ticket has one label at a time, so remove whichever others it has.
 
 | Status | Action |
 |---|---|
@@ -41,7 +51,36 @@ GitHub Issues has only open and closed, so progress is shown with labels. A tick
 
 If a command fails because a label doesn't exist yet, create it once and retry: `gh label create <label> --force`.
 
-Never close an issue yourself, because that would claim the work is merged when it isn't.
+### On a Project board
+
+The card's place on the board comes from a single-select field, usually `Status`. `board` in `ourkit tracker status` says which project, which field, and which column each status moves to.
+
+`gh` needs the `project` scope for this. If a command says the scope is missing, run `ourkit pending add "Run gh auth refresh -s project, so ourkit can move cards on the Project board"`, use **With labels** for now, and carry on.
+
+**If `board` is null, set it up once:**
+
+1. List the projects: `gh project list --owner <owner> --format json`, where `<owner>` is this repository's owner (`gh repo view --json owner --jq .owner.login`).
+2. Find the field and its columns: `gh project field-list <number> --owner <owner> --format json`. Use the single-select field named `Status`, unless the user names another.
+3. Match each status to a column, such as "In Progress", "In Review" and "Blocked". Leave a status out if the board has no column for it.
+   - In Pair, show the user the project and the columns you matched, and ask them to confirm.
+   - In Hands-off, don't guess. Run `ourkit pending add` asking the user to choose the board, use **With labels** for now, and carry on.
+4. Save it: `ourkit tracker board <owner> <number> --field "<field>" --in-progress "<column>" --in-review "<column>" --blocked "<column>"`, leaving out any status without a column. Commit `.ourkit/tracker.json` with the change's other records.
+
+**To move the card:**
+
+1. If `board.columns` has no column for this status, there's nothing to move.
+2. Add the issue to the board, which returns its card if it's already there:
+   `gh project item-add <number> --owner <owner> --url <issue-url> --format json --jq .id`
+   Get `<issue-url>` with `gh issue view <ticket> --json url --jq .url`.
+3. Find the project's id: `gh project view <number> --owner <owner> --format json --jq .id`
+4. Find the field's id and the column's option id:
+   `gh project field-list <number> --owner <owner> --format json --jq '.fields[] | select(.name == "<field>")'`
+   Take its `id`, and the `id` of the option whose `name` is the column.
+5. Move it: `gh project item-edit --id <card-id> --project-id <project-id> --field-id <field-id> --single-select-option-id <option-id>`
+
+If a column has been renamed or removed, say so, run `ourkit pending add` asking the user to update the board with `ourkit tracker board`, and carry on.
+
+**Done:** nothing to do. When the PR merges and closes the issue, the board's built-in "Item closed" workflow moves the card to Done, if that workflow is turned on.
 
 ## Comment
 

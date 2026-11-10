@@ -44,4 +44,6 @@ After the work, run `ourkit gate run test`, `ourkit gate run lint` and `ourkit g
 
 Continue to Review, unless a Gate is still blocking or tasks remain blocked. Then stop and report which ones, and why.
 
+End with the Next line (`.ourkit/kit/core/next-step.md`): `/ourkit-review`. If something is blocked, the next step is what unblocks it, then `/ourkit-build` again.
+
 Report only results you actually observed. Don't push, merge or deploy in this Stage.

@@ -23,6 +23,8 @@
       "Bash(gh issue *)",
       "Bash(gh label *)",
       "Bash(gh api *)",
+      "Bash(gh project *)",
+      "Bash(gh repo view *)",
       "Bash(gh pr create *)",
       "Bash(gh pr view *)"
     ],

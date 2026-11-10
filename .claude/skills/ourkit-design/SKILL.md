@@ -53,3 +53,5 @@ Write the result in the `DESIGN.md` format: tokens first (colours, type, spacing
 ## Applying it
 
 Changing existing screens to match is a change like any other. Offer to start it, and propose a Tier as `.ourkit/kit/core/tier.md` describes. Don't change any interface code in this Stage.
+
+End with the Next line (`.ourkit/kit/core/next-step.md`): the user commits `DESIGN.md`, then describes the restyle as a new change if they want one.

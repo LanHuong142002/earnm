@@ -22,6 +22,7 @@ If the user asks you to deploy to production, explain this, and give them the co
 3. Only for a target you can see is staging, or another non-production environment: run the command, and report what you saw.
 4. Run `ourkit command smoke`. If the project has one, run it against that same target. If it doesn't, say that nothing checked the deploy.
 5. Report the result plainly, including anything not verified.
+6. End with the Next line (`.ourkit/kit/core/next-step.md`): the user checks staging. Deploying to production is theirs, with the command you gave them.
 
 ## Not in v1
 

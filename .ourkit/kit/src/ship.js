@@ -25,6 +25,10 @@ function shipGate(projectDir, record, change) {
   const review = reviewGate(projectDir, record, change);
   if (review.status !== 'pass') problems.push(review.reason);
 
+  // Required here because src/qa.js builds on src/review.js.
+  const qa = require('./qa').qaGate(projectDir, record, change);
+  if (qa.status !== 'pass') problems.push(...qa.problems.map((problem) => `QA: ${problem}`));
+
   if (record.flow === 'bug-fix') {
     problems.push(...checkArtifact(projectDir, 'bug', change.id).map((problem) => `Bug-fix notes: ${problem}`));
   } else if (record.tier !== 'patch') {

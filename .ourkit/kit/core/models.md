@@ -7,6 +7,7 @@ Each kind of work has a fixed strength of model (ADR 0008). Core names only the 
 | Planning, deciding, reviewing a Patch | Strong | The main session |
 | Reviewing from Feature up | Strong | Reviewer subagents |
 | Implementing an approved task | Balanced | `ourkit-implementer` subagent |
+| Checking a Feature against its Acceptance Criteria | Balanced | `ourkit-qa` subagent |
 | Explaining a change, and Teach-back | Balanced, or strong for a Sensitive Area | `ourkit-explainer` or `ourkit-sensitive-explainer` subagent |
 | Searching, running tests, reporting failures | Cheap | `ourkit-runner` subagent |
 
