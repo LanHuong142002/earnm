@@ -27,6 +27,10 @@ Added `redirectTo="/sign-in"` to the `(app)` `Stack.Protected` in `apps/mobile/s
   - Opening `/settings` also lands on `/sign-in`.
   - `/sign-up` still opens Create account.
   - No console errors.
+- Sign-out, reported by the user on `main` after the first fix: signed in, open Settings, sign out, and the app showed Unmatched Route, including after going back. On the web, with a temporary switch that flipped the auth status (removed afterwards, not committed):
+  - Without the fix: a signed-in launch reached `/`, then `/settings`. Signing out went to `/(auth)` and showed Unmatched Route, which reproduces the report.
+  - With the fix, the same steps: signing out goes to `/sign-in`, going back stays on `/sign-in`, signing in again returns to `/`. Signing out from home also lands on `/sign-in`.
+  - So the same root cause and the same fix cover both the launch and the sign-out.
 - `ourkit gate run lint` passed.
 - `npx tsc --noEmit` in `apps/mobile` passed.
 - `ourkit gate run build` passed.
