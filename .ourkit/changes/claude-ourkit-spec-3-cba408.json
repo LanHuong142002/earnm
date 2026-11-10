@@ -1,0 +1,12 @@
+{
+  "ticket": "3",
+  "tier": "feature",
+  "tierReason": "Deploys the API to production with a secret-protected internal endpoint and a production database",
+  "sensitiveAreas": [
+    "auth",
+    "public-api",
+    "data"
+  ],
+  "notSensitiveReason": null,
+  "planApproval": "e372458a63878b5de8660cb8502c82e48893371b641e1b0959630c9ed96c8d6c"
+}
