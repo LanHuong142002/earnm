@@ -8,5 +8,16 @@
     "data"
   ],
   "notSensitiveReason": null,
-  "planApproval": "e372458a63878b5de8660cb8502c82e48893371b641e1b0959630c9ed96c8d6c"
+  "planApproval": "e372458a63878b5de8660cb8502c82e48893371b641e1b0959630c9ed96c8d6c",
+  "taskStatus": {
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    }
+  }
 }
