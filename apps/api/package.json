@@ -13,7 +13,9 @@
     "pretest": "npm run db:generate",
     "test": "vitest run",
     "db:migrate": "prisma migrate dev --config prisma7.config.ts",
-    "db:deploy": "prisma migrate deploy --config prisma7.config.ts"
+    "db:deploy": "prisma migrate deploy --config prisma7.config.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "deploy:hook": "tsx scripts/deploy-hook.ts"
   },
   "keywords": [],
   "author": "",
@@ -35,5 +37,8 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=24 <25"
   }
 }
