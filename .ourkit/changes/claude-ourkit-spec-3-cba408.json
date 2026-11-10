@@ -150,6 +150,11 @@
       "id": 4,
       "decision": "Keep the injected rejecting fetch for the smoke 'not running' test (review finding 15)",
       "why": "A real closed port was flagged as flaky (finding 7); the real-network failure path was checked by hand in Build with a live local server."
+    },
+    {
+      "id": 5,
+      "decision": "Ran QA with the ourkit-qa subagent but recorded results in the Change Report by hand",
+      "why": "The installed kit (0.3.1) has no 'qa' or 'gate qa' commands; guessing replacements isn't allowed. Upgrade the kit so later Features record QA properly."
     }
   ]
 }
