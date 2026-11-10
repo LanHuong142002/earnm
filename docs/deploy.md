@@ -18,12 +18,15 @@ Kết quả dài 64 ký tự hex. `INTERNAL_SECRET` phải có ít nhất 32 ký
 
 ## 3. Tạo service trên Render
 
-1. Trong Render: **New → Blueprint**, chọn repository này. Render đọc `render.yaml` ở thư mục gốc (service `earnm-api`, free plan, Singapore, tự deploy khi có commit trên `main`).
-2. Khi được hỏi, nhập các biến môi trường:
+Trước khi làm bước này, `render.yaml` phải có trên nhánh `main` (PR thêm nó đã được merge), vì Blueprint đọc từ `main`.
+
+1. Đăng ký tài khoản Render (nên dùng **Sign in with GitHub**) và cho Render quyền đọc repository này khi GitHub hỏi.
+2. Trong Render: **New → Blueprint**, chọn repository này, nhánh `main`. Render đọc `render.yaml` ở thư mục gốc (service `earnm-api`, free plan, Singapore, tự deploy khi có commit trên `main`). Đừng tạo thêm service bằng **New → Web Service** cho repo này: sẽ thành hai service, mà free plan chỉ đủ giờ chạy cho một service luôn thức.
+3. Khi được hỏi, nhập các biến môi trường rồi bấm **Apply**:
    - `DATABASE_URL`: chuỗi direct từ bước 1
    - `INTERNAL_SECRET`: giá trị từ bước 2
    - `TRUST_PROXY`: `0` (sẽ chỉnh ở bước 6)
-3. Render chỉ hỏi các biến này khi tạo Blueprint lần đầu. Về sau muốn đổi hoặc thêm biến thì vào service, tab **Environment**.
+4. Render chỉ hỏi các biến này khi tạo Blueprint lần đầu. Về sau muốn đổi hoặc thêm biến thì vào service, tab **Environment**.
 
 ## 4. Kiểm tra deploy đầu tiên
 
