@@ -11,6 +11,8 @@ services:
     branch: main
     autoDeployTrigger: commit
     buildCommand: npm ci --include=dev && npm run build
+    # Migrations run on every start, before the health check, and are never rolled
+    # back: they must stay backward-compatible with the previous version (docs/deploy.md, section 11).
     startCommand: npm run db:deploy && npm start
     healthCheckPath: /health
     envVars:

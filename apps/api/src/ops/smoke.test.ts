@@ -54,11 +54,64 @@ describe("runSmoke", () => {
     expect(results.every((r) => r.ok)).toBe(true);
   });
 
-  it("fails the health check when nothing is listening", async () => {
-    const baseUrl = await start(SECRET);
-    await close(servers.pop() as Server);
-    const results = await runSmoke({ baseUrl });
+  it("fails the health check when the connection cannot be made", async () => {
+    const failing = (async () => {
+      throw new TypeError("fetch failed");
+    }) as unknown as typeof fetch;
+    const results = await runSmoke({ baseUrl: "http://127.0.0.1:1", fetch: failing });
+    expect(results[0]?.name).toBe("health");
     expect(results[0]?.ok).toBe(false);
+    expect(results[0]?.detail).toContain("could not connect");
     expect(results.every((r) => !r.ok)).toBe(true);
+  });
+
+  it("refuses to send a secret over non-loopback http and makes no request", async () => {
+    let calls = 0;
+    const spy = (async () => {
+      calls++;
+      return new Response(null, { status: 200 });
+    }) as unknown as typeof fetch;
+    const results = await runSmoke({ baseUrl: "http://example.com", secret: SECRET, fetch: spy });
+    expect(calls).toBe(0);
+    expect(results).toHaveLength(1);
+    expect(results[0]?.name).toBe("secure-url");
+    expect(results[0]?.ok).toBe(false);
+    expect(results[0]?.detail).toContain("https");
+    expect(JSON.stringify(results)).not.toContain(SECRET);
+  });
+
+  it.each(["http://localhost:3000", "http://127.0.0.1:3000", "http://[::1]:3000"])(
+    "allows a secret over loopback http (%s)",
+    async (baseUrl) => {
+      const urls: string[] = [];
+      const spy = (async (url: string) => {
+        urls.push(url);
+        return new Response(null, { status: 200 });
+      }) as unknown as typeof fetch;
+      const results = await runSmoke({ baseUrl, secret: SECRET, fetch: spy });
+      expect(urls).toHaveLength(3);
+      expect(results.some((r) => r.name === "secure-url")).toBe(false);
+    },
+  );
+
+  it("allows non-loopback http when no secret is given", async () => {
+    const urls: string[] = [];
+    const spy = (async (url: string) => {
+      urls.push(url);
+      return new Response(null, { status: 200 });
+    }) as unknown as typeof fetch;
+    const results = await runSmoke({ baseUrl: "http://example.com", fetch: spy });
+    expect(urls).toHaveLength(2);
+    expect(results.some((r) => r.name === "secure-url")).toBe(false);
+  });
+
+  it("allows a secret over https", async () => {
+    const urls: string[] = [];
+    const spy = (async (url: string) => {
+      urls.push(url);
+      return new Response(null, { status: 200 });
+    }) as unknown as typeof fetch;
+    await runSmoke({ baseUrl: "https://example.com", secret: SECRET, fetch: spy });
+    expect(urls).toHaveLength(3);
   });
 });

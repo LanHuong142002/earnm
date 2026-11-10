@@ -10,10 +10,35 @@ export interface SmokeOptions {
   fetch?: typeof fetch;
 }
 
-const TIMEOUT_MS = 15_000;
+// Render's free plan can take up to about a minute to wake from sleep.
+const TIMEOUT_MS = 60_000;
+
+function secretMaySend(baseUrl: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    return false;
+  }
+  if (url.protocol === "https:") return true;
+  return (
+    url.protocol === "http:" &&
+    ["localhost", "127.0.0.1", "[::1]", "::1"].includes(url.hostname)
+  );
+}
 
 export async function runSmoke(opts: SmokeOptions): Promise<SmokeResult[]> {
   const doFetch = opts.fetch ?? fetch;
+
+  if (opts.secret !== undefined && !secretMaySend(opts.baseUrl)) {
+    return [
+      {
+        name: "secure-url",
+        ok: false,
+        detail: "the secret is only sent over https (or to localhost); use an https:// base URL",
+      },
+    ];
+  }
 
   async function check(
     name: string,

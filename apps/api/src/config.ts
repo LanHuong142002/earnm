@@ -38,6 +38,10 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     );
   }
 
+  if (/\s/.test(internalSecret)) {
+    throw new ConfigError("INTERNAL_SECRET must not contain spaces or line breaks.");
+  }
+
   return {
     databaseUrl,
     trustProxy: Number(trustProxyRaw),

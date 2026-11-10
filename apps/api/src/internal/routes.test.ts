@@ -65,6 +65,7 @@ describe("internal routes", () => {
       .set("X-Forwarded-For", "203.0.113.7");
     expect(res.status).toBe(200);
     expect(res.body.ip).not.toBe("203.0.113.7");
+    expect(res.body.ip).toMatch(/^(::ffff:)?127\.0\.0\.1$|^::1$/);
   });
 
   const endpoints = [

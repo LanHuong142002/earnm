@@ -26,6 +26,8 @@ Trước khi làm bước này, `render.yaml` phải có trên nhánh `main` (PR
    - `DATABASE_URL`: chuỗi direct từ bước 1
    - `INTERNAL_SECRET`: giá trị từ bước 2
    - `TRUST_PROXY`: `0` (sẽ chỉnh ở bước 6)
+
+   Lưu ý: cho tới khi xong bước 6, mọi người dùng chia sẻ chung IP proxy của Render nên dùng chung giới hạn tốc độ đăng nhập. Đừng mở đăng nhập cho người dùng thật trước khi hoàn tất bước 6.
 4. Render chỉ hỏi các biến này khi tạo Blueprint lần đầu. Về sau muốn đổi hoặc thêm biến thì vào service, tab **Environment**.
 
 ## 4. Kiểm tra deploy đầu tiên
@@ -54,15 +56,25 @@ Thành công trả về `200 {"status":"ok"}`. Nếu nhận `401 unauthorized` t
 
 `TRUST_PROXY` là số proxy mà API tin khi đọc IP người dùng từ `X-Forwarded-For`. Giá trị sai gây lỗi:
 
-- Quá thấp (`0`): mọi người dùng chung một IP nên chung giới hạn tốc độ đăng nhập.
+- Quá thấp (`0`): mọi người dùng chung một IP (IP proxy của Render) nên chung giới hạn tốc độ đăng nhập. Vì vậy chưa mở đăng nhập cho người dùng thật trước khi xong bước này.
 - Quá cao: người dùng có thể giả IP.
 
 Cách tìm:
 
 1. Từ điện thoại, dùng mạng di động hoặc Wi-Fi bạn đang kiểm tra, gọi:
 
+   Nhập secret mà không gõ vào dòng lệnh (để nó không nằm trong lịch sử shell):
+
    ```
-   curl -H "Authorization: Bearer <INTERNAL_SECRET>" https://<service>.onrender.com/internal/ip
+   # bash
+   read -rs INTERNAL_SECRET && export INTERNAL_SECRET
+   curl -H "Authorization: Bearer $INTERNAL_SECRET" https://<service>.onrender.com/internal/ip
+   ```
+
+   ```
+   # PowerShell
+   $s = Read-Host -AsSecureString; $env:INTERNAL_SECRET = [System.Net.NetworkCredential]::new('', $s).Password
+   curl.exe -H "Authorization: Bearer $env:INTERNAL_SECRET" https://<service>.onrender.com/internal/ip
    ```
 
    Kết quả dạng `{"ip":"..."}`. (Không có curl trên điện thoại thì dùng máy tính cùng mạng.)
@@ -84,11 +96,21 @@ Dùng HTTPS để mật khẩu và token được mã hóa khi truyền.
 
 Smoke kiểm tra `/health` trả 200, tick không có secret trả 401, tick có secret trả 200.
 
+Nhập secret mà không gõ vào dòng lệnh (để nó không nằm trong lịch sử shell):
+
 ```
-API_BASE_URL=https://<service>.onrender.com INTERNAL_SECRET=<INTERNAL_SECRET> npm --prefix apps/api run smoke
+# bash
+read -rs INTERNAL_SECRET && export INTERNAL_SECRET
+API_BASE_URL=https://<service>.onrender.com npm --prefix apps/api run smoke
 ```
 
-(PowerShell: `$env:API_BASE_URL="..."; $env:INTERNAL_SECRET="..."; npm --prefix apps/api run smoke`.)
+```
+# PowerShell
+$s = Read-Host -AsSecureString; $env:INTERNAL_SECRET = [System.Net.NetworkCredential]::new('', $s).Password
+$env:API_BASE_URL = "https://<service>.onrender.com"; npm --prefix apps/api run smoke
+```
+
+Request đầu tiên có thể mất tới khoảng một phút nếu service đang ngủ (free plan); mỗi kiểm tra chờ tối đa 60 giây. Smoke từ chối gửi secret qua `http://` (trừ localhost), chỉ dùng `https://`.
 
 ## 9. Deploy hook (tùy chọn)
 
@@ -109,4 +131,10 @@ API_BASE_URL=https://<service>.onrender.com INTERNAL_SECRET=<INTERNAL_SECRET> np
 
 ## 11. Khi migration hoặc khởi động thất bại
 
-Nếu `npm run db:deploy` hoặc `npm start` lỗi, deploy mới bị đánh dấu thất bại và Render giữ nguyên bản deploy trước đó đang chạy. Xem nguyên nhân tại service trên Render: tab **Events** (trạng thái từng deploy) và tab **Logs** (đầu ra của migration và server). Sửa lỗi, đẩy lên `main` (hoặc dùng deploy hook) để deploy lại.
+Nếu `npm run db:deploy` hoặc `npm start` lỗi, deploy mới bị đánh dấu thất bại và Render giữ nguyên bản code deploy trước đó đang chạy. Xem nguyên nhân tại service trên Render: tab **Events** (trạng thái từng deploy) và tab **Logs** (đầu ra của migration và server). Sửa lỗi, đẩy lên `main` (hoặc dùng deploy hook) để deploy lại.
+
+Lưu ý quan trọng:
+
+- Migration đã áp dụng thì **không được rollback**. Nếu migration chạy xong nhưng server sau đó không lên được, Render vẫn giữ code cũ chạy trên schema MỚI.
+- Vì vậy mọi migration phải tương thích ngược với phiên bản code trước đó: thêm trước (cột, bảng mới), còn xóa hoặc đổi tên thì làm ở một lần deploy sau, khi code cũ không còn dùng nữa.
+- Migration chạy ở mỗi lần start/restart (lệnh start có `npm run db:deploy`). Nếu Neon không truy cập được lúc đó, service không khởi động được.

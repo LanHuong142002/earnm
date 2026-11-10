@@ -52,6 +52,19 @@ describe("loadConfig", () => {
     expect(err.message).not.toContain(short);
   });
 
+  it.each([
+    ["leading space", ` ${"k".repeat(40)}`],
+    ["trailing space", `${"k".repeat(40)} `],
+    ["trailing newline", `${"k".repeat(40)}
+`],
+    ["inner space", `${"k".repeat(20)} ${"k".repeat(20)}`],
+  ])("rejects an INTERNAL_SECRET with whitespace (%s) without echoing it", (_label, value) => {
+    const err = failure({ ...base, INTERNAL_SECRET: value });
+    expect(err.message).toContain("INTERNAL_SECRET");
+    expect(err.message).toContain("spaces or line breaks");
+    expect(err.message).not.toContain("kkkk");
+  });
+
   it("accepts a 32-character INTERNAL_SECRET", () => {
     expect(loadConfig(base).internalSecret).toBe(SECRET);
   });
