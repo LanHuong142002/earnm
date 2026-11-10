@@ -89,45 +89,46 @@
         "id": 10,
         "severity": "non-blocking",
         "text": "[sensitive r2] apps/api/src/index.ts + config.ts: startup now requires INTERNAL_SECRET, so every developer's existing apps/api/.env makes npm run dev exit with 'INTERNAL_SECRET is not set.' after pulling (deliberate under R1). Fix: say so in the PR description.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 11,
         "severity": "non-blocking",
         "text": "[sensitive r2] docs/deploy.md step 6: curl -H \"Authorization: Bearer $INTERNAL_SECRET\" puts the secret in the process command line (visible to process monitors), and the env var stays set in the shell. Fix: feed the header via curl -H @- on stdin and unset/Remove-Item the variable afterwards. Low risk on a single-user PC.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 12,
         "severity": "non-blocking",
         "text": "[sensitive r2] docs/deploy.md step 1 + render.yaml: the direct (non-pooled) Neon string used for migrations also serves all runtime traffic; fine at this scale, may hit Neon connection limits under load. Fix later: pooled URL for the app plus a separate direct URL for migrations.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 13,
         "severity": "non-blocking",
         "text": "[sensitive r2] apps/api/src/config.ts PORT: Number(env.PORT ?? 3000) is unvalidated (pre-existing behaviour moved here); empty PORT gives 0 (random port), non-numeric gives NaN. Fix: validate like TRUST_PROXY. Render always sets PORT, so production unaffected.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 14,
         "severity": "non-blocking",
         "text": "[review r2] Extra behaviour beyond the spec: smoke.ts refuses to send the secret over plain http (non-loopback) and returns a single secure-url failure without running /health; config.ts rejects whitespace in INTERNAL_SECRET. Both added from review findings 3 and 4 and tested. Fix: accept knowingly and mention in the Test Handoff/PR.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 15,
         "severity": "non-blocking",
         "text": "[review r2] apps/api/src/ops/smoke.test.ts: the 'URL not running' case now uses an injected rejecting fetch instead of a real closed port, so AC11's real-network path is verified only indirectly. (Earlier finding 7 flagged the real closed-port version as flaky.)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 16,
         "severity": "non-blocking",
         "text": "[review r2] Same as finding 10, plus: ourkit pending and the Test Handoff don't tell developers to add INTERNAL_SECRET (32+ chars) to their local apps/api/.env. Fix: add a pending note or a handoff line.",
-        "resolved": false
+        "resolved": true
       }
-    ]
+    ],
+    "reviewed": "cfd3bde2dd727b4f5998d649bc74ff8b4f4081c9c2f5c22ffeabd94709c25e16"
   },
   "decisions": [
     {
