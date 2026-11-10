@@ -35,56 +35,120 @@
         "id": 1,
         "severity": "non-blocking",
         "text": "[sensitive] apps/api/.env.example:11 placeholder INTERNAL_SECRET is 59 chars so it passes the 32-char check; copying .env.example to .env starts a dev server (reachable on the LAN) with a secret readable in the repo, and it could be pasted into Render. Fix: placeholder under 32 chars, or loadConfig rejects that exact value.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 2,
         "severity": "non-blocking",
         "text": "[sensitive] docs/deploy.md section 11 + render.yaml startCommand: migrations run before the health check, so if migrate succeeds but the server fails, Render keeps old code against the new schema; doc says the previous version stays 'unchanged'. Fix: say applied migrations aren't rolled back and migrations must be backward-compatible (add first, remove later). Also migrate runs on every restart, so Neon unreachable blocks startup.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 3,
         "severity": "non-blocking",
         "text": "[sensitive] apps/api/scripts/smoke.ts + src/ops/smoke.ts: API_BASE_URL=http://<service>.onrender.com sends INTERNAL_SECRET in clear before any redirect. Fix: when a secret is set, refuse non-https base URLs unless loopback.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 4,
         "severity": "non-blocking",
         "text": "[sensitive] apps/api/src/internal/routes.ts header regex \\S+ vs config.ts accepting any 32+ char secret: a secret with whitespace (e.g. trailing space/newline pasted into Render) can never match, so every tick returns 401 with a hard-to-spot cause. Fix: loadConfig rejects secrets containing whitespace.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 5,
         "severity": "non-blocking",
         "text": "[sensitive] docs/deploy.md steps 3/6: first deploy runs TRUST_PROXY=0 so all users share Render's proxy IP for #2's sign-in limits; one attacker can lock everyone out. Fix: state plainly that sign-in must not be opened to real users until step 6 is done.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 6,
         "severity": "non-blocking",
         "text": "apps/api/src/internal/routes.test.ts trustProxy 0 case only asserts ip !== 203.0.113.7; a regression returning undefined or empty string would pass (AC3 says socket address). Fix: assert ip matches loopback (127.0.0.1, ::ffff:127.0.0.1 or ::1). (Reviewer's whitespace-secret finding duplicates finding 4.)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 7,
         "severity": "non-blocking",
         "text": "apps/api/src/ops/smoke.test.ts closed-port test closes a server then reuses its ephemeral port; another process can grab it between, making the test flaky. Fix: use a reliably closed target.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 8,
         "severity": "non-blocking",
         "text": "apps/api/src/ops/smoke.ts 15s per-check timeout can be shorter than a Render free cold start, so smoke before the cron is active reports 'could not connect' when the service is only waking. Fix: longer timeout (~60s) at least for the first check, or note in docs step 8.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 9,
         "severity": "non-blocking",
         "text": "docs/deploy.md steps 6 and 8 put INTERNAL_SECRET inline on the command line, so it lands in shell history. Fix: show setting the variable without it entering history (e.g. read -s / Read-Host -AsSecureString style prompt) or a note to clear history.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] apps/api/src/index.ts + config.ts: startup now requires INTERNAL_SECRET, so every developer's existing apps/api/.env makes npm run dev exit with 'INTERNAL_SECRET is not set.' after pulling (deliberate under R1). Fix: say so in the PR description.",
+        "resolved": false
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] docs/deploy.md step 6: curl -H \"Authorization: Bearer $INTERNAL_SECRET\" puts the secret in the process command line (visible to process monitors), and the env var stays set in the shell. Fix: feed the header via curl -H @- on stdin and unset/Remove-Item the variable afterwards. Low risk on a single-user PC.",
+        "resolved": false
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] docs/deploy.md step 1 + render.yaml: the direct (non-pooled) Neon string used for migrations also serves all runtime traffic; fine at this scale, may hit Neon connection limits under load. Fix later: pooled URL for the app plus a separate direct URL for migrations.",
+        "resolved": false
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] apps/api/src/config.ts PORT: Number(env.PORT ?? 3000) is unvalidated (pre-existing behaviour moved here); empty PORT gives 0 (random port), non-numeric gives NaN. Fix: validate like TRUST_PROXY. Render always sets PORT, so production unaffected.",
+        "resolved": false
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "[review r2] Extra behaviour beyond the spec: smoke.ts refuses to send the secret over plain http (non-loopback) and returns a single secure-url failure without running /health; config.ts rejects whitespace in INTERNAL_SECRET. Both added from review findings 3 and 4 and tested. Fix: accept knowingly and mention in the Test Handoff/PR.",
+        "resolved": false
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "[review r2] apps/api/src/ops/smoke.test.ts: the 'URL not running' case now uses an injected rejecting fetch instead of a real closed port, so AC11's real-network path is verified only indirectly. (Earlier finding 7 flagged the real closed-port version as flaky.)",
+        "resolved": false
+      },
+      {
+        "id": 16,
+        "severity": "non-blocking",
+        "text": "[review r2] Same as finding 10, plus: ourkit pending and the Test Handoff don't tell developers to add INTERNAL_SECRET (32+ chars) to their local apps/api/.env. Fix: add a pending note or a handoff line.",
         "resolved": false
       }
     ]
-  }
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Keep one direct Neon DATABASE_URL for both migrations and runtime (review finding 12)",
+      "why": "Fine for one free instance at this scale; split into a pooled runtime URL plus a direct migration URL when traffic grows. List in the Change Report."
+    },
+    {
+      "id": 2,
+      "decision": "Leave PORT unvalidated in config.ts (review finding 13)",
+      "why": "Pre-existing behaviour moved unchanged, and Render always sets PORT; list in the Change Report as a follow-up."
+    },
+    {
+      "id": 3,
+      "decision": "Accept the whitespace-secret rule and the https-only smoke secret beyond R1/R13 (review finding 14)",
+      "why": "Both came from review findings, are tested, and prevent a silent 401 loop and a secret sent in clear; mention in the PR and Test Handoff."
+    },
+    {
+      "id": 4,
+      "decision": "Keep the injected rejecting fetch for the smoke 'not running' test (review finding 15)",
+      "why": "A real closed port was flagged as flaky (finding 7); the real-network failure path was checked by hand in Build with a live local server."
+    }
+  ]
 }

@@ -63,18 +63,20 @@ Cách tìm:
 
 1. Từ điện thoại, dùng mạng di động hoặc Wi-Fi bạn đang kiểm tra, gọi:
 
-   Nhập secret mà không gõ vào dòng lệnh (để nó không nằm trong lịch sử shell):
+   Nhập secret mà không gõ vào dòng lệnh (để nó không nằm trong lịch sử shell), truyền header qua stdin (để nó không hiện trong danh sách tiến trình), rồi xoá biến sau khi dùng:
 
    ```
    # bash
    read -rs INTERNAL_SECRET && export INTERNAL_SECRET
-   curl -H "Authorization: Bearer $INTERNAL_SECRET" https://<service>.onrender.com/internal/ip
+   printf 'Authorization: Bearer %s\n' "$INTERNAL_SECRET" | curl -H @- https://<service>.onrender.com/internal/ip
+   unset INTERNAL_SECRET
    ```
 
    ```
    # PowerShell
    $s = Read-Host -AsSecureString; $env:INTERNAL_SECRET = [System.Net.NetworkCredential]::new('', $s).Password
-   curl.exe -H "Authorization: Bearer $env:INTERNAL_SECRET" https://<service>.onrender.com/internal/ip
+   "Authorization: Bearer $env:INTERNAL_SECRET" | curl.exe -H "@-" https://<service>.onrender.com/internal/ip
+   Remove-Item Env:INTERNAL_SECRET
    ```
 
    Kết quả dạng `{"ip":"..."}`. (Không có curl trên điện thoại thì dùng máy tính cùng mạng.)
@@ -102,12 +104,14 @@ Nhập secret mà không gõ vào dòng lệnh (để nó không nằm trong l�
 # bash
 read -rs INTERNAL_SECRET && export INTERNAL_SECRET
 API_BASE_URL=https://<service>.onrender.com npm --prefix apps/api run smoke
+unset INTERNAL_SECRET
 ```
 
 ```
 # PowerShell
 $s = Read-Host -AsSecureString; $env:INTERNAL_SECRET = [System.Net.NetworkCredential]::new('', $s).Password
 $env:API_BASE_URL = "https://<service>.onrender.com"; npm --prefix apps/api run smoke
+Remove-Item Env:INTERNAL_SECRET
 ```
 
 Request đầu tiên có thể mất tới khoảng một phút nếu service đang ngủ (free plan); mỗi kiểm tra chờ tối đa 60 giây. Smoke từ chối gửi secret qua `http://` (trừ localhost), chỉ dùng `https://`.
