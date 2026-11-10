@@ -15,7 +15,12 @@ try {
 }
 
 const prisma = createPrismaClient(config.databaseUrl);
-const app = createApp({ prisma, now: () => new Date(), trustProxy: config.trustProxy });
+const app = createApp({
+  prisma,
+  now: () => new Date(),
+  trustProxy: config.trustProxy,
+  internalSecret: config.internalSecret,
+});
 
 app.listen(config.port, () => {
   console.log(`api listening on http://localhost:${config.port}`);
