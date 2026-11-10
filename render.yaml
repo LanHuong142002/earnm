@@ -1,0 +1,24 @@
+# Render Blueprint for the earnm API. See docs/deploy.md for setup steps.
+# Secret values (DATABASE_URL, INTERNAL_SECRET, TRUST_PROXY) are entered in
+# Render's dashboard, never in this file.
+services:
+  - type: web
+    name: earnm-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: apps/api
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run db:deploy && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        sync: false
+      - key: INTERNAL_SECRET
+        sync: false
+      - key: TRUST_PROXY
+        sync: false
