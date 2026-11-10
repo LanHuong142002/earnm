@@ -42,5 +42,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "include": ["src", "generated", "vitest.config.ts", "vitest.global-setup.ts"]
+  "include": ["src", "generated", "scripts", "vitest.config.ts", "vitest.global-setup.ts"]
 }

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 2,
+    "text": "Create a Neon production project in Singapore, separate from dev/test, and copy its direct (non-pooled) connection string (docs/deploy.md step 1)"
+  },
+  {
+    "id": 3,
+    "text": "Create the Render service from render.yaml (New -> Blueprint) and enter DATABASE_URL, INTERNAL_SECRET and TRUST_PROXY=0 (docs/deploy.md steps 2-4)"
+  },
+  {
+    "id": 4,
+    "text": "Create the cron-job.org job: POST /internal/tick every 5 minutes with the Authorization header, failure notifications on (docs/deploy.md step 5)"
+  },
+  {
+    "id": 5,
+    "text": "Set TRUST_PROXY in Render after checking GET /internal/ip from the phone's network (docs/deploy.md step 6)"
+  },
+  {
+    "id": 6,
+    "text": "Set EXPO_PUBLIC_API_URL in apps/mobile/.env to the https://...onrender.com URL (docs/deploy.md step 7)"
+  },
+  {
+    "id": 7,
+    "text": "Add INTERNAL_SECRET (32+ characters, no spaces) to your local apps/api/.env, or npm run dev stops with 'INTERNAL_SECRET is not set.' Generate one with the command in docs/deploy.md step 2; use a different value from production."
+  }
+]

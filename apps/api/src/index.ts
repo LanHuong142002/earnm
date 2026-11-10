@@ -1,24 +1,27 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
+import { ConfigError, loadConfig } from "./config.js";
 import { createPrismaClient } from "./db.js";
 
-const databaseUrl = process.env["DATABASE_URL"];
-if (!databaseUrl) {
-  console.error("DATABASE_URL is not set.");
-  process.exit(1);
+let config: ReturnType<typeof loadConfig>;
+try {
+  config = loadConfig(process.env);
+} catch (err) {
+  if (err instanceof ConfigError) {
+    console.error(err.message);
+    process.exit(1);
+  }
+  throw err;
 }
 
-const trustProxyRaw = process.env["TRUST_PROXY"] ?? "0";
-if (!/^\d+$/.test(trustProxyRaw)) {
-  console.error("TRUST_PROXY must be a non-negative integer (the number of proxy hops).");
-  process.exit(1);
-}
-const trustProxy = Number(trustProxyRaw);
+const prisma = createPrismaClient(config.databaseUrl);
+const app = createApp({
+  prisma,
+  now: () => new Date(),
+  trustProxy: config.trustProxy,
+  internalSecret: config.internalSecret,
+});
 
-const prisma = createPrismaClient(databaseUrl);
-const app = createApp({ prisma, now: () => new Date(), trustProxy });
-
-const port = Number(process.env["PORT"] ?? 3000);
-app.listen(port, () => {
-  console.log(`api listening on http://localhost:${port}`);
+app.listen(config.port, () => {
+  console.log(`api listening on http://localhost:${config.port}`);
 });
