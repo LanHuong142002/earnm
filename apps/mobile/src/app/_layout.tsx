@@ -27,7 +27,9 @@ function RootNavigator() {
       <Stack.Protected guard={status === "signedOut"}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={status === "signedIn"}>
+      {/* Signed out, "/" (app)/index is guarded off; without redirectTo the router falls back to
+          the "(auth)" group, which has no index and shows Unmatched Route. */}
+      <Stack.Protected guard={status === "signedIn"} redirectTo="/sign-in">
         <Stack.Screen name="(app)" />
       </Stack.Protected>
     </Stack>
