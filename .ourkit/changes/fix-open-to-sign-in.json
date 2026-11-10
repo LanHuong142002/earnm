@@ -1,0 +1,12 @@
+{
+  "flow": "bug-fix",
+  "tier": "patch",
+  "tierReason": "Routing-only fix: signed-out launch lands on Sign in instead of an unmatched route",
+  "sensitiveAreas": [],
+  "notSensitiveReason": "Only Expo Router navigation inside the (auth) group; no sign-in logic, token storage or server permission check changes",
+  "review": {
+    "findings": [],
+    "reviewed": "ca363ba8abeb3876e78ae8d0baa372e6067ca85ca6df12ca4172e9b3ba8bb519"
+  },
+  "pr": "https://github.com/LanHuong142002/earnm/pull/22"
+}
