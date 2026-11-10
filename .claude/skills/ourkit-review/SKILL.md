@@ -1,6 +1,6 @@
 ---
 name: ourkit-review
-description: Reviews the Active Change, in a fresh context from Feature up, with findings marked blocking or non-blocking. Use after the ourkit Build Stage, or when asked to run an ourkit review.
+description: Reviews the Active Change, in a fresh context from Feature up, with findings marked blocking or non-blocking. Use after the ourkit Build Stage, after a QA fix, or when asked to run an ourkit review.
 ---
 
 # Review
@@ -34,4 +34,6 @@ When no blocking finding is left, run `ourkit review complete`, then `ourkit gat
 
 A Patch ends here. In Pair, tell the user the result so they can commit it. In Hands-off, continue to Ship to open its PR.
 
-Everything else continues to Ship. In Pair, also suggest that the user runs `/ourkit-huh` if they'd like to understand the change first. Don't push, merge or deploy in this Stage.
+A Feature continues to QA, and a Bug-fix to Ship. In Pair, also suggest that the user runs `/ourkit-huh` if they'd like to understand the change first. Don't push, merge or deploy in this Stage.
+
+End with the Next line (`.ourkit/kit/core/next-step.md`): `/ourkit-qa` for a Feature, or `/ourkit-ship` for a Bug-fix, with `/ourkit-huh` first if the user wants. For a Patch in Pair, the next step is the user committing it.

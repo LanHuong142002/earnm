@@ -35,4 +35,6 @@ Decide how to build what the spec asks for, before any code is written. In these
 - **In Pair:** show the plan and wait for the user's decision. Only after they approve, run `ourkit gate approve-plan`, then continue to Tasks. If they ask for changes, revise the plan and ask again.
 - **In Hands-off:** continue to Tasks, unless this change touches a Sensitive Area or needs the user to act on a service. Then stop here, show the plan and wait, so no tokens go in the wrong direction (ADR 0009). After they approve, run `ourkit gate approve-plan`.
 
+End with the Next line (`.ourkit/kit/core/next-step.md`): `/ourkit-tasks`, once the user approves the plan.
+
 Don't write code in this Stage.

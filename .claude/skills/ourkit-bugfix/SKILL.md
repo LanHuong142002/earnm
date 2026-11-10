@@ -45,3 +45,5 @@ Follow `.ourkit/kit/core/tier.md`. The same rules apply as for any change, inclu
 ## Handing over
 
 Continue to the Review Stage, then Ship. A Patch in Pair ends after Review, and the user commits it. A Bug-fix touching a Sensitive Area needs a Change Report at Ship; other Bug-fixes don't.
+
+End with the Next line (`.ourkit/kit/core/next-step.md`): `/ourkit-review`. If you couldn't reproduce the bug, the next step is the user sending more detail, then `/ourkit-bugfix` again.

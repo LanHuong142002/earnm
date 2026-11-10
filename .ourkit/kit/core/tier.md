@@ -5,7 +5,7 @@ Every change has a Tier, which decides the Stages it goes through:
 | Tier | When | Stages |
 |---|---|---|
 | Patch | A small change, outside any Sensitive Area | Build, Review |
-| Feature | Anything else that fits one cycle | Spec, Plan, Tasks, Build, Review, Ship |
+| Feature | Anything else that fits one cycle | Spec, Plan, Tasks, Build, Review, QA, Ship |
 | Epic | Too large for one cycle | Grill, Split into Features |
 
 ## Choosing a Tier

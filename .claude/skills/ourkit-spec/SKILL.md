@@ -35,4 +35,6 @@ Make the request precise before anyone plans or builds it. In these steps, `ourk
 - In Pair, show the user the spec and wait for their agreement before Plan.
 - In Hands-off, continue to Plan, unless an open question blocks the work. Then stop and report the Question Batch.
 
+End with the Next line (`.ourkit/kit/core/next-step.md`): `/ourkit-plan`, once the user agrees to the spec. If a question blocks the work, the next step is answering it.
+
 Don't plan or write code in this Stage.

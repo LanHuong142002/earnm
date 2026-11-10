@@ -14,4 +14,6 @@ Help the user catch up on a Loop Run they weren't there for. In these steps, `ou
 
 To record an answer, a ticket's branch must be checked out, because the Question Batch belongs to that change. Ask the user before switching.
 
+End with the Next line (`.ourkit/kit/core/next-step.md`): the most pressing thing waiting for the user, such as answering a ticket's questions on its branch or reviewing and merging its PR.
+
 Don't merge anything, and don't change any code in this Stage.

@@ -23,4 +23,6 @@ Run `ourkit tier show`. If `sensitiveAreas` lists anything, use the `ourkit-sens
 
 `teachback miss` writes to the Change Report. A Patch has no Change Report, so nothing is recorded for one, which the command will tell you.
 
+End with the Next line (`.ourkit/kit/core/next-step.md`): `/ourkit-ship` if the change has no PR yet, or the user reviewing and merging the PR if it has.
+
 Don't change any code in this Stage.

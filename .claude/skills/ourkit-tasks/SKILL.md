@@ -38,4 +38,4 @@ Then run `ourkit gate artifact tasks`, and fix any problem it reports.
 
 ## Handing over
 
-Continue to Build. Don't write code in this Stage.
+Continue to Build. If you stop here, end with the Next line (`.ourkit/kit/core/next-step.md`): `/ourkit-build`. Don't write code in this Stage.

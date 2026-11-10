@@ -54,3 +54,9 @@ Tickets don't need a Connector. They use a Tracker Pack, which works through the
    - Run `ourkit check --project` afterwards. If it reports a Connector problem, fix it before going on.
 3. **Guide the user through the rest.** For anything only they can do, such as signing in or creating a token, give numbered steps: where to go, what to choose, the least access that works, and how to set the variable outside the repo.
 4. **Save what's unfinished.** For each step not yet done, run `ourkit pending add "<what the user must do>"`. When a step is done, run `ourkit pending done <id>`.
+
+## Finishing
+
+Mention that the user can see where they are at any time, at no token cost, by running `ourkit statusline on`, and that `/ourkit-status` gives the details.
+
+End with the Next line (`.ourkit/kit/core/next-step.md`): the user commits the `.ourkit` and `.claude` folders, then describes their first change. For a project with an interface, suggest `/ourkit-design` first.

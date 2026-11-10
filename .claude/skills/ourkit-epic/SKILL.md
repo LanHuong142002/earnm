@@ -59,4 +59,6 @@ Run `ourkit gate artifact epic`, and fix any problem it reports. Then judge the 
 
 Show the user the list and wait for their agreement before creating anything in a Tracker. Once they agree, commit and push the branch with the Epic file, so anything linking to it can be opened. Then, if the project has a Tracker Pack, create the tickets through it, replacing `F` numbers with real ticket numbers. Link to the Epic file by its full URL on that branch, since it isn't on the default branch yet. Each Feature then starts at the Spec Stage on its own branch.
 
+End with the Next line (`.ourkit/kit/core/next-step.md`): before the user agrees, agreeing to the list. After, each Feature on its own branch, with `/ourkit-spec`, with `/ourkit-handsoff`, or with a Loop Run over the new tickets.
+
 Don't plan or write code for any Feature in this Stage.
