@@ -11,3 +11,30 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Language {
+  vi
+  en
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  displayName  String
+  language     Language?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime
+
+  @@index([userId])
+}

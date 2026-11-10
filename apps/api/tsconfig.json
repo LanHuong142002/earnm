@@ -2,14 +2,14 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    // "rootDir": "./src",
+    // "rootDir": ".",
     // "outDir": "./dist",
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "target": "esnext",
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
     "types": ["node"],
     // For nodejs:
@@ -42,5 +42,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "include": ["src"]
+  "include": ["src", "generated", "vitest.config.ts", "vitest.global-setup.ts"]
 }

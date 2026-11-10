@@ -2,26 +2,38 @@
   "name": "api",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
+    "db:generate": "prisma generate --config prisma7.config.ts",
+    "predev": "npm run db:generate",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "prebuild": "npm run db:generate",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/index.js",
+    "pretest": "npm run db:generate",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate dev --config prisma7.config.ts",
+    "db:deploy": "prisma migrate deploy --config prisma7.config.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "7.10.1",
-    "express": "^5.3.0"
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
-    "dotenv": "^18.0.10",
+    "@types/supertest": "^7.2.1",
     "prisma": "7.10.1",
+    "supertest": "^7.3.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
   }
 }

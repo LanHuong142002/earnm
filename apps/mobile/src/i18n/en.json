@@ -1,0 +1,35 @@
+{
+  "common": { "appName": "earnm", "loading": "Loading" },
+  "auth": {
+    "signInTitle": "Sign in",
+    "signUpTitle": "Create account",
+    "signInSubtitle": "Welcome back to earnm.",
+    "signUpSubtitle": "Create an account to plan together.",
+    "email": "Email",
+    "password": "Password",
+    "displayName": "Display name",
+    "signInButton": "Sign in",
+    "signUpButton": "Sign up",
+    "goToSignUp": "No account yet? Sign up",
+    "goToSignIn": "Already have an account? Sign in"
+  },
+  "home": { "welcome": "Hello, {{name}}", "settingsLink": "Settings", "offline": "Offline" },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "currentLanguage": "Current: {{language}}",
+    "pendingSync": "Will save to your account once you're back online.",
+    "signOut": "Sign out"
+  },
+  "language": { "vi": "Tiếng Việt", "en": "English" },
+  "errors": {
+    "validation_failed": "Please check the details you entered.",
+    "email_in_use": "That email is already registered.",
+    "invalid_credentials": "Wrong email or password.",
+    "too_many_attempts": "Too many attempts. Please wait and try again.",
+    "not_signed_in": "Your session has ended. Please sign in again.",
+    "network": "Can't reach the server. Check your connection.",
+    "internal_error": "Something went wrong. Please try again.",
+    "generic": "Something went wrong. Please try again."
+  }
+}
