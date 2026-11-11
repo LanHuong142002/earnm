@@ -263,13 +263,13 @@
         "id": 38,
         "severity": "blocking",
         "text": "R18/AC18: the Project details screen ([id]/index.tsx) shows no offline note; Home and the list do. Show the same note (shared OfflineNote) when status or profileStatus is offline.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 39,
         "severity": "non-blocking",
         "text": "Home card shows 'Create your first project' when there are projects but no current one; add a 'choose a project' state that opens the list.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 40,
@@ -287,12 +287,30 @@
         "id": 42,
         "severity": "non-blocking",
         "text": "AC25 lacks an end-to-end syncCycle assertion that the local list equals the server response after an accepted PATCH.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 43,
         "severity": "non-blocking",
         "text": "Root .gitignore and roadmap edits beyond spec; new deps approved by the user in the plan.",
+        "resolved": false
+      },
+      {
+        "id": 44,
+        "severity": "blocking",
+        "text": "R17/R18/R24: ProjectsProvider waits for profileStatus != loading before reading the cache; AuthProvider leaves profileStatus 'loading' forever when getMe fails with a non-network, non-401 error (e.g. 500/503 at launch), and retryProfile only handles 'offline'; so cached projects never show and the queue never sends. Also a stalled request delays the cache up to 15s.",
+        "resolved": false
+      },
+      {
+        "id": 45,
+        "severity": "non-blocking",
+        "text": "queue.ts header says a change with attempts > 0 is never merged into or dropped; code only protects attempted creates. Correct the comment (behaviour is safe).",
+        "resolved": false
+      },
+      {
+        "id": 46,
+        "severity": "non-blocking",
+        "text": "Unused i18n keys settings.accountTitle and home.welcome.",
         "resolved": false
       }
     ],

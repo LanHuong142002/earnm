@@ -2,7 +2,41 @@ import { describe, expect, it } from "vitest";
 
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { changedFields, ownershipDecision, planUpdate, withApplied } from "./optimistic";
+import { cacheStep, changedFields, ownershipDecision, planUpdate, withApplied } from "./optimistic";
+
+describe("cacheStep", () => {
+  it("shows nothing and waits when signed out", () => {
+    expect(cacheStep({ signedIn: false, cacheOwner: "a", userId: "a", queueCleared: false })).toEqual({
+      show: false,
+      settleOwnership: false,
+      clear: false,
+    });
+  });
+  it("shows the cache at once when signed in but the user id is not known yet", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: "a", userId: null, queueCleared: false })).toEqual({
+      show: true,
+      settleOwnership: false,
+      clear: false,
+    });
+  });
+  it("keeps the cache of the same user once known", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: "a", userId: "a", queueCleared: false })).toEqual({
+      show: true,
+      settleOwnership: true,
+      clear: false,
+    });
+  });
+  it("clears at once when the known user differs from the cache owner", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: "a", userId: "b", queueCleared: false })).toEqual({
+      show: false,
+      settleOwnership: true,
+      clear: true,
+    });
+  });
+  it("clears when the queue dropped another person's changes", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: null, userId: "b", queueCleared: true }).clear).toBe(true);
+  });
+});
 
 const p = (id: string, name = "A"): Project => ({ id, name, description: "", currency: "VND", role: "owner" });
 const change = (kind: Change["kind"], entityId: string): Change => ({

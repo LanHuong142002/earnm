@@ -244,8 +244,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (cancelled || tokenRef.current !== token) return;
         if (error instanceof ApiError && error.code === "not_signed_in") await endSession();
-        else if (error instanceof ApiError && error.code === "network") setProfileStatus("offline");
-        // other errors: stay signed in.
+        // Any other failure (network, 5xx while the host wakes): stay signed in and retry later.
+        else setProfileStatus("offline");
       }
     })();
     return () => {

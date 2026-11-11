@@ -9,8 +9,9 @@
  *   share the single runner; a call made mid-run makes it run once more. When
  *   expectedOwnerId is passed (a string or null), nothing is sent unless it is a string equal
  *   to the stored owner, so another person's changes are never sent with this token.
- * - A change that was already sent once (attempts > 0) is never merged into or dropped: the
- *   server may have it even though the reply was lost.
+ * - A create that was already sent once (attempts > 0) is never merged into or dropped by a
+ *   later update or delete: the server may have it even though the reply was lost, so those
+ *   are queued after it as their own requests.
  * - A change whose entity has no registered senders is kept and stops the queue (it is not
  *   rejected): the entity may be registered later.
  * - waiting() / count(): the changes still waiting (copies).

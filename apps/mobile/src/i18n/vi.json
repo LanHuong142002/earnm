@@ -18,7 +18,6 @@
     "goToSignIn": "Đã có tài khoản? Đăng nhập"
   },
   "home": {
-    "welcome": "Xin chào, {{name}}",
     "offline": "Đang ngoại tuyến",
     "currentProject": "Dự án hiện tại",
     "noProject": "Bắt đầu",
@@ -36,8 +35,7 @@
     "pendingSync": "Sẽ lưu vào tài khoản khi kết nối lại.",
     "signOut": "Đăng xuất",
     "signOutWaitingTitle": "Đăng xuất và mất thay đổi?",
-    "signOutWaitingMessage_other": "{{count}} thay đổi chưa được lưu và sẽ bị mất nếu bạn đăng xuất.",
-    "accountTitle": "Tài khoản"
+    "signOutWaitingMessage_other": "{{count}} thay đổi chưa được lưu và sẽ bị mất nếu bạn đăng xuất."
   },
   "language": {
     "vi": "Tiếng Việt",

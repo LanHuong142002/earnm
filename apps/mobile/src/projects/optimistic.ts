@@ -48,6 +48,27 @@ export function withApplied(list: Project[], change: Change, response: Project |
  * Whether the stored project cache must go when a known user signs in: it was owned by
  * someone else, or the queue just dropped another person's changes. An empty cache is kept.
  */
+export type CacheStep = { show: boolean; settleOwnership: boolean; clear: boolean };
+
+/**
+ * What the provider does with the stored copy. Signed in with no user id yet: show the copy at
+ * once (R17) and wait before touching ownership or sending. If that copy belongs to someone
+ * else it can only be left over from a session that ended without a wipe, and a sign-out
+ * always wipes it, so showing it briefly is safe. Once the id is known: a different owner (or
+ * a queue that dropped another person's changes) clears it immediately.
+ */
+export function cacheStep(input: {
+  signedIn: boolean;
+  cacheOwner: string | null;
+  userId: string | null;
+  queueCleared: boolean;
+}): CacheStep {
+  if (!input.signedIn) return { show: false, settleOwnership: false, clear: false };
+  if (!input.userId) return { show: true, settleOwnership: false, clear: false };
+  const clear = ownershipDecision(input.cacheOwner, input.queueCleared, input.userId) === "clear";
+  return { show: !clear, settleOwnership: true, clear };
+}
+
 export function ownershipDecision(cacheUserId: string | null, queueCleared: boolean, userId: string): "keep" | "clear" {
   if (queueCleared) return "clear";
   return cacheUserId !== null && cacheUserId !== userId ? "clear" : "keep";
