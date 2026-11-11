@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/useTheme";
 import { PressableScale } from "./PressableScale";
 
-type Variant = "primary" | "secondary" | "danger";
+type Variant = "primary" | "secondary" | "soft" | "danger";
 
 export function Button({
   label,
@@ -20,7 +20,7 @@ export function Button({
   const { t } = useTranslation();
   const { colors, typography, layout, radius, spacing } = useTheme();
   const primary = variant === "primary";
-  const textColor = primary ? colors.onAccent : variant === "danger" ? colors.danger : colors.text;
+  const textColor = primary ? colors.onAccent : variant === "danger" ? colors.danger : variant === "soft" ? colors.accentStrong : colors.text;
 
   return (
     <PressableScale
@@ -32,7 +32,7 @@ export function Button({
       style={{
         minHeight: layout.controlHeight,
         borderRadius: radius.button,
-        backgroundColor: primary ? colors.accentStrong : colors.field,
+        backgroundColor: primary ? colors.accentStrong : variant === "soft" ? colors.tile : colors.field,
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: spacing[3],

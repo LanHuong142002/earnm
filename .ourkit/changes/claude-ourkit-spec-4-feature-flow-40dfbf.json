@@ -383,24 +383,42 @@
         "id": 58,
         "severity": "non-blocking",
         "text": "homeCard and the list show 'Create your first project' when offline with no cache (new phone + 503); show the invite only after a successful refresh, a neutral offline state otherwise.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 59,
         "severity": "non-blocking",
         "text": "A project created offline before any cache owner is known is saved with userId '' and hidden after an offline restart until online (R20 edge).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 60,
         "severity": "non-blocking",
         "text": "enqueue pushes into memory before persist; a storage failure leaves the change queued while create reports an error, so a retry can create a duplicate.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 61,
         "severity": "non-blocking",
         "text": "Scope beyond numbered requirements (identity colours, hero card, choose card, waiting line, stagger, retryProfile) and new deps incl. expo-linear-gradient: approved by the user at QA/design and in the plan.",
+        "resolved": true
+      },
+      {
+        "id": 62,
+        "severity": "non-blocking",
+        "text": "queue.clear does not fence an in-flight runPass; A's POST returning after A signs out and B signs in runs onApplied and appends A's project to B's list and cache. Bump an epoch on clear/setOwner-drop and drop callbacks from an older epoch; test with a deferred sender.",
+        "resolved": false
+      },
+      {
+        "id": 63,
+        "severity": "non-blocking",
+        "text": "flush(expectedOwnerId) during a running flush only sets rerun; the rerun uses the first caller's owner id, delaying B's changes after a switch. Keep the latest requested owner id for the rerun.",
+        "resolved": false
+      },
+      {
+        "id": 64,
+        "severity": "non-blocking",
+        "text": "AC16 'both app languages' not exercised by a test; formatMoney takes no language by design.",
         "resolved": false
       }
     ],

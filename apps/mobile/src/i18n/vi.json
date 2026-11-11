@@ -22,13 +22,16 @@
     "offline": "Đang ngoại tuyến",
     "currentProject": "Dự án hiện tại",
     "noProject": "Bắt đầu",
-    "projectCardLabel": "Dự án hiện tại: {{name}}, {{currency}}",
     "areaProjects": "Dự án",
     "areaIdeas": "Ý tưởng",
     "areaSchedule": "Lịch chung",
     "comingSoon": "Sắp có",
     "chooseTitle": "Chọn một dự án",
-    "chooseBody": "Chọn dự án bạn muốn làm việc."
+    "chooseBody": "Chọn dự án bạn muốn làm việc.",
+    "yourProjects": "Dự án của bạn",
+    "seeAll": "Xem tất cả",
+    "openProject": "Mở dự án",
+    "openProjectLabel": "Mở dự án {{name}}"
   },
   "settings": {
     "language": "Ngôn ngữ",
@@ -79,8 +82,6 @@
     "noDescription": "Chưa có mô tả.",
     "edit": "Sửa dự án",
     "roleMember": "Thành viên",
-    "rowLabel": "{{name}}, {{currency}}",
-    "rowLabelMember": "{{name}}, {{currency}}, thành viên",
     "emptyTitle": "Tạo dự án đầu tiên của bạn",
     "emptyBody": "Dự án là nơi bạn và bạn bè cùng lên kế hoạch.",
     "offlineEmptyTitle": "Không tải được dự án khi ngoại tuyến",
@@ -97,7 +98,9 @@
     },
     "projectTitle": "Dự án",
     "rejectedCreate": "Không tạo được dự án mới {{name}}.",
-    "rejectedCreateNoName": "Không tạo được dự án mới của bạn."
+    "rejectedCreateNoName": "Không tạo được dự án mới của bạn.",
+    "roleOwner": "Chủ dự án",
+    "cardLabel": "{{name}}, {{currency}}, {{role}}"
   },
   "tabs": {
     "home": "Trang chủ",

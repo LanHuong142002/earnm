@@ -16,7 +16,9 @@
  *   rejected): the entity may be registered later.
  * - waiting() / count(): the changes still waiting (copies).
  * - setOwner(userId): resolves true if a different stored owner's changes were dropped.
- * - clear({ owner? }): drops all changes, and the owner too when asked.
+ * - clear({ owner? }): drops all changes, and the owner too when asked. A send already in flight
+ *   when changes are dropped (clear, or setOwner dropping another person's) finishes without
+ *   removing anything or calling onApplied / onRejected / onSignedOut.
  *
  * Persisted as { ownerId, changes } under one key, loaded once on first use.
  */
@@ -119,6 +121,10 @@ export function createQueue(options: QueueOptions) {
   let sendingId: string | null = null;
   let running: Promise<void> | null = null;
   let rerun = false;
+  let requestedOwner: string | null | undefined;
+  // Bumped whenever queued changes are dropped for a different person (clear, setOwner); an in-flight
+  // send that finishes after a bump must not touch the queue or call back.
+  let epoch = 0;
   let writes: Promise<void> = Promise.resolve();
 
   function load(): Promise<Persisted> {
@@ -237,14 +243,20 @@ export function createQueue(options: QueueOptions) {
       const change = s.changes[0];
       const entitySenders = senders.get(change.entity);
       if (!entitySenders) return false;
+      const sendEpoch = epoch;
       sendingId = change.changeId;
       change.attempts = (change.attempts ?? 0) + 1;
       let response: unknown;
       try {
         await persist(); // the attempt is saved before the request leaves
+        if (epoch !== sendEpoch) {
+          sendingId = null;
+          return false; // the queue was cleared meanwhile
+        }
         response = await entitySenders[change.kind](change, token);
       } catch (error) {
         sendingId = null;
+        if (epoch !== sendEpoch) return false;
         if (error instanceof ApiError) {
           if (error.code === "not_signed_in") {
             onSignedOut();
@@ -254,12 +266,14 @@ export function createQueue(options: QueueOptions) {
             // Already gone is what a delete wanted.
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
+            if (epoch !== sendEpoch) return false;
             onApplied(change, undefined);
             continue;
           }
           if (isPermanentRejection(error)) {
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
+            if (epoch !== sendEpoch) return false;
             onRejected(change, error);
             continue;
           }
@@ -267,14 +281,17 @@ export function createQueue(options: QueueOptions) {
         return false; // network or unknown: keep this and the rest
       }
       sendingId = null;
+      if (epoch !== sendEpoch) return false; // cleared while the request was out: not this person's any more
       s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
       await persist();
+      if (epoch !== sendEpoch) return false;
       onApplied(change, response);
     }
     return true;
   }
 
   function flush(expectedOwnerId?: string | null): Promise<void> {
+    requestedOwner = expectedOwnerId;
     if (running) {
       rerun = true;
       return running;
@@ -283,7 +300,7 @@ export function createQueue(options: QueueOptions) {
       try {
         do {
           rerun = false;
-          const completed = await runPass(expectedOwnerId);
+          const completed = await runPass(requestedOwner);
           if (!completed) rerun = false; // stopped on purpose; wait for the next trigger
         } while (rerun);
       } finally {
@@ -310,7 +327,10 @@ export function createQueue(options: QueueOptions) {
   async function setOwner(userId: string): Promise<boolean> {
     const s = await load();
     const cleared = s.ownerId !== null && s.ownerId !== userId;
-    if (cleared) s.changes = [];
+    if (cleared) {
+      s.changes = [];
+      epoch++;
+    }
     if (cleared || s.ownerId !== userId) {
       s.ownerId = userId;
       await persist();
@@ -321,6 +341,7 @@ export function createQueue(options: QueueOptions) {
   async function clear(opts: { owner?: boolean } = {}): Promise<void> {
     const s = await load();
     s.changes = [];
+    epoch++;
     if (opts.owner) s.ownerId = null;
     await persist();
   }

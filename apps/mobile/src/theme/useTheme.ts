@@ -1,17 +1,13 @@
 import { useColorScheme } from "react-native";
 
 import {
-  chip,
   colors,
   disabled,
   header,
-  heroGradient,
   iconSize,
-  identity,
   layout,
   motion,
   onFixed,
-  projectColors,
   radius,
   spacing,
   tile,
@@ -31,10 +27,6 @@ export type Theme = {
   motion: typeof motion;
   disabled: typeof disabled;
   header: typeof header;
-  identity: typeof identity;
-  chip: typeof chip;
-  heroGradient: typeof heroGradient;
-  projectColors: typeof projectColors;
   onFixed: typeof onFixed;
 };
 
@@ -52,10 +44,6 @@ export function useTheme(): Theme {
     motion,
     disabled,
     header,
-    identity,
-    chip,
-    heroGradient,
-    projectColors,
     onFixed,
   };
 }

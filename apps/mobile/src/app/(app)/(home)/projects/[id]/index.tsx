@@ -3,14 +3,13 @@ import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { ProjectCover, roleKey } from "../../../../../projects/ProjectCard";
 import { OfflineNote } from "../../../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../../../projects/RejectedNotice";
 import { useProjects } from "../../../../../projects/ProjectsProvider";
 import { useGoToProjectList, useTapOnce } from "../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../projects/routing";
 import { useTheme } from "../../../../../theme/useTheme";
-import { Chip } from "../../../../../ui/Chip";
-import { ProjectAvatar } from "../../../../../ui/ProjectAvatar";
 import { Button } from "../../../../../ui/Button";
 import { Collapsible } from "../../../../../ui/Collapsible";
 import { Enter } from "../../../../../ui/Enter";
@@ -58,13 +57,18 @@ export default function ProjectScreen() {
       <OfflineNote />
       <RejectedNoticeBanner />
       <Enter index={1}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing[2] }}>
-          <ProjectAvatar id={project.id} name={project.name} />
-          <View style={{ flex: 1, gap: spacing[1] }}>
+        <View style={{ gap: spacing[2] }}>
+          <View style={{ borderRadius: radius.card, overflow: "hidden" }}>
+            <ProjectCover
+              currency={project.currency}
+              pillLabel={t("projects.currencyLine", { currency: project.currency })}
+            />
+          </View>
+          <View style={{ gap: spacing[0] }}>
             <Text accessibilityRole="header" style={[typography.screenTitle, { color: colors.text }]}>
               {project.name}
             </Text>
-            <Chip label={project.currency} accessibilityLabel={t("projects.currencyLine", { currency: project.currency })} />
+            <Text style={[typography.caption, { color: colors.textSecondary }]}>{t(roleKey(project.role))}</Text>
           </View>
         </View>
       </Enter>

@@ -22,13 +22,16 @@
     "offline": "Offline",
     "currentProject": "Current project",
     "noProject": "Get started",
-    "projectCardLabel": "Current project: {{name}}, {{currency}}",
     "areaProjects": "Projects",
     "areaIdeas": "Ideas",
     "areaSchedule": "Shared schedule",
     "comingSoon": "Coming soon",
     "chooseTitle": "Choose a project",
-    "chooseBody": "Pick which project to work on."
+    "chooseBody": "Pick which project to work on.",
+    "yourProjects": "Your projects",
+    "seeAll": "See all",
+    "openProject": "Open project",
+    "openProjectLabel": "Open project {{name}}"
   },
   "settings": {
     "language": "Language",
@@ -80,8 +83,6 @@
     "noDescription": "No description.",
     "edit": "Edit project",
     "roleMember": "Member",
-    "rowLabel": "{{name}}, {{currency}}",
-    "rowLabelMember": "{{name}}, {{currency}}, member",
     "emptyTitle": "Create your first project",
     "emptyBody": "A project is where you and your friends plan together.",
     "offlineEmptyTitle": "Can't load your projects while offline",
@@ -99,7 +100,9 @@
     },
     "projectTitle": "Project",
     "rejectedCreate": "Your new project {{name}} couldn't be created.",
-    "rejectedCreateNoName": "Your new project couldn't be created."
+    "rejectedCreateNoName": "Your new project couldn't be created.",
+    "roleOwner": "Owner",
+    "cardLabel": "{{name}}, {{currency}}, {{role}}"
   },
   "tabs": {
     "home": "Home",

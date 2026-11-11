@@ -7,6 +7,7 @@ colors:
     surface: "#FFFFFF"          # cards, with border
     field: "#F3F4F6"            # inputs and search
     tile: "#FFF1EB"             # icon tiles and soft orange chips
+    tileBorder: "#FADCCB"       # 1px border on tiles and card cover areas
     border: "#EEEEEE"
     text: "#141414"
     textSecondary: "#5F5F5F"
@@ -22,6 +23,7 @@ colors:
     surface: "#1C1C1C"
     field: "#1E1E1E"
     tile: "#2A1A14"
+    tileBorder: "#3D261B"
     border: "#2A2A2A"
     text: "#F2F2F2"
     textSecondary: "#A3A3A3"
@@ -43,6 +45,7 @@ typography:
   caption: { size: 12, weight: 400, lineHeight: 16 }
   overline: { size: 10, weight: 800, letterSpacing: 0.8, uppercase: true }
 spacing: [4, 8, 12, 16, 20, 24, 32]
+iconSize: { sm: 20, md: 22, lg: 24 }   # lg for icon tiles
 layout:
   screenPadding: 20
   sectionGap: 24
