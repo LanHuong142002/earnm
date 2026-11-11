@@ -650,6 +650,23 @@ describe("sign-out fence and rerun owner", () => {
     expect(await queue.count()).toBe(0);
   });
 
+  it("after a fenced send, a flush for the new owner made meanwhile still sends their change", async () => {
+    const { queue, sender, sent } = setup();
+    let release!: (v: unknown) => void;
+    sender.mockImplementationOnce(() => new Promise((r) => (release = r)));
+    await queue.setOwner("A");
+    await queue.enqueue(mk("a"));
+    const flushing = queue.flush("A");
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    expect(await queue.setOwner("B")).toBe(true);
+    await queue.enqueue(mk("b"));
+    void queue.flush("B");
+    release({});
+    await flushing;
+    expect(ids(sent)).toEqual(["create:b"]);
+    expect(await queue.count()).toBe(0);
+  });
+
   it("the rerun uses the latest requested owner id, not the first caller's", async () => {
     const store = createMemoryStore();
     const sent: Change[] = [];

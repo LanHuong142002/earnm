@@ -232,7 +232,8 @@ export function createQueue(options: QueueOptions) {
     return change;
   }
 
-  async function runPass(expectedOwnerId: string | null | undefined): Promise<boolean> {
+  /** true: all sent; "fenced": stopped because the queue was cleared mid-send; false: stopped on purpose. */
+  async function runPass(expectedOwnerId: string | null | undefined): Promise<boolean | "fenced"> {
     const s = await load();
     if (s.changes.length > 0 && expectedOwnerId !== undefined && (expectedOwnerId === null || s.ownerId !== expectedOwnerId)) {
       return false; // not provably this person's changes
@@ -251,12 +252,12 @@ export function createQueue(options: QueueOptions) {
         await persist(); // the attempt is saved before the request leaves
         if (epoch !== sendEpoch) {
           sendingId = null;
-          return false; // the queue was cleared meanwhile
+          return "fenced"; // the queue was cleared meanwhile
         }
         response = await entitySenders[change.kind](change, token);
       } catch (error) {
         sendingId = null;
-        if (epoch !== sendEpoch) return false;
+        if (epoch !== sendEpoch) return "fenced";
         if (error instanceof ApiError) {
           if (error.code === "not_signed_in") {
             onSignedOut();
@@ -266,14 +267,14 @@ export function createQueue(options: QueueOptions) {
             // Already gone is what a delete wanted.
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
-            if (epoch !== sendEpoch) return false;
+            if (epoch !== sendEpoch) return "fenced";
             onApplied(change, undefined);
             continue;
           }
           if (isPermanentRejection(error)) {
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
-            if (epoch !== sendEpoch) return false;
+            if (epoch !== sendEpoch) return "fenced";
             onRejected(change, error);
             continue;
           }
@@ -281,10 +282,10 @@ export function createQueue(options: QueueOptions) {
         return false; // network or unknown: keep this and the rest
       }
       sendingId = null;
-      if (epoch !== sendEpoch) return false; // cleared while the request was out: not this person's any more
+      if (epoch !== sendEpoch) return "fenced"; // cleared while the request was out: not this person's any more
       s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
       await persist();
-      if (epoch !== sendEpoch) return false;
+      if (epoch !== sendEpoch) return "fenced";
       onApplied(change, response);
     }
     return true;
@@ -301,7 +302,8 @@ export function createQueue(options: QueueOptions) {
         do {
           rerun = false;
           const completed = await runPass(requestedOwner);
-          if (!completed) rerun = false; // stopped on purpose; wait for the next trigger
+          // Stopped on purpose: wait for the next trigger. After a fence, run again for the latest requested owner.
+          if (completed === false) rerun = false;
         } while (rerun);
       } finally {
         running = null;

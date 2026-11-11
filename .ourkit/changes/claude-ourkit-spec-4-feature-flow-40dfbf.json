@@ -407,18 +407,42 @@
         "id": 62,
         "severity": "non-blocking",
         "text": "queue.clear does not fence an in-flight runPass; A's POST returning after A signs out and B signs in runs onApplied and appends A's project to B's list and cache. Bump an epoch on clear/setOwner-drop and drop callbacks from an older epoch; test with a deferred sender.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 63,
         "severity": "non-blocking",
         "text": "flush(expectedOwnerId) during a running flush only sets rerun; the rerun uses the first caller's owner id, delaying B's changes after a switch. Keep the latest requested owner id for the rerun.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 64,
         "severity": "non-blocking",
         "text": "AC16 'both app languages' not exercised by a test; formatMoney takes no language by design.",
+        "resolved": false
+      },
+      {
+        "id": 65,
+        "severity": "blocking",
+        "text": "Home banner dropped the current project's currency (R29/AC29 'name and currency'), also from its accessibility label.",
+        "resolved": false
+      },
+      {
+        "id": 66,
+        "severity": "blocking",
+        "text": "Home 'Your projects' section isn't in R29 (user approved it in the mockup, spec not updated); its cards open a project without setCurrentProject, so Home keeps showing the old current project.",
+        "resolved": false
+      },
+      {
+        "id": 67,
+        "severity": "non-blocking",
+        "text": "flush: when a pass stops on the epoch fence, rerun is cleared, dropping the new owner's requested flush (R24 delay); keep rerun for epoch stops and test that B's change is sent.",
+        "resolved": false
+      },
+      {
+        "id": 68,
+        "severity": "non-blocking",
+        "text": "ProjectCard COVER_HEIGHT 92 and ICON_SIZE 30 are literals, not tokens.",
         "resolved": false
       }
     ],

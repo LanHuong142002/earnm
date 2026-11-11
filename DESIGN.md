@@ -45,7 +45,8 @@ typography:
   caption: { size: 12, weight: 400, lineHeight: 16 }
   overline: { size: 10, weight: 800, letterSpacing: 0.8, uppercase: true }
 spacing: [4, 8, 12, 16, 20, 24, 32]
-iconSize: { sm: 20, md: 22, lg: 24 }   # lg for icon tiles
+iconSize: { sm: 20, md: 22, lg: 24, xl: 30 }   # lg for icon tiles, xl for the project card cover icon
+projectCard: { coverHeight: 92 }
 layout:
   screenPadding: 20
   sectionGap: 24

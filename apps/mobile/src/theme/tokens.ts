@@ -85,7 +85,9 @@ export const layout = { screenPadding: 20, sectionGap: 24, controlHeight: 44 } a
 
 export const tile = { width: 52, height: 48 } as const;
 
-export const iconSize = { sm: 20, md: 22, lg: 24 } as const;
+export const iconSize = { sm: 20, md: 22, lg: 24, xl: 30 } as const;
+
+export const projectCard = { coverHeight: 92 } as const;
 
 export const radius = { pill: 999, field: 12, button: 12, tile: 14, card: 16, checkbox: 6 } as const;
 

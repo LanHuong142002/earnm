@@ -1,6 +1,7 @@
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useRef } from "react";
 
+import { useProjects } from "./ProjectsProvider";
 import { createTapGuard, stepsToList } from "./listNav";
 
 type StackNavigation = {
@@ -26,4 +27,16 @@ export function useTapOnce(): (go: () => void) => void {
   return (go) => {
     if (guard.allow()) go();
   };
+}
+
+/** Open a project's screen and make it the current project. Pushes first, saves the choice in the background; a quick double tap runs once. */
+export function useOpenProject(): (id: string) => void {
+  const router = useRouter();
+  const once = useTapOnce();
+  const { setCurrentProject } = useProjects();
+  return (id) =>
+    once(() => {
+      router.push({ pathname: "/projects/[id]", params: { id } });
+      void setCurrentProject(id).catch(() => {});
+    });
 }

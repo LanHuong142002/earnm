@@ -8,7 +8,7 @@ import { OfflineNote } from "../../../projects/OfflineNote";
 import { ProjectCard } from "../../../projects/ProjectCard";
 import { RejectedNoticeBanner } from "../../../projects/RejectedNotice";
 import { useProjects } from "../../../projects/ProjectsProvider";
-import { useTapOnce } from "../../../projects/useProjectNav";
+import { useOpenProject, useTapOnce } from "../../../projects/useProjectNav";
 import { homeCard } from "../../../projects/routing";
 import { useTheme } from "../../../theme/useTheme";
 import { Enter } from "../../../ui/Enter";
@@ -70,6 +70,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const once = useTapOnce();
+  const open = useOpenProject();
   const { status, projects, currentProject, waitingCount } = useProjects();
   const { colors, typography, radius, spacing, layout, iconSize, onFixed } = useTheme();
 
@@ -126,13 +127,27 @@ export default function HomeScreen() {
               alignItems: "flex-start",
             }}
           >
-            <Text style={[typography.overline, { color: onFixed }]}>{t("home.currentProject")}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", alignSelf: "stretch", justifyContent: "space-between", gap: spacing[1] }}>
+              <Text style={[typography.overline, { color: onFixed }]}>{t("home.currentProject")}</Text>
+              <View
+                style={{
+                  backgroundColor: colors.surface,
+                  borderRadius: radius.pill,
+                  paddingVertical: spacing[0],
+                  paddingHorizontal: spacing[1],
+                }}
+              >
+                <Text style={[typography.caption, { fontFamily: typography.label.fontFamily, color: colors.text }]}>
+                  {currentProject.currency}
+                </Text>
+              </View>
+            </View>
             <Text style={[typography.screenTitle, { color: onFixed }]} numberOfLines={2}>
               {currentProject.name}
             </Text>
             <PressableScale
               accessibilityRole="button"
-              accessibilityLabel={t("home.openProjectLabel", { name: currentProject.name })}
+              accessibilityLabel={t("home.openProjectLabel", { name: currentProject.name, currency: currentProject.currency })}
               onPress={() =>
                 once(() => router.push({ pathname: "/projects/[id]", params: { id: currentProject.id } }))
               }
@@ -208,7 +223,7 @@ export default function HomeScreen() {
                 <ProjectCard
                   key={p.id}
                   project={p}
-                  onPress={() => once(() => router.push({ pathname: "/projects/[id]", params: { id: p.id } }))}
+                  onPress={() => open(p.id)}
                 />
               ))}
             </View>

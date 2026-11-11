@@ -8,6 +8,7 @@ import {
   layout,
   motion,
   onFixed,
+  projectCard,
   radius,
   spacing,
   tile,
@@ -28,6 +29,7 @@ export type Theme = {
   disabled: typeof disabled;
   header: typeof header;
   onFixed: typeof onFixed;
+  projectCard: typeof projectCard;
 };
 
 export function useTheme(): Theme {
@@ -45,5 +47,6 @@ export function useTheme(): Theme {
     disabled,
     header,
     onFixed,
+    projectCard,
   };
 }

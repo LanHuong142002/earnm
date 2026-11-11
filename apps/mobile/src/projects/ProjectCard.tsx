@@ -7,23 +7,20 @@ import { Card } from "../ui/Card";
 import { PressableScale } from "../ui/PressableScale";
 import type { Project, ProjectRole } from "./api";
 
-const COVER_HEIGHT = 92;
-const ICON_SIZE = 30;
-
 /** The top area of a project card: the project icon on `tile`, with the currency pill top-right. */
 export function ProjectCover({ currency, pillLabel }: { currency: string; pillLabel?: string }) {
-  const { colors, typography, radius, spacing } = useTheme();
+  const { colors, typography, radius, spacing, iconSize, projectCard } = useTheme();
   return (
     <View
       style={{
-        height: COVER_HEIGHT,
+        height: projectCard.coverHeight,
         backgroundColor: colors.tile,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Ionicons name="storefront-outline" size={ICON_SIZE} color={colors.accent} />
+        <Ionicons name="storefront-outline" size={iconSize.xl} color={colors.accent} />
       </View>
       <View
         style={{

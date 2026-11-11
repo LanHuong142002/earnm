@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ProjectCard } from "../../../../projects/ProjectCard";
 import { OfflineNote } from "../../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../../projects/RejectedNotice";
-import { useTapOnce } from "../../../../projects/useProjectNav";
+import { useOpenProject, useTapOnce } from "../../../../projects/useProjectNav";
 import { useProjects } from "../../../../projects/ProjectsProvider";
 import { showInvitation, showOfflineEmpty } from "../../../../projects/routing";
 import { useTheme } from "../../../../theme/useTheme";
@@ -22,7 +22,7 @@ export default function ProjectsScreen() {
   const router = useRouter();
   const once = useTapOnce();
   const { colors, typography, layout, radius, spacing } = useTheme();
-  const { status, projects, setCurrentProject, refresh } = useProjects();
+  const { status, projects, refresh } = useProjects();
 
   // R17: fetch the server's list every time this screen is shown.
   useFocusEffect(
@@ -31,13 +31,7 @@ export default function ProjectsScreen() {
     }, [refresh]),
   );
 
-  // Push first so a quick double tap pushes once; the choice is saved in the background.
-  function open(id: string) {
-    once(() => {
-      router.push({ pathname: "/projects/[id]", params: { id } });
-      void setCurrentProject(id).catch(() => {});
-    });
-  }
+  const open = useOpenProject();
 
   const empty = showInvitation(status, projects.length);
   const offlineEmpty = showOfflineEmpty(status, projects.length);

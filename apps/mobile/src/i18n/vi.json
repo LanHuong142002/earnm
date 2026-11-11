@@ -31,7 +31,7 @@
     "yourProjects": "Dự án của bạn",
     "seeAll": "Xem tất cả",
     "openProject": "Mở dự án",
-    "openProjectLabel": "Mở dự án {{name}}"
+    "openProjectLabel": "Mở dự án {{name}}, {{currency}}"
   },
   "settings": {
     "language": "Ngôn ngữ",

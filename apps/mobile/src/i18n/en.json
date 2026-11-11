@@ -31,7 +31,7 @@
     "yourProjects": "Your projects",
     "seeAll": "See all",
     "openProject": "Open project",
-    "openProjectLabel": "Open project {{name}}"
+    "openProjectLabel": "Open project {{name}}, {{currency}}"
   },
   "settings": {
     "language": "Language",
