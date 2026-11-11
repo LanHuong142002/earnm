@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ComponentRef, Ref } from "react";
 import { useState } from "react";
 import { Text, TextInput, View, type TextInputProps } from "react-native";
 
@@ -9,12 +9,14 @@ import { ErrorText } from "./ErrorText";
 type Props = Omit<TextInputProps, "style"> & {
   label: string;
   icon: ComponentProps<typeof Ionicons>["name"];
+  /** For moving focus from another field. */
+  inputRef?: Ref<ComponentRef<typeof TextInput>>;
   invalid?: boolean;
   /** Message shown under the field; also marks it invalid. */
   error?: string | null;
 };
 
-export function TextField({ label, icon, invalid: invalidProp = false, error, onFocus, onBlur, ...rest }: Props) {
+export function TextField({ label, icon, invalid: invalidProp = false, error, inputRef, onFocus, onBlur, ...rest }: Props) {
   const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
   const invalid = invalidProp || !!error;
   const [focused, setFocused] = useState(false);
@@ -39,6 +41,7 @@ export function TextField({ label, icon, invalid: invalidProp = false, error, on
         <Ionicons name={icon} size={iconSize.sm} color={colors.placeholder} />
         <TextInput
           {...rest}
+          ref={inputRef}
           accessibilityLabel={label}
           placeholderTextColor={colors.placeholder}
           onFocus={(e) => {

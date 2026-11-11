@@ -4,14 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/useTheme";
 import { Enter } from "../ui/Enter";
 import { PressableScale } from "../ui/PressableScale";
+import { noticeKeys } from "./outcomes";
 import { useProjects } from "./ProjectsProvider";
-
-const REJECTED_REASON_KEY = {
-  forbidden: "errors.forbidden",
-  not_found: "errors.not_found",
-  conflict: "errors.id_conflict",
-  invalid: "errors.validation_failed",
-} as const;
 
 /** Tells the person a change couldn't be saved. Shown on every screen they can land on after it. */
 export function RejectedNoticeBanner() {
@@ -19,6 +13,7 @@ export function RejectedNoticeBanner() {
   const { colors, typography, radius, spacing, layout } = useTheme();
   const { rejectedNotice, dismissRejectedNotice } = useProjects();
   if (!rejectedNotice) return null;
+  const keys = noticeKeys(rejectedNotice);
   return (
     <Enter index={0}>
       <View
@@ -31,12 +26,10 @@ export function RejectedNoticeBanner() {
         }}
       >
         <Text style={[typography.bodyStrong, { color: colors.danger }]}>
-          {rejectedNotice.projectName
-            ? t("projects.rejected", { name: rejectedNotice.projectName })
-            : t("projects.rejectedNoName")}
+          {t(keys.headline, { name: rejectedNotice.projectName ?? "" })}
         </Text>
         <Text style={[typography.label, { color: colors.danger }]}>
-          {t(REJECTED_REASON_KEY[rejectedNotice.reason])}
+          {t(keys.reason)}
         </Text>
         <PressableScale
           accessibilityRole="button"

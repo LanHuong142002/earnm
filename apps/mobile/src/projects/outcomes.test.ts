@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "../lib/api";
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { onApplied, onRejected } from "./outcomes";
+import { noticeKeys, onApplied, onRejected } from "./outcomes";
 
 const T = "2026-01-01T00:00:00.000Z";
 const A: Project = { id: "a", name: "Alpha", description: "", currency: "VND", role: "owner" };
@@ -68,5 +68,24 @@ describe("onRejected reasons", () => {
   it("maps 409 to conflict and other codes to invalid", () => {
     expect(onRejected([A], change("create", "a"), new ApiError("id_conflict", 409), []).notice.reason).toBe("conflict");
     expect(onRejected([A], change("create", "a"), new ApiError("bad_request", 400), []).notice.reason).toBe("invalid");
+  });
+});
+
+describe("noticeKeys", () => {
+  it("says a refused create couldn't be created, never that the project no longer exists", () => {
+    const keys = noticeKeys({ kind: "create", projectName: "Zed", reason: "not_found" });
+    expect(keys).toEqual({ headline: "projects.rejectedCreate", reason: "errors.create_failed" });
+    expect(noticeKeys({ kind: "create", projectName: null, reason: "invalid" }).headline).toBe("projects.rejectedCreateNoName");
+  });
+
+  it("keeps the existing wording for updates and deletes", () => {
+    expect(noticeKeys({ kind: "update", projectName: "A", reason: "not_found" })).toEqual({
+      headline: "projects.rejected",
+      reason: "errors.not_found",
+    });
+    expect(noticeKeys({ kind: "delete", projectName: null, reason: "forbidden" })).toEqual({
+      headline: "projects.rejectedNoName",
+      reason: "errors.forbidden",
+    });
   });
 });

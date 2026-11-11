@@ -1,26 +1,42 @@
-import { Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { fontFamily } from "../../theme/tokens";
 import { useTheme } from "../../theme/useTheme";
 
+// Two tabs, each with its own stack, so switching tabs keeps each where the person left it.
 export default function AppLayout() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, iconSize } = useTheme();
   return (
-    <Stack
+    <Tabs
       screenOptions={{
         headerShadowVisible: false,
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.accentStrong,
         headerTitleStyle: { fontFamily: fontFamily.extraBold, color: colors.text },
+        tabBarActiveTintColor: colors.accentStrong,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
+        tabBarLabelStyle: { fontFamily: fontFamily.semiBold },
       }}
     >
-      <Stack.Screen name="index" options={{ title: t("common.appName") }} />
-      <Stack.Screen name="projects/index" options={{ title: t("projects.title") }} />
-      <Stack.Screen name="projects/new" options={{ title: t("projects.newTitle") }} />
-      <Stack.Screen name="projects/[id]/edit" options={{ title: t("projects.editTitle") }} />
-      <Stack.Screen name="settings" options={{ title: t("settings.title") }} />
-    </Stack>
+      <Tabs.Screen
+        name="(home)"
+        options={{
+          title: t("tabs.home"),
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={iconSize.md} color={String(color)} />,
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: t("tabs.account"),
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={iconSize.md} color={String(color)} />,
+        }}
+      />
+    </Tabs>
   );
 }

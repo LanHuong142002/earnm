@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { ProjectForm } from "../../../projects/ProjectForm";
-import { useProjects } from "../../../projects/ProjectsProvider";
+import { ProjectForm } from "../../../../projects/ProjectForm";
+import { useProjects } from "../../../../projects/ProjectsProvider";
 
 export default function NewProjectScreen() {
   const { t } = useTranslation();
@@ -17,7 +17,8 @@ export default function NewProjectScreen() {
         const result = await create(fields);
         if (result.ok) {
           await setCurrentProject(result.id);
-          router.replace("/");
+          // Replace the form, so going back from the new project reaches where creation started.
+          router.replace({ pathname: "/projects/[id]", params: { id: result.id } });
         }
         return result;
       }}

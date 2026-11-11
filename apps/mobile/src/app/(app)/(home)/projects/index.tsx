@@ -4,14 +4,14 @@ import { useCallback } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { RejectedNoticeBanner } from "../../../projects/RejectedNotice";
-import { useProjects } from "../../../projects/ProjectsProvider";
-import { useTheme } from "../../../theme/useTheme";
-import { Button } from "../../../ui/Button";
-import { Card } from "../../../ui/Card";
-import { Enter } from "../../../ui/Enter";
-import { PressableScale } from "../../../ui/PressableScale";
-import { Screen } from "../../../ui/Screen";
+import { RejectedNoticeBanner } from "../../../../projects/RejectedNotice";
+import { useProjects } from "../../../../projects/ProjectsProvider";
+import { useTheme } from "../../../../theme/useTheme";
+import { Button } from "../../../../ui/Button";
+import { Card } from "../../../../ui/Card";
+import { Enter } from "../../../../ui/Enter";
+import { PressableScale } from "../../../../ui/PressableScale";
+import { Screen } from "../../../../ui/Screen";
 
 export default function ProjectsScreen() {
   const { t } = useTranslation();
@@ -28,13 +28,13 @@ export default function ProjectsScreen() {
 
   async function open(id: string) {
     await setCurrentProject(id);
-    router.replace("/");
+    router.push({ pathname: "/projects/[id]", params: { id } });
   }
 
   const empty = projects.length === 0 && status !== "loading";
 
   return (
-    <Screen edges={["bottom"]}>
+    <Screen edges={[]}>
       <RejectedNoticeBanner />
       {status === "offline" ? (
         <Text style={[typography.label, { color: colors.textSecondary }]}>{t("home.offline")}</Text>

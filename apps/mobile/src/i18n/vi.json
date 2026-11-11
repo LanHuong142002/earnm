@@ -19,17 +19,23 @@
   },
   "home": {
     "welcome": "Xin chào, {{name}}",
-    "settingsLink": "Cài đặt",
-    "offline": "Đang ngoại tuyến"
+    "offline": "Đang ngoại tuyến",
+    "currentProject": "Dự án hiện tại",
+    "noProject": "Bắt đầu",
+    "projectCardLabel": "Dự án hiện tại: {{name}}, {{currency}}",
+    "areaProjects": "Dự án",
+    "areaIdeas": "Ý tưởng",
+    "areaSchedule": "Lịch chung",
+    "comingSoon": "Sắp có"
   },
   "settings": {
-    "title": "Cài đặt",
     "language": "Ngôn ngữ",
     "currentLanguage": "Hiện tại: {{language}}",
     "pendingSync": "Sẽ lưu vào tài khoản khi kết nối lại.",
     "signOut": "Đăng xuất",
     "signOutWaitingTitle": "Đăng xuất và mất thay đổi?",
-    "signOutWaitingMessage_other": "{{count}} thay đổi chưa được lưu và sẽ bị mất nếu bạn đăng xuất."
+    "signOutWaitingMessage_other": "{{count}} thay đổi chưa được lưu và sẽ bị mất nếu bạn đăng xuất.",
+    "accountTitle": "Tài khoản"
   },
   "language": {
     "vi": "Tiếng Việt",
@@ -46,7 +52,8 @@
     "generic": "Đã có lỗi xảy ra. Vui lòng thử lại.",
     "forbidden": "Chỉ chủ dự án mới làm được việc này.",
     "not_found": "Dự án này không còn tồn tại.",
-    "id_conflict": "Không tạo được dự án này. Vui lòng thử lại."
+    "id_conflict": "Không tạo được dự án này. Vui lòng thử lại.",
+    "create_failed": "Không tạo được dự án. Vui lòng thử lại."
   },
   "projects": {
     "title": "Dự án",
@@ -85,6 +92,13 @@
       "nameTooLong": "Tên tối đa {{max}} ký tự.",
       "descriptionTooLong": "Mô tả tối đa {{max}} ký tự.",
       "currencyInvalid": "Hãy chọn tiền tệ."
-    }
+    },
+    "projectTitle": "Dự án",
+    "rejectedCreate": "Không tạo được dự án mới {{name}}.",
+    "rejectedCreateNoName": "Không tạo được dự án mới của bạn."
+  },
+  "tabs": {
+    "home": "Trang chủ",
+    "account": "Tài khoản"
   }
 }

@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Text, View } from "react-native";
+import { useRef, useState, type ComponentRef, type ReactNode } from "react";
+import { Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../theme/useTheme";
@@ -39,6 +39,7 @@ export function ProjectForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+  const descriptionRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const nameError = errors.name
     ? errors.name === "required"
@@ -69,7 +70,7 @@ export function ProjectForm({
 
   return (
     <Screen
-      edges={["bottom"]}
+      edges={[]}
       footer={<Button label={submitLabel} loading={busy} onPress={submit} />}
     >
       <Enter index={0}>
@@ -81,6 +82,9 @@ export function ProjectForm({
             value={name}
             onChangeText={setName}
             autoCapitalize="sentences"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => descriptionRef.current?.focus()}
             editable={!busy}
           />
           <View style={{ gap: spacing[0] }}>
@@ -107,6 +111,10 @@ export function ProjectForm({
             value={description}
             onChangeText={setDescription}
             multiline
+            inputRef={descriptionRef}
+            returnKeyType="done"
+            submitBehavior="blurAndSubmit"
+            onSubmitEditing={() => void submit()}
             editable={!busy}
           />
           {formError ? <ErrorText message={formError} /> : null}

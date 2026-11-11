@@ -19,18 +19,24 @@
   },
   "home": {
     "welcome": "Hello, {{name}}",
-    "settingsLink": "Settings",
-    "offline": "Offline"
+    "offline": "Offline",
+    "currentProject": "Current project",
+    "noProject": "Get started",
+    "projectCardLabel": "Current project: {{name}}, {{currency}}",
+    "areaProjects": "Projects",
+    "areaIdeas": "Ideas",
+    "areaSchedule": "Shared schedule",
+    "comingSoon": "Coming soon"
   },
   "settings": {
-    "title": "Settings",
     "language": "Language",
     "currentLanguage": "Current: {{language}}",
     "pendingSync": "Will save to your account once you're back online.",
     "signOut": "Sign out",
     "signOutWaitingTitle": "Sign out and lose changes?",
     "signOutWaitingMessage_one": "{{count}} change hasn't been saved yet and will be lost if you sign out.",
-    "signOutWaitingMessage_other": "{{count}} changes haven't been saved yet and will be lost if you sign out."
+    "signOutWaitingMessage_other": "{{count}} changes haven't been saved yet and will be lost if you sign out.",
+    "accountTitle": "Account"
   },
   "language": {
     "vi": "Tiếng Việt",
@@ -47,7 +53,8 @@
     "generic": "Something went wrong. Please try again.",
     "forbidden": "Only the project owner can do that.",
     "not_found": "That project no longer exists.",
-    "id_conflict": "That project could not be created. Please try again."
+    "id_conflict": "That project could not be created. Please try again.",
+    "create_failed": "The project could not be created. Please try again."
   },
   "projects": {
     "title": "Projects",
@@ -87,6 +94,13 @@
       "nameTooLong": "The name can be at most {{max}} characters.",
       "descriptionTooLong": "The description can be at most {{max}} characters.",
       "currencyInvalid": "Choose a currency."
-    }
+    },
+    "projectTitle": "Project",
+    "rejectedCreate": "Your new project {{name}} couldn't be created.",
+    "rejectedCreateNoName": "Your new project couldn't be created."
+  },
+  "tabs": {
+    "home": "Home",
+    "account": "Account"
   }
 }
