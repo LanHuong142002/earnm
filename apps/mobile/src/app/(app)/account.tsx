@@ -36,7 +36,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <Screen edges={["bottom"]}>
+    <Screen edges={[]}>
       <Enter index={0}>
         <View style={{ gap: spacing[1] }}>
           <Text

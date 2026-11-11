@@ -7,6 +7,7 @@ colors:
     surface: "#FFFFFF"          # cards, with border
     field: "#F3F4F6"            # inputs and search
     tile: "#FFF1EB"             # icon tiles and soft orange chips
+    tileBorder: "#FADCCB"       # 1px border on tiles and card cover areas
     border: "#EEEEEE"
     text: "#141414"
     textSecondary: "#5F5F5F"
@@ -22,6 +23,7 @@ colors:
     surface: "#1C1C1C"
     field: "#1E1E1E"
     tile: "#2A1A14"
+    tileBorder: "#3D261B"
     border: "#2A2A2A"
     text: "#F2F2F2"
     textSecondary: "#A3A3A3"
@@ -32,7 +34,7 @@ colors:
     danger: "#F2B8B5"
     dangerBg: "#3A1715"
     success: "#6FCF97"
-  heroGradient: ["#E8481A", "#7A2A12"]   # 135deg, white text only, both modes
+  heroGradient: ["#C2410C", "#7A2A12"]   # optional; the banner uses accentStrong flat. White text only, both modes
 typography:
   family: "Plus Jakarta Sans"   # bundled with the app, weights 400, 600, 800 only
   screenTitle: { size: 24, weight: 800, lineHeight: 30 }
@@ -43,11 +45,14 @@ typography:
   caption: { size: 12, weight: 400, lineHeight: 16 }
   overline: { size: 10, weight: 800, letterSpacing: 0.8, uppercase: true }
 spacing: [4, 8, 12, 16, 20, 24, 32]
+iconSize: { sm: 20, md: 22, lg: 24, xl: 30 }   # lg for icon tiles, xl for the project card cover icon
+projectCard: { coverHeight: 92 }
 layout:
   screenPadding: 20
   sectionGap: 24
   controlHeight: 44
 radius:
+  pill: 999
   field: 12
   button: 12
   tile: 14
@@ -59,6 +64,10 @@ motion:
   press: { duration: 120, scale: 0.97 }
   shake: { duration: 300, distance: 4 }
   progress: { duration: 250 }
+disabled:
+  opacity: 0.5                # disabled tiles and controls, always with a text label saying why
+header:
+  backInset: 4                # extra left inset so the back chevron lines up with screenPadding
 ---
 
 # earnm design
@@ -80,8 +89,12 @@ A small, warm tool. Orange is the one accent. Rounded corners, bold short headin
 - **Text link:** `label` or `bodyStrong` in `accentStrong`, with at least 44px of touch area.
 - **Field:** `controlHeight`, `radius.field`, `field` fill, no border, a 20px leading icon in `placeholder`, and the label above it in `label`. Focused, it gets a 1.5px `accent` border. With an error, it gets a 1.5px `danger` border on `dangerBg`, plus a message below with an alert icon.
 - **Card:** `surface`, a 1px `border`, `radius.card`, 12–16 padding. Use list rows inside cards, not cards inside cards.
-- **Hero card:** `heroGradient`, `radius.card`, 16 padding, white text (title at least 20/800). Use it only for the one most important number on a screen.
-- **Icon tile:** 52×48, `radius.tile`, `tile` fill, a 22px `accent` icon, with a `label` caption below. Show at most 4 in a row.
+- **Hero card:** `heroGradient`, `radius.card`, 16 padding, white text (title at least 20/800). Use it only for the one most important number on a screen; Home uses the Banner instead.
+- **Banner (Home):** `accentStrong` flat fill, `radius.tile`, 16 padding. An `overline`-style white label, the current project's name in white (at least 20/800), and a small white button with `accentStrong` text ("Mở dự án" / "Open project"). One banner per screen. With no current project it becomes a plain Card inviting the person to choose or create one.
+- **Project card:** a Card with no inner padding at the top: a 92-high top area in `tile` fill with the project icon (`storefront-outline`, 30px, `accent`) centred, and a currency **pill** in its top-right corner (`surface` fill, `caption` weight 600 in `text`, `radius.pill`, 4×8 padding). Below, 10–12 padding: the name in `bodyStrong`, then one line in `caption` `textSecondary` with the role and, if any, the start of the description. All projects use the same icon until projects have cover photos; then the photo fills the top area. One card per project, 12 apart. No coloured stripes, no initials avatars.
+- **Section header with link:** `sectionTitle` on the left and a "Xem tất cả" / "See all" text link in `accentStrong` on the right.
+- **Icon tile:** a square in `tile` fill with a 1px border slightly darker than the fill, `radius.tile`, a 24px `accent` outline icon centred, and a `label` caption below. Three or four in a row, sharing the width equally. A tile for an area that isn't built yet uses `disabled.opacity` and a "Sắp có" / "Coming soon" caption.
+- **Header back:** the platform chevron at `iconSize.md`, inset by `header.backInset` so it lines up with `screenPadding`, with a 44×44 touch area and an accessible label.
 - **Section header:** `sectionTitle` on the left, an optional "see all" link on the right. An `overline` in `accent` is allowed above the current project name.
 - **Choice (radio or checkbox):** a row inside a card. The selected row shows a ✓ icon in `accent`, never colour alone. A checkbox is 20px, `radius.checkbox`, and filled `accent` with an `onAccent` tick when done. Done text uses `textSecondary` with a line through it.
 - **Icons:** one outline icon set, 20–22px, in `accent` or `textSecondary`.
@@ -101,6 +114,7 @@ Use `react-native-reanimated`, which the app already has.
 | What | When | Spec |
 |---|---|---|
 | Fade in and rise | A screen opens; sections appear in order | `motion.enter` |
+| Staggered list | Project cards appear one after another when the list opens (first 8 only) | `motion.enter` with `stagger` |
 | Press | Buttons, cards, tiles, rows | `motion.press` |
 | Shake and fade in a message | Wrong password or invalid input | `motion.shake` on the field |
 | Progress | A bar or count changes | `motion.progress` |
@@ -123,7 +137,7 @@ The app is iPhone only, in portrait, and must work from 375pt wide (iPhone SE) t
 
 - Filling the screen: big banners, stacked heroes, grids of more than 4 tiles, and long lists on overview screens
 - Neon, glow, glassmorphism, blur, drop shadows, and gradients anywhere other than the one hero card
-- A second accent colour (no gold, no cyan), and colour as the only sign of meaning
+- A second accent colour (no gold, no cyan), colour as the only sign of meaning, coloured side stripes on cards, and rainbow initials avatars
 - Delivery-app furniture: location pickers, promo banners, ratings, "HOT" badges and floating centre buttons
 - Placeholder copy, stock photos and emoji in place of icons
 - Hard-coded colours or sizes in components: use these tokens

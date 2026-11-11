@@ -379,6 +379,48 @@ describe("a create whose reply was lost (finding A)", () => {
 });
 
 describe("persistence failures (finding D)", () => {
+  it("a failed save rolls the change back, so it is not sent later and a retry does not duplicate", async () => {
+    const inner = createMemoryStore();
+    let failNext = true;
+    const store: KeyValueStore = {
+      ...inner,
+      setJSON: async (k, v) => {
+        if (failNext) {
+          failNext = false;
+          throw new Error("disk full");
+        }
+        return inner.setJSON(k, v);
+      },
+    };
+    const { queue, sent } = setup({ store });
+    await queue.setOwner("u1").catch(() => {}); // consumes the one failure only if it writes
+    failNext = true;
+    await expect(queue.enqueue(mk("a"))).rejects.toThrow("disk full");
+    expect(await queue.count()).toBe(0);
+    await queue.enqueue(mk("a")); // the retry
+    await queue.flush();
+    expect(ids(sent)).toEqual(["create:a"]);
+  });
+
+  it("a failed save restores a merged update", async () => {
+    const inner = createMemoryStore();
+    let fail = false;
+    const store: KeyValueStore = {
+      ...inner,
+      setJSON: async (k, v) => {
+        if (fail) throw new Error("disk full");
+        return inner.setJSON(k, v);
+      },
+    };
+    const { queue } = setup({ store });
+    await queue.enqueue({ ...mk("a"), data: { name: "N1" }, fieldTimes: { name: T1 } });
+    fail = true;
+    await expect(queue.enqueue({ ...mk("a", "update"), data: { name: "N2" }, fieldTimes: { name: T2 } })).rejects.toThrow();
+    const w = await queue.waiting();
+    expect(w).toHaveLength(1);
+    expect(w[0].data).toEqual({ name: "N1" });
+  });
+
   it("one rejected write does not poison later writes", async () => {
     const inner = createMemoryStore();
     let failNext = true;
@@ -558,5 +600,103 @@ describe("signing back in (AC27)", () => {
     await queue.flush("u1");
     expect(ids(sent)).toEqual(["create:a"]);
     expect(await queue.count()).toBe(0);
+  });
+});
+
+describe("sign-out fence and rerun owner", () => {
+  it("a send that returns after clear({ owner: true }) is not applied or re-added", async () => {
+    const { queue, sender, onApplied, onRejected } = setup();
+    let release!: (v: unknown) => void;
+    sender.mockImplementation(() => new Promise((r) => (release = r)));
+    await queue.setOwner("A");
+    await queue.enqueue(mk("a"));
+    const flushing = queue.flush("A");
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    await queue.clear({ owner: true });
+    release({ id: "a" });
+    await flushing;
+    expect(onApplied).not.toHaveBeenCalled();
+    expect(onRejected).not.toHaveBeenCalled();
+    expect(await queue.count()).toBe(0);
+    expect(await queue.ownerId()).toBeNull();
+  });
+
+  it("a failed send that returns after clear is not rejected either", async () => {
+    const { queue, sender, onRejected, onSignedOut } = setup();
+    let fail!: (e: unknown) => void;
+    sender.mockImplementation(() => new Promise((_, rej) => (fail = rej)));
+    await queue.enqueue(mk("a"));
+    const flushing = queue.flush();
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    await queue.clear();
+    fail(new ApiError("validation_failed", 400));
+    await flushing;
+    expect(onRejected).not.toHaveBeenCalled();
+    expect(onSignedOut).not.toHaveBeenCalled();
+  });
+
+  it("setOwner dropping another person's changes also fences an in-flight send", async () => {
+    const { queue, sender, onApplied } = setup();
+    let release!: (v: unknown) => void;
+    sender.mockImplementation(() => new Promise((r) => (release = r)));
+    await queue.setOwner("A");
+    await queue.enqueue(mk("a"));
+    const flushing = queue.flush("A");
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    expect(await queue.setOwner("B")).toBe(true);
+    release({});
+    await flushing;
+    expect(onApplied).not.toHaveBeenCalled();
+    expect(await queue.count()).toBe(0);
+  });
+
+  it("after a fenced send, a flush for the new owner made meanwhile still sends their change", async () => {
+    const { queue, sender, sent } = setup();
+    let release!: (v: unknown) => void;
+    sender.mockImplementationOnce(() => new Promise((r) => (release = r)));
+    await queue.setOwner("A");
+    await queue.enqueue(mk("a"));
+    const flushing = queue.flush("A");
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    expect(await queue.setOwner("B")).toBe(true);
+    await queue.enqueue(mk("b"));
+    void queue.flush("B");
+    release({});
+    await flushing;
+    expect(ids(sent)).toEqual(["create:b"]);
+    expect(await queue.count()).toBe(0);
+  });
+
+  it("the rerun uses the latest requested owner id, not the first caller's", async () => {
+    const store = createMemoryStore();
+    const sent: Change[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const sender = vi.fn<Sender>(async (change) => {
+      sent.push(change);
+      if (change.entityId === "a") await gate;
+      return {};
+    });
+    let queue: ReturnType<typeof createQueue>;
+    queue = createQueue({
+      store,
+      getToken: async () => "tok",
+      onApplied: (change) => {
+        // A change for the same stored owner shows up just after the first pass finishes.
+        if (change.entityId === "a") void queue.enqueue(mk("b"));
+      },
+      onRejected: vi.fn(),
+      onSignedOut: vi.fn(),
+    });
+    queue.registerEntity("thing", { create: sender, update: sender, delete: sender });
+    await queue.setOwner("u1");
+    await queue.enqueue(mk("a"));
+    const f1 = queue.flush("u1");
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    const f2 = queue.flush("u2"); // someone else is now signed in
+    release();
+    await Promise.all([f1, f2]);
+    expect(ids(sent)).toEqual(["create:a"]); // u1's change b is never sent for u2
+    expect(await queue.count()).toBe(1);
   });
 });

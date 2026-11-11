@@ -10,12 +10,12 @@ import {
 } from "react";
 
 import { useAuth } from "../auth/AuthProvider";
-import { getToken } from "../auth/token-store";
+import { getStoredUserId, getToken } from "../auth/token-store";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { createQueue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { listProjects, type Project } from "./api";
-import { ownershipDecision, planUpdate } from "./optimistic";
+import { cacheOwnerToSave, cacheStep, initialView, planUpdate } from "./optimistic";
 import type { RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
@@ -65,7 +65,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const { registerSignOutCleanup, handleNotSignedIn, retryProfile } = auth;
   const signedIn = auth.status === "signedIn";
-  const profileKnown = auth.profileStatus !== "loading";
   const userId = auth.user?.id ?? null;
 
   const [status, setStatus] = useState<ProjectsStatus>("loading");
@@ -92,8 +91,19 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const persist = useCallback(async () => {
     if (wipedRef.current) return;
     try {
+      let storedUserId: string | null = null;
+      if (!cacheOwnerRef.current && !userIdRef.current) {
+        try {
+          storedUserId = await getStoredUserId();
+        } catch {
+          // Unreadable: treated as unknown below.
+        }
+      }
+      const owner = cacheOwnerToSave(cacheOwnerRef.current, userIdRef.current, storedUserId);
+      // No owner can be named: keep the copy in memory only rather than save one that is unreadable later.
+      if (!owner || wipedRef.current) return;
       await saveProjectCache(asyncStorageStore, {
-        userId: cacheOwnerRef.current ?? "",
+        userId: owner,
         projects: projectsRef.current,
         currentProjectId: currentRef.current,
       });
@@ -183,35 +193,36 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     setReady(false);
   }, [cycle]);
 
-  // Load the local copy, settle ownership, then refresh and send waiting changes.
+  const userIdRef = useRef<string | null>(userId);
   useEffect(() => {
-    if (!signedIn || !profileKnown) return;
+    userIdRef.current = userId;
+  }, [userId]);
+
+  // Show the local copy as soon as the person is signed in, without waiting for the profile
+  // (R17). A copy owned by someone else can only be shown here if it was left behind without a
+  // wipe, and the user's own sign-out always wipes it; once the user id is known the next
+  // effect clears it immediately.
+  useEffect(() => {
+    if (!signedIn) return;
     let cancelled = false;
     wipedRef.current = false;
     void (async () => {
-      let cache = await loadProjectCache(asyncStorageStore);
-      if (userId) {
-        let cleared = false;
-        try {
-          cleared = await queue.setOwner(userId);
-        } catch {
-          // Unreadable queue: keep going with what is in memory.
-        }
-        if (ownershipDecision(cache?.userId || null, cleared, userId) === "clear") {
-          try {
-            await clearProjectCache(asyncStorageStore);
-          } catch {
-            // Overwritten by the next save.
-          }
-          cache = null;
-        }
-        cacheOwnerRef.current = userId;
-      } else {
-        cacheOwnerRef.current = cache?.userId || null;
-      }
+      const cache = await loadProjectCache(asyncStorageStore);
       if (cancelled) return;
-      projectsRef.current = cache?.projects ?? [];
-      currentRef.current = cache?.currentProjectId ?? null;
+      // Another person's copy is never put on screen; its owner is kept so the next effect clears it.
+      let storedUserId: string | null = null;
+      if (!userIdRef.current) {
+        try {
+          storedUserId = await getStoredUserId();
+        } catch {
+          // Unreadable: no saved projects are shown until the profile is known.
+        }
+        if (cancelled) return;
+      }
+      const view = initialView(cache, userIdRef.current, storedUserId);
+      cacheOwnerRef.current = view.owner;
+      projectsRef.current = view.projects;
+      currentRef.current = view.currentProjectId;
       setProjects(projectsRef.current);
       setCurrentId(currentRef.current);
       try {
@@ -221,15 +232,56 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       }
       if (cancelled) return;
       setReady(true);
+      // Without a user id this only refreshes; sending waits for the id.
+      if (!userIdRef.current) void syncRef.current();
+    })();
+    return () => {
+      cancelled = true;
+      // The session ended: drop in-memory state only. Stored data stays for a 401; the user's
+      // own sign-out wipes it in the registered cleanup.
+      resetMemory();
+    };
+  }, [signedIn, queue, resetMemory]);
+
+  // Once the user id is known: settle ownership of the copy and the queue, then send waiting
+  // changes and refresh.
+  useEffect(() => {
+    if (!ready || !userId) return;
+    let cancelled = false;
+    void (async () => {
+      let cleared = false;
+      try {
+        cleared = await queue.setOwner(userId);
+      } catch {
+        // Unreadable queue: keep going with what is in memory.
+      }
+      if (cancelled) return;
+      const step = cacheStep({ signedIn, cacheOwner: cacheOwnerRef.current, userId, queueCleared: cleared });
+      if (step.clear) {
+        try {
+          await clearProjectCache(asyncStorageStore);
+        } catch {
+          // Overwritten by the next save.
+        }
+        if (cancelled) return;
+        projectsRef.current = [];
+        currentRef.current = null;
+        setProjects([]);
+        setCurrentId(null);
+      }
+      cacheOwnerRef.current = userId;
+      try {
+        setWaitingCount(await queue.count());
+      } catch {
+        // Count stays 0.
+      }
+      if (cancelled) return;
       void syncRef.current();
     })();
     return () => {
       cancelled = true;
-      // The session ended or the user changed: drop in-memory state only. Stored data stays
-      // for a 401; the user's own sign-out wipes it in the registered cleanup.
-      resetMemory();
     };
-  }, [signedIn, profileKnown, userId, queue, resetMemory]);
+  }, [ready, signedIn, userId, queue]);
 
   useEffect(() => {
     if (!ready) return;

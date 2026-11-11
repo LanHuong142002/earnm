@@ -2,7 +2,8 @@
   "common": {
     "appName": "earnm",
     "loading": "Đang tải",
-    "cancel": "Hủy"
+    "cancel": "Hủy",
+    "back": "Quay lại"
   },
   "auth": {
     "signInTitle": "Đăng nhập",
@@ -18,12 +19,21 @@
     "goToSignIn": "Đã có tài khoản? Đăng nhập"
   },
   "home": {
-    "welcome": "Xin chào, {{name}}",
-    "settingsLink": "Cài đặt",
-    "offline": "Đang ngoại tuyến"
+    "offline": "Đang ngoại tuyến",
+    "currentProject": "Dự án hiện tại",
+    "noProject": "Bắt đầu",
+    "areaProjects": "Dự án",
+    "areaIdeas": "Ý tưởng",
+    "areaSchedule": "Lịch chung",
+    "comingSoon": "Sắp có",
+    "chooseTitle": "Chọn một dự án",
+    "chooseBody": "Chọn dự án bạn muốn làm việc.",
+    "yourProjects": "Dự án của bạn",
+    "seeAll": "Xem tất cả",
+    "openProject": "Mở dự án",
+    "openProjectLabel": "Mở dự án {{name}}, {{currency}}"
   },
   "settings": {
-    "title": "Cài đặt",
     "language": "Ngôn ngữ",
     "currentLanguage": "Hiện tại: {{language}}",
     "pendingSync": "Sẽ lưu vào tài khoản khi kết nối lại.",
@@ -46,7 +56,8 @@
     "generic": "Đã có lỗi xảy ra. Vui lòng thử lại.",
     "forbidden": "Chỉ chủ dự án mới làm được việc này.",
     "not_found": "Dự án này không còn tồn tại.",
-    "id_conflict": "Không tạo được dự án này. Vui lòng thử lại."
+    "id_conflict": "Không tạo được dự án này. Vui lòng thử lại.",
+    "create_failed": "Không tạo được dự án. Vui lòng thử lại."
   },
   "projects": {
     "title": "Dự án",
@@ -69,13 +80,12 @@
     "currencyLine": "Tiền tệ: {{currency}}",
     "details": "Chi tiết",
     "noDescription": "Chưa có mô tả.",
-    "switch": "Đổi dự án",
     "edit": "Sửa dự án",
     "roleMember": "Thành viên",
-    "rowLabel": "{{name}}, {{currency}}",
-    "rowLabelMember": "{{name}}, {{currency}}, thành viên",
     "emptyTitle": "Tạo dự án đầu tiên của bạn",
     "emptyBody": "Dự án là nơi bạn và bạn bè cùng lên kế hoạch.",
+    "offlineEmptyTitle": "Không tải được dự án khi ngoại tuyến",
+    "offlineEmptyBody": "Dự án của bạn sẽ hiện ra khi bạn có mạng trở lại.",
     "waiting_other": "{{count}} thay đổi đang chờ lưu",
     "rejected": "Không lưu được thay đổi của bạn với {{name}}.",
     "rejectedNoName": "Không lưu được thay đổi của bạn.",
@@ -85,6 +95,15 @@
       "nameTooLong": "Tên tối đa {{max}} ký tự.",
       "descriptionTooLong": "Mô tả tối đa {{max}} ký tự.",
       "currencyInvalid": "Hãy chọn tiền tệ."
-    }
+    },
+    "projectTitle": "Dự án",
+    "rejectedCreate": "Không tạo được dự án mới {{name}}.",
+    "rejectedCreateNoName": "Không tạo được dự án mới của bạn.",
+    "roleOwner": "Chủ dự án",
+    "cardLabel": "{{name}}, {{currency}}, {{role}}"
+  },
+  "tabs": {
+    "home": "Trang chủ",
+    "account": "Tài khoản"
   }
 }

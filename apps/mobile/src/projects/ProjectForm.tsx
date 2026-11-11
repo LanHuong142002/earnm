@@ -1,5 +1,6 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Text, View } from "react-native";
+import { useHeaderHeight } from "expo-router/react-navigation";
+import { useRef, useState, type ComponentRef, type ReactNode } from "react";
+import { Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../theme/useTheme";
@@ -26,11 +27,13 @@ export function ProjectForm({
   submitLabel: string;
   /** `opened` is what the form started with, so callers can send only what the person changed. */
   onSubmit: (fields: ProjectInput, opened: ProjectInput) => Promise<MutationResult<object>>;
-  /** Extra content below the form, e.g. a delete button. */
+  /** Set-apart section at the end of the scrolling form (not the footer), e.g. a delete button. */
   extra?: ReactNode;
 }) {
   const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
+  // The Home stack header sits above this screen; the keyboard overlap must account for it.
+  const headerHeight = useHeaderHeight();
   const opened = useRef(initial).current;
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
@@ -39,6 +42,7 @@ export function ProjectForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+  const descriptionRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const nameError = errors.name
     ? errors.name === "required"
@@ -69,7 +73,8 @@ export function ProjectForm({
 
   return (
     <Screen
-      edges={["bottom"]}
+      edges={[]}
+      keyboardOffset={headerHeight}
       footer={<Button label={submitLabel} loading={busy} onPress={submit} />}
     >
       <Enter index={0}>
@@ -81,6 +86,9 @@ export function ProjectForm({
             value={name}
             onChangeText={setName}
             autoCapitalize="sentences"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => descriptionRef.current?.focus()}
             editable={!busy}
           />
           <View style={{ gap: spacing[0] }}>
@@ -107,12 +115,31 @@ export function ProjectForm({
             value={description}
             onChangeText={setDescription}
             multiline
+            inputRef={descriptionRef}
+            returnKeyType="done"
+            submitBehavior="blurAndSubmit"
+            onSubmitEditing={() => void submit()}
             editable={!busy}
           />
           {formError ? <ErrorText message={formError} /> : null}
         </View>
       </Enter>
-      {extra ? <Enter index={1}>{extra}</Enter> : null}
+      {extra ? (
+        <Enter index={1}>
+          {/* Set apart from the form, with room below, so it can't be hit when reaching for Save. */}
+          <View
+            style={{
+              marginTop: spacing[6],
+              marginBottom: spacing[6],
+              paddingTop: spacing[5],
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+            }}
+          >
+            {extra}
+          </View>
+        </Enter>
+      ) : null}
     </Screen>
   );
 }

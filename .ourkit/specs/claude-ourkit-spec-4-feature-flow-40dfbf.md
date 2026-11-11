@@ -60,6 +60,7 @@ Today the API has accounts and sessions only (`User`, `Session`), and the mobile
 29. **Screens.** The signed-in part of the app has a tab bar at the bottom with two tabs, Home and Account (Account holds what Settings holds today). The Home tab contains Home, Project list, Project (one project's details), New project and Edit project. Home is the starting point for the app's areas and shows, from top to bottom (Rewritten at QA, following the user's reference design):
    - a card for the current project (the one used last on this phone), showing its name and currency, that opens it; with no project, the card invites the person to create their first project;
    - a grid of area tiles, one per area, each with an icon and a label: Projects, which opens the Project list, and Ideas and Shared schedule, which aren't built yet, look disabled, are labelled "Coming soon" and do nothing when tapped.
+   - a "Your projects" section with a "See all" link to the Project list and up to two project cards (the current project first); opening one makes it the current project. Hidden when there are no projects. (Added at QA from the user's approved mockup.)
 29a. **How they connect.** Each move below opens the next screen on top of the current one, so going back returns to where the person was:
    - After sign-in or sign-up, and on every launch while signed in: Home. Going back from Home never returns to the sign-in screens.
    - Home → the current project card → Project. Home → the Projects tile → Project list. The Account tab → Account (settings); switching tabs keeps each tab where the person left it.
@@ -67,14 +68,13 @@ Today the API has accounts and sessions only (`User`, `Session`), and the mobile
    - New project → create → Project for the new project, which becomes current; going back from it returns to the Project list (or Home, if creation started there), not to the filled-in form.
    - Project → "Edit" (Owners only) → Edit project. Saving returns to Project, showing the saved values.
    - Edit project → delete → confirm → Project list, without the deleted project; going back from there doesn't reach the deleted project's screens.
-   - Project → "Switch project" → Project list.
    - Account → sign out → Sign in.
    - If the project being viewed disappears (deleted elsewhere, or a change to it is refused with "not found"), the person is taken to the Project list, which shows the "couldn't be saved" notice when there was one.
 29b. **Going back.** Every screen except Home and Account can be left by the header's back control and by the system back gesture (on iPhone, swiping from the left edge), both returning to the previous screen in 29a. No move leaves a duplicate screen behind it, so going back never shows the same screen twice in a row. (Added at QA.)
 30. A person with no projects sees an invitation to create their first project, in Home's current-project card and on the Project list.
-31. The person can switch between their projects from the Project list, and the choice is remembered on the phone and shown on Home.
-32. Create and edit forms validate the same limits as the server before saving, and show a clear message per field. Only an Owner sees the controls to edit or delete. Deleting asks for confirmation, naming the project, and says it can't be undone. While typing, the keyboard's return key moves to the next field and, on the last field, submits the form, and the submit button is never hidden behind the keyboard. (Keyboard part added at QA.)
-33. Screens follow Decision 10 (compact vertical flows, collapsible sections starting closed, no tables), and all text is available in Vietnamese and English.
+31. The person can switch between their projects from the Project list (the Project screen has no separate "Switch project" control; back or Home → Projects reaches the list), and the choice is remembered on the phone and shown on Home.
+32. Create and edit forms validate the same limits as the server before saving, and show a clear message per field. Only an Owner sees the controls to edit or delete. Deleting asks for confirmation, naming the project, and says it can't be undone. The delete control sits apart from the submit button, with clear space between them, so one isn't tapped by mistake for the other. (Placement added at QA.) While typing, the keyboard's return key moves to the next field and, on the last field, submits the form, and the submit button is never hidden behind the keyboard. (Keyboard part added at QA.)
+33. On the Project list each project is its own separate card with space between cards, not rows inside one shared box, so unrelated projects don't look grouped. (Added at QA.) Screens follow Decision 10 (compact vertical flows, collapsible sections starting closed, no tables), and all text is available in Vietnamese and English.
 
 ### Data
 

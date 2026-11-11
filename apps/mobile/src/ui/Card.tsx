@@ -3,7 +3,8 @@ import { View } from "react-native";
 
 import { useTheme } from "../theme/useTheme";
 
-export function Card({ children }: { children: ReactNode }) {
+/** `flush`: no inner padding, for a card that lays out its own edges (a cover on top). */
+export function Card({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
   const { colors, radius, spacing } = useTheme();
   return (
     <View
@@ -12,8 +13,8 @@ export function Card({ children }: { children: ReactNode }) {
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: radius.card,
-        paddingHorizontal: spacing[2],
-        paddingVertical: spacing[2],
+        padding: flush ? 0 : spacing[2],
+        overflow: "hidden",
       }}
     >
       {children}

@@ -234,127 +234,418 @@
         "severity": "non-blocking",
         "text": "Round 4: projects/index.tsx and new.tsx call router.replace('/') after switching or creating; may leave an extra Home in the stack so Back shows Home again. Check by hand (Test Handoff); dismissTo('/') would avoid it.",
         "resolved": false
+      },
+      {
+        "id": 34,
+        "severity": "blocking",
+        "text": "Nav: edit.tsx:70 and :27 and [id]/index.tsx:28 use dismissTo('/projects'); POP_TO only replaces the top when the list isn't in the stack, so Home→card→Project→Edit→delete leaves [Home, Project(X), List]; back reaches the deleted project, which then redirects to the list again (R29a/R29b, AC29a/b). Reset the Home stack to [Home, List] via one shared helper.",
+        "resolved": true
+      },
+      {
+        "id": 35,
+        "severity": "blocking",
+        "text": "Keyboard: ProjectForm renders Screen whose KeyboardAvoidingView has no keyboardVerticalOffset; under the Home stack header (and tabs) it underestimates the overlap by ~header+status bar, so the submit button likely stays hidden (R32/AC32). Pass useHeaderHeight() as the offset for screens under a header.",
+        "resolved": true
+      },
+      {
+        "id": 36,
+        "severity": "non-blocking",
+        "text": "Nav: 'Switch project' via dismissTo replaces Project with the list when arrived from Home's card, so back goes to Home not Project (R29a 'opens on top'). Push the list when not in the stack, pop to it when it is.",
+        "resolved": true
+      },
+      {
+        "id": 37,
+        "severity": "non-blocking",
+        "text": "Nav: a quick double tap can push the same screen twice (list row awaits setCurrentProject before push; Home card and Projects tile) — R29b forbids duplicates. Guard with a navigating ref or push before the awaited write.",
+        "resolved": true
+      },
+      {
+        "id": 38,
+        "severity": "blocking",
+        "text": "R18/AC18: the Project details screen ([id]/index.tsx) shows no offline note; Home and the list do. Show the same note (shared OfflineNote) when status or profileStatus is offline.",
+        "resolved": true
+      },
+      {
+        "id": 39,
+        "severity": "non-blocking",
+        "text": "Home card shows 'Create your first project' when there are projects but no current one; add a 'choose a project' state that opens the list.",
+        "resolved": true
+      },
+      {
+        "id": 40,
+        "severity": "non-blocking",
+        "text": "After a 403 rejection, if the follow-up refresh fails the refused value stays in the persisted cache until a later refresh; keep needsRefresh across failed refreshes or roll back the refused fields.",
+        "resolved": false
+      },
+      {
+        "id": 41,
+        "severity": "non-blocking",
+        "text": "GET /projects not paged: intentional per spec Out of Scope.",
+        "resolved": false
+      },
+      {
+        "id": 42,
+        "severity": "non-blocking",
+        "text": "AC25 lacks an end-to-end syncCycle assertion that the local list equals the server response after an accepted PATCH.",
+        "resolved": true
+      },
+      {
+        "id": 43,
+        "severity": "non-blocking",
+        "text": "Root .gitignore and roadmap edits beyond spec; new deps approved by the user in the plan.",
+        "resolved": false
+      },
+      {
+        "id": 44,
+        "severity": "blocking",
+        "text": "R17/R18/R24: ProjectsProvider waits for profileStatus != loading before reading the cache; AuthProvider leaves profileStatus 'loading' forever when getMe fails with a non-network, non-401 error (e.g. 500/503 at launch), and retryProfile only handles 'offline'; so cached projects never show and the queue never sends. Also a stalled request delays the cache up to 15s.",
+        "resolved": true
+      },
+      {
+        "id": 45,
+        "severity": "non-blocking",
+        "text": "queue.ts header says a change with attempts > 0 is never merged into or dropped; code only protects attempted creates. Correct the comment (behaviour is safe).",
+        "resolved": true
+      },
+      {
+        "id": 46,
+        "severity": "non-blocking",
+        "text": "Unused i18n keys settings.accountTitle and home.welcome.",
+        "resolved": true
+      },
+      {
+        "id": 47,
+        "severity": "blocking",
+        "text": "Privacy: ProjectsProvider effect 1 shows the stored cache before checking cache.userId against the signed-in user; after A's 401 keeps the cache, B signing in briefly sees A's projects until effect 2 clears them. cacheStep.show is tested but not used. Gate the display on cacheStep (or owner match).",
+        "resolved": true
+      },
+      {
+        "id": 48,
+        "severity": "non-blocking",
+        "text": "Edit project push on the Project screen isn't wrapped in useTapOnce; a double tap can push two Edit screens (R29b).",
+        "resolved": true
+      },
+      {
+        "id": 49,
+        "severity": "non-blocking",
+        "text": "listNav 'push' mode and its 'Switch project' test are now unused; remove or rename.",
+        "resolved": true
+      },
+      {
+        "id": 50,
+        "severity": "non-blocking",
+        "text": "Home's waiting-changes note and the 'Choose a project' card aren't in the spec; settled with the user at QA as wanted.",
+        "resolved": true
+      },
+      {
+        "id": 51,
+        "severity": "non-blocking",
+        "text": "After a 403 the notice names the project by its local (offline-edited) name, which is about to be reverted.",
+        "resolved": false
+      },
+      {
+        "id": 52,
+        "severity": "blocking",
+        "text": "syncCycle.refresh: a non-401, non-network failure (500/502/503) sets status 'ready'; on a fresh phone with no cache Home invites 'Create your first project' to someone who has projects, and no note says the refresh failed. Treat as offline/error with retry; add a test.",
+        "resolved": true
+      },
+      {
+        "id": 53,
+        "severity": "blocking",
+        "text": "HeaderBack icon size 28 and one-off inset/hitSlop break DESIGN.md (icons 20-22px, no one-off values); Home disabled tile uses opacity 0.55 and width 48% one-offs. Use tokens or record the exception in DESIGN.md.",
+        "resolved": true
+      },
+      {
+        "id": 54,
+        "severity": "non-blocking",
+        "text": "Offline relaunch after A's 401 then B's sign-in killed before ownership clear can show A's cache while B's id is unknown; clear synchronously in startSession or store the token owner.",
+        "resolved": true
+      },
+      {
+        "id": 55,
+        "severity": "non-blocking",
+        "text": "Sign-out cleanup swallows storage errors; data may stay on disk until the next different user's sign-in clears it.",
+        "resolved": false
+      },
+      {
+        "id": 56,
+        "severity": "non-blocking",
+        "text": "A delete answered 404 is treated as done with no notice; deliberate deviation from R26 wording, note in Test Handoff.",
+        "resolved": false
+      },
+      {
+        "id": 57,
+        "severity": "non-blocking",
+        "text": "Additions beyond spec: root .gitignore, retryProfile and treating non-401 profile failures as offline; mention in PR.",
+        "resolved": false
+      },
+      {
+        "id": 58,
+        "severity": "non-blocking",
+        "text": "homeCard and the list show 'Create your first project' when offline with no cache (new phone + 503); show the invite only after a successful refresh, a neutral offline state otherwise.",
+        "resolved": true
+      },
+      {
+        "id": 59,
+        "severity": "non-blocking",
+        "text": "A project created offline before any cache owner is known is saved with userId '' and hidden after an offline restart until online (R20 edge).",
+        "resolved": true
+      },
+      {
+        "id": 60,
+        "severity": "non-blocking",
+        "text": "enqueue pushes into memory before persist; a storage failure leaves the change queued while create reports an error, so a retry can create a duplicate.",
+        "resolved": true
+      },
+      {
+        "id": 61,
+        "severity": "non-blocking",
+        "text": "Scope beyond numbered requirements (identity colours, hero card, choose card, waiting line, stagger, retryProfile) and new deps incl. expo-linear-gradient: approved by the user at QA/design and in the plan.",
+        "resolved": true
+      },
+      {
+        "id": 62,
+        "severity": "non-blocking",
+        "text": "queue.clear does not fence an in-flight runPass; A's POST returning after A signs out and B signs in runs onApplied and appends A's project to B's list and cache. Bump an epoch on clear/setOwner-drop and drop callbacks from an older epoch; test with a deferred sender.",
+        "resolved": true
+      },
+      {
+        "id": 63,
+        "severity": "non-blocking",
+        "text": "flush(expectedOwnerId) during a running flush only sets rerun; the rerun uses the first caller's owner id, delaying B's changes after a switch. Keep the latest requested owner id for the rerun.",
+        "resolved": true
+      },
+      {
+        "id": 64,
+        "severity": "non-blocking",
+        "text": "AC16 'both app languages' not exercised by a test; formatMoney takes no language by design.",
+        "resolved": false
+      },
+      {
+        "id": 65,
+        "severity": "blocking",
+        "text": "Home banner dropped the current project's currency (R29/AC29 'name and currency'), also from its accessibility label.",
+        "resolved": true
+      },
+      {
+        "id": 66,
+        "severity": "blocking",
+        "text": "Home 'Your projects' section isn't in R29 (user approved it in the mockup, spec not updated); its cards open a project without setCurrentProject, so Home keeps showing the old current project.",
+        "resolved": true
+      },
+      {
+        "id": 67,
+        "severity": "non-blocking",
+        "text": "flush: when a pass stops on the epoch fence, rerun is cleared, dropping the new owner's requested flush (R24 delay); keep rerun for epoch stops and test that B's change is sent.",
+        "resolved": true
+      },
+      {
+        "id": 68,
+        "severity": "non-blocking",
+        "text": "ProjectCard COVER_HEIGHT 92 and ICON_SIZE 30 are literals, not tokens.",
+        "resolved": true
+      },
+      {
+        "id": 69,
+        "severity": "non-blocking",
+        "text": "Home banner: only the inner Open project button opens the project; tapping the banner itself does nothing (AC29 'tapping it opens'). Make the whole banner pressable.",
+        "resolved": false
+      },
+      {
+        "id": 70,
+        "severity": "non-blocking",
+        "text": "After a 403, if the follow-up refresh fails, the next flush clears needsRefresh, so the refused value stays until a full sync; clear it only after a successful refresh.",
+        "resolved": false
+      },
+      {
+        "id": 71,
+        "severity": "non-blocking",
+        "text": "AuthProvider: any non-401 profile error now counts as offline, plus a profile retry on foreground; session-handling change made during review to meet R17/R18/R24, approved with the plan addendum; stated in the PR.",
+        "resolved": false
+      },
+      {
+        "id": 72,
+        "severity": "non-blocking",
+        "text": "GET /projects unpaged: deliberate, spec Out of Scope.",
+        "resolved": false
       }
     ],
-    "reviewed": "a09db9f0f7a6e9555bd871aee5ced7d0064c07d5508a0cab0c30eb85907b0520"
+    "reviewed": "efd32e98947cf014781bb76e188c5e0d61abee0ef5888a4687e557e9fe2aa0fe"
   },
   "qa": {
     "results": {
       "1": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); routes.test.ts 'validation (AC1)' refuses bad name/description/currency and 'accepts boundary values and both currencies'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 1 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API tests: names of 0 and 81 characters after trimming, a description of 501 characters, and a currency other than `VND`/`USD` are refused with `validation_failed`; a name of 80 characters, an empty description and both currencies are accepted."
       },
       "2": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); schema.test.ts 'refuses the same person twice in one project'; role is the ProjectRole enum (owner|member) in the migration.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 2 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Schema check: a membership table has a role of Owner or Member and a unique (project, user) pair; a test inserting the same pair twice fails."
       },
       "3": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); create returns role owner with an owner membership row; 'refuses a members field or any unknown field'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 3 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API test: creating a project returns it with the caller's role as Owner, and a membership row exists for the caller as Owner. The create request has no members field; one sent is refused as invalid."
       },
       "4": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); create test keeps and returns the phone-chosen UUID.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 4 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API test: a project created with a phone-chosen UUID is stored and returned with that same id."
       },
       "5": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'is idempotent for the same person' and 'refuses another person's project id with 409 and leaves it unchanged'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 5 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API tests: sending the same create twice returns the same project both times and leaves exactly one project; a create using the id of another person's project is refused and doesn't change that project."
       },
       "6": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'returns each person's own projects with role, ordered by name'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 6 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API test: with two people and three projects, each person's list contains exactly the projects they belong to, with their role."
       },
       "7": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'owner can change name, description, currency, or all' and 'forbids a plain member with 403'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 7 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API tests: an Owner can change name only, description only, currency only, and all three; a Member's change is refused with `403`."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; changing currency VND to USD kept name and description, no amount recalculated (item M).",
+        "criterion": "API test: changing currency from VND to USD leaves every other stored value unchanged. (By hand: no amount is recalculated anywhere.)"
       },
       "9": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); delete test: owner removes project and memberships, member 403, second delete 404.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 9 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API tests: an Owner's delete removes the project and its memberships, and the project no longer appears in any member's list; a Member's delete is refused with `403`; a second delete of the same project gives `404`."
       },
       "10": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'gives identical 404 bodies for missing, foreign and non-uuid ids' for PATCH and DELETE.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 10 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API tests: changing and deleting a project that doesn't exist, and one the caller isn't a member of, all give `404` with the same body."
       },
       "11": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'requires a valid token on every route' covers missing and expired (clock advanced past SESSION_LIFETIME_MS) tokens.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 11 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API test: every projects endpoint without a token, and with an expired one, gives `401 not_signed_in` in the standard error shape."
       },
       "12": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'stores the accepted editedAt for that field only'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 12 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API test: after an accepted change, the stored time for that field equals the change's `editedAt`, and other fields' times are unchanged."
       },
       "13": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'ignores an older change and keeps other fields on a mixed order' plus last-write-wins.test.ts.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 13 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API tests: a change to `name` older than the stored `name` time is ignored; a change to `name` with an older time than a recent `description` change is accepted and the description is kept."
       },
       "14": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'clamps a future editedAt to server now, and a later real change wins'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 14 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API test, with a fixed server clock: a change with `editedAt` one day in the future is stored with the server's current time, and a later real change wins over it."
       },
       "15": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); same test as 13 returns 200 with current values when the change is ignored.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 15 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "API test: a change that is fully ignored by a conflict returns `200` with the project's current values."
       },
       "16": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); currency.test.ts covers VND, USD and zero; formatMoney takes no language, so output is the same in both app languages by design.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 16 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Unit tests: `1250000` in VND formats as `1.250.000 ₫` and `1250.5` in USD as `$1,250.50`, in both app languages; `0` formats as `0 ₫` and `$0.00`."
+      },
+      "17": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; airplane-mode launch showed the list at once and it refreshed after reconnect (item H/I).",
+        "criterion": "By hand: with projects loaded, close the app, turn on airplane mode and reopen it: the list appears straight away. Turn the connection back on: the list refreshes without the person doing anything."
+      },
+      "18": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; offline note visible on Home, list and project details with content still visible (item H).",
+        "criterion": "By hand: in airplane mode the project list and current project are visible with the offline note."
       },
       "19": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); applyOverlay keeps a waiting rename over an old-name refresh; syncCycle refresh with cache [A,B] and server [A] leaves [A].",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 19 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Test of the phone's sync layer: with a waiting rename for project A, a refresh that returns the old name still shows the new name; a refresh without project B removes B."
+      },
+      "20": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; offline rename survived force-quit and was sent once after reconnect (item J).",
+        "criterion": "By hand: make a change in airplane mode, force-quit the app, reopen it: the change is still shown and is sent once online."
+      },
+      "21": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; offline create, rename and delete showed at once (item I).",
+        "criterion": "By hand: create, rename and delete a project in airplane mode; each shows on screen at once."
       },
       "22": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); grep finds no 'project' in apps/mobile/src/sync; project kinds registered from projects/sync.ts; a temporary file registering only create+update failed tsc --noEmit with TS2345 (not assignable to Record<ChangeKind, Sender>), file removed; queue test 'enqueue for an unregistered entity throws'.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 22 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Code check plus test: the queue code has no reference to projects; the project kinds of change are registered from the projects code; adding a kind without a way to send it fails the type check or a test."
       },
       "23": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); queue merging tests: update+update, create+update, create+delete leaves nothing.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 23 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Tests of the queue: two renames give one waiting change with the last name; create then rename gives one create with the new name; create then delete gives an empty queue and no request is sent."
       },
       "24": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); flush tests: in order, network failure kept and resent, no double send during a running flush.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 24 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Tests of the queue: changes are sent in the order made; a send that fails for lack of connection stays in the queue and is retried on the next trigger; triggering a send while one is running doesn't send any change twice."
       },
       "25": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); 'accept removes the change and reports the response'; onApplied writes the server version.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 25 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Test of the queue: after the server accepts a change, the queue is empty and the local copy matches the server's response."
       },
       "26": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); syncCycle.test.ts AC26: after 403 the list holds the server's version, after 404 the project is gone, and the rejected notice names the project. On-screen banner left for the by-hand pass.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 26 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Test of the queue: a change answered with `403` or `404` is removed, the local copy shows the server's version (or no project for `404`), and the person sees a \"couldn't be saved\" message."
       },
       "27": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); queue 'signing back in (AC27)' and syncCycle 'not signed in': 401 keeps the change and calls the not-signed-in handler; same owner signing in again sends it. The sign-in screen itself is the existing endSession path.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 27 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "Test of the queue: a change answered with `401` stays in the queue and the app shows the sign-in screen; after signing in as the same person, it is sent."
+      },
+      "28": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; sign-out warned about waiting changes and another account saw none of the first account's projects (item K).",
+        "criterion": "By hand: sign out and sign in as a different person: none of the first person's projects show. With a change waiting (airplane mode), signing out shows the warning first."
+      },
+      "29": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; Home with tab bar, banner for the current project, tiles with Coming soon, Your projects section; back from Home does not reach sign-in (items A, G, restyle). Currency pill on the banner and Home cards making the project current were added after the user's last look and are checked by code review only.",
+        "criterion": "By hand: sign in and reopen the app: Home opens with the tab bar (Home, Account), the current-project card and the area tiles; Ideas and Shared schedule show \"Coming soon\" and do nothing when tapped; back from Home doesn't return to Sign in. With a current project, the card shows it and tapping it opens that project; after that project is deleted from another phone and the app refreshes, Home shows no current project and still offers the project list. 29a. By hand, following each move listed in requirement 29a: the named screen opens, and going back returns to the screen it was opened from. After creating a project, going back from its screen reaches the list (or Home), not the form; after deleting, going back doesn't reach the deleted project. 29b. By hand: on every screen except Home and Account, both the header back control and swiping from the left edge go to the previous screen; walking Home → list → project → edit and back again never shows a screen twice in a row."
+      },
+      "30": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; a new account saw the invitation to create the first project (item B).",
+        "criterion": "By hand: a new account sees the invitation to create a project in Home's card and on the Project list."
+      },
+      "31": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; picking another project and reopening the app showed it as current (item G).",
+        "criterion": "By hand: pick another project from the list, close and reopen the app: Home shows the picked project as current."
+      },
+      "32": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone: over-long name shows the field message, return key moves name to description and submits, Save stays above the keyboard (screenshot), delete is set apart and confirms with the project name. Not checked on a device: the Member view without Edit/Delete (needs a member row inserted by SQL, since inviting is #5); the server refuses Members with 403 (AC7/AC9 tests) and the screen hides Edit for non-owners in code. Steps: insert a ProjectMember row with role member for a second account, sign in as it, open the project: no Edit button; opening /projects/<id>/edit returns to the list.",
+        "criterion": "By hand: an over-long name shows the field message without saving; a Member sees no edit or delete controls (set up through the database, since inviting is #5); delete asks for confirmation naming the project; on create and edit, the return key moves name → description and submits from the last field, and the submit button stays visible above the keyboard."
+      },
+      "33": {
+        "result": "pass",
+        "evidence": "checked by the user on iPhone (Expo Go against the Render API) during QA: the user reported the hand-test list A-M as fine and the reworked screens as fine; screens in both languages without untranslated text, one card per project, Details collapsed by default (item L, restyle).",
+        "criterion": "By hand, in both languages: every new screen has no untranslated text and follows Decision 10."
       },
       "34": {
         "result": "pass",
-        "evidence": "gate run test passed (API 156, mobile tsc + 104); migration 20261111032020_projects applied on top of auth on the test DB and on the Neon dev DB with existing users; schema.test.ts user and project deletes remove memberships.",
+        "evidence": "gate run test passed on the final code (API 156, mobile tsc + 146); covered by the tests recorded at the first QA pass for criterion 34 (routes, schema, queue, syncCycle, outcomes, store, currency), unchanged in intent.",
         "criterion": "The migration applies cleanly to an empty database and to one with existing users; deleting a user in a test removes their memberships."
       }
-    }
-  }
+    },
+    "checked": "efd32e98947cf014781bb76e188c5e0d61abee0ef5888a4687e557e9fe2aa0fe"
+  },
+  "pr": "https://github.com/LanHuong142002/earnm/pull/26"
 }

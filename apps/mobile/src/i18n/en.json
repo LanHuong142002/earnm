@@ -2,7 +2,8 @@
   "common": {
     "appName": "earnm",
     "loading": "Loading",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "back": "Back"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -18,12 +19,21 @@
     "goToSignIn": "Already have an account? Sign in"
   },
   "home": {
-    "welcome": "Hello, {{name}}",
-    "settingsLink": "Settings",
-    "offline": "Offline"
+    "offline": "Offline",
+    "currentProject": "Current project",
+    "noProject": "Get started",
+    "areaProjects": "Projects",
+    "areaIdeas": "Ideas",
+    "areaSchedule": "Shared schedule",
+    "comingSoon": "Coming soon",
+    "chooseTitle": "Choose a project",
+    "chooseBody": "Pick which project to work on.",
+    "yourProjects": "Your projects",
+    "seeAll": "See all",
+    "openProject": "Open project",
+    "openProjectLabel": "Open project {{name}}, {{currency}}"
   },
   "settings": {
-    "title": "Settings",
     "language": "Language",
     "currentLanguage": "Current: {{language}}",
     "pendingSync": "Will save to your account once you're back online.",
@@ -47,7 +57,8 @@
     "generic": "Something went wrong. Please try again.",
     "forbidden": "Only the project owner can do that.",
     "not_found": "That project no longer exists.",
-    "id_conflict": "That project could not be created. Please try again."
+    "id_conflict": "That project could not be created. Please try again.",
+    "create_failed": "The project could not be created. Please try again."
   },
   "projects": {
     "title": "Projects",
@@ -70,13 +81,12 @@
     "currencyLine": "Currency: {{currency}}",
     "details": "Details",
     "noDescription": "No description.",
-    "switch": "Switch project",
     "edit": "Edit project",
     "roleMember": "Member",
-    "rowLabel": "{{name}}, {{currency}}",
-    "rowLabelMember": "{{name}}, {{currency}}, member",
     "emptyTitle": "Create your first project",
     "emptyBody": "A project is where you and your friends plan together.",
+    "offlineEmptyTitle": "Can't load your projects while offline",
+    "offlineEmptyBody": "Your projects will show up once you're back online.",
     "waiting_one": "{{count}} change waiting to be saved",
     "waiting_other": "{{count}} changes waiting to be saved",
     "rejected": "Your change to {{name}} couldn't be saved.",
@@ -87,6 +97,15 @@
       "nameTooLong": "The name can be at most {{max}} characters.",
       "descriptionTooLong": "The description can be at most {{max}} characters.",
       "currencyInvalid": "Choose a currency."
-    }
+    },
+    "projectTitle": "Project",
+    "rejectedCreate": "Your new project {{name}} couldn't be created.",
+    "rejectedCreateNoName": "Your new project couldn't be created.",
+    "roleOwner": "Owner",
+    "cardLabel": "{{name}}, {{currency}}, {{role}}"
+  },
+  "tabs": {
+    "home": "Home",
+    "account": "Account"
   }
 }

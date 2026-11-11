@@ -1,6 +1,20 @@
 import { useColorScheme } from "react-native";
 
-import { colors, iconSize, layout, motion, radius, spacing, tile, typography, type ColorSet } from "./tokens";
+import {
+  colors,
+  disabled,
+  header,
+  iconSize,
+  layout,
+  motion,
+  onFixed,
+  projectCard,
+  radius,
+  spacing,
+  tile,
+  typography,
+  type ColorSet,
+} from "./tokens";
 
 export type Theme = {
   scheme: "light" | "dark";
@@ -12,9 +26,27 @@ export type Theme = {
   tile: typeof tile;
   iconSize: typeof iconSize;
   motion: typeof motion;
+  disabled: typeof disabled;
+  header: typeof header;
+  onFixed: typeof onFixed;
+  projectCard: typeof projectCard;
 };
 
 export function useTheme(): Theme {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  return { scheme, colors: colors[scheme], typography, spacing, layout, radius, tile, iconSize, motion };
+  return {
+    scheme,
+    colors: colors[scheme],
+    typography,
+    spacing,
+    layout,
+    radius,
+    tile,
+    iconSize,
+    motion,
+    disabled,
+    header,
+    onFixed,
+    projectCard,
+  };
 }

@@ -121,6 +121,20 @@ describe("sync cycle: a change the server refuses for good (AC26)", () => {
   });
 });
 
+describe("sync cycle: a change the server accepts (AC25)", () => {
+  it("the queue is empty and the list equals the server's response", async () => {
+    const saved = { ...A, name: "Edited offline" };
+    const h = setup({ patch: async () => saved, list: [saved, B] }, [saved, B]);
+    await editName(h, "Edited offline");
+    await h.cycle.sync(USER);
+    expect(h.patchProject).toHaveBeenCalledTimes(1);
+    expect(await h.queue.count()).toBe(0);
+    expect(h.list).toEqual([saved, B]);
+    expect(h.notice).toBeNull();
+    expect(h.waiting).toBe(0);
+  });
+});
+
 describe("sync cycle: not signed in (AC27)", () => {
   it("a 401 calls the handler and keeps the change; flushing again for the same owner sends it", async () => {
     let calls = 0;
@@ -163,6 +177,20 @@ describe("sync cycle: refresh errors", () => {
     await h.cycle.refresh();
     expect(h.status).toBe("offline");
     expect(h.list).toEqual([A]);
+  });
+
+  it("a 500 on the list is treated like offline: cache kept, not shown as an empty ready list", async () => {
+    const h = setup({ patch: async () => ({}), list: [], listError: new ApiError("server", 500) }, [A]);
+    await h.cycle.refresh();
+    expect(h.status).toBe("offline");
+    expect(h.list).toEqual([A]);
+    expect(h.onNotSignedIn).not.toHaveBeenCalled();
+  });
+
+  it("a 500 with no cache stays offline so the first-project invitation is not shown", async () => {
+    const h = setup({ patch: async () => ({}), list: [], listError: new ApiError("server", 503) }, []);
+    await h.cycle.refresh();
+    expect(h.status).toBe("offline");
   });
 
   it("a 401 on the list calls the not-signed-in handler", async () => {

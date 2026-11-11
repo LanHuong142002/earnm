@@ -1,31 +1,41 @@
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { changedFields } from "../../../../projects/optimistic";
-import { ProjectForm } from "../../../../projects/ProjectForm";
-import { useProjects } from "../../../../projects/ProjectsProvider";
-import { useTheme } from "../../../../theme/useTheme";
-import { Button } from "../../../../ui/Button";
-import { Screen } from "../../../../ui/Screen";
+import { changedFields } from "../../../../../projects/optimistic";
+import { ProjectForm } from "../../../../../projects/ProjectForm";
+import { useGoToProjectList } from "../../../../../projects/useProjectNav";
+import { projectView } from "../../../../../projects/routing";
+import { useProjects } from "../../../../../projects/ProjectsProvider";
+import { useTheme } from "../../../../../theme/useTheme";
+import { Button } from "../../../../../ui/Button";
+import { Screen } from "../../../../../ui/Screen";
 
 export default function EditProjectScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const goToList = useGoToProjectList();
   const { colors, typography, radius } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { status, projects, currentProjectId, update, remove, setCurrentProject } = useProjects();
   const [deleting, setDeleting] = useState(false);
+  const focused = useIsFocused();
   const project = projects.find((p) => p.id === id) ?? null;
+  const view = projectView(project, status, true);
+
+  // Gone, or not an Owner: leave for the list. Not while deleting, which navigates itself.
+  useEffect(() => {
+    if (view === "leave" && focused && !deleting) goToList();
+  }, [view, focused, deleting, goToList]);
 
   // While deleting, the project vanishes from the list; don't redirect before we navigate.
   if (deleting) return null;
 
   if (!project) {
-    if (status === "loading") {
-      return (
-        <Screen edges={["bottom"]}>
+    return (
+      <Screen edges={[]}>
+        {view === "loading" ? (
           <View
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
@@ -36,12 +46,11 @@ export default function EditProjectScreen() {
               backgroundColor: colors.field,
             }}
           />
-        </Screen>
-      );
-    }
-    return <Redirect href="/" />;
+        ) : null}
+      </Screen>
+    );
   }
-  if (project.role !== "owner") return <Redirect href="/" />;
+  if (view === "leave") return null;
 
   function confirmDelete() {
     if (!project) return;
@@ -59,7 +68,8 @@ export default function EditProjectScreen() {
               try {
                 if (currentProjectId === project.id) await setCurrentProject(null);
                 await remove(project.id);
-                router.replace("/projects");
+                // Back to the list; nothing of the deleted project stays in the history.
+                goToList();
               } catch {
                 setDeleting(false);
                 Alert.alert(t("errors.generic"));

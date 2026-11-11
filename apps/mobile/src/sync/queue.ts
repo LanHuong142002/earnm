@@ -9,13 +9,16 @@
  *   share the single runner; a call made mid-run makes it run once more. When
  *   expectedOwnerId is passed (a string or null), nothing is sent unless it is a string equal
  *   to the stored owner, so another person's changes are never sent with this token.
- * - A change that was already sent once (attempts > 0) is never merged into or dropped: the
- *   server may have it even though the reply was lost.
+ * - A create that was already sent once (attempts > 0) is never merged into or dropped by a
+ *   later update or delete: the server may have it even though the reply was lost, so those
+ *   are queued after it as their own requests.
  * - A change whose entity has no registered senders is kept and stops the queue (it is not
  *   rejected): the entity may be registered later.
  * - waiting() / count(): the changes still waiting (copies).
  * - setOwner(userId): resolves true if a different stored owner's changes were dropped.
- * - clear({ owner? }): drops all changes, and the owner too when asked.
+ * - clear({ owner? }): drops all changes, and the owner too when asked. A send already in flight
+ *   when changes are dropped (clear, or setOwner dropping another person's) finishes without
+ *   removing anything or calling onApplied / onRejected / onSignedOut.
  *
  * Persisted as { ownerId, changes } under one key, loaded once on first use.
  */
@@ -118,6 +121,10 @@ export function createQueue(options: QueueOptions) {
   let sendingId: string | null = null;
   let running: Promise<void> | null = null;
   let rerun = false;
+  let requestedOwner: string | null | undefined;
+  // Bumped whenever queued changes are dropped for a different person (clear, setOwner); an in-flight
+  // send that finishes after a bump must not touch the queue or call back.
+  let epoch = 0;
   let writes: Promise<void> = Promise.resolve();
 
   function load(): Promise<Persisted> {
@@ -177,9 +184,26 @@ export function createQueue(options: QueueOptions) {
     }
     const existing = index >= 0 ? s.changes[index] : null;
 
+    // A failed save must leave the queue as it was, or the change would be sent later and a retry
+    // would duplicate it.
+    const changesBefore = s.changes.slice();
+    const existingBefore = existing ? { data: { ...existing.data }, fieldTimes: { ...existing.fieldTimes } } : null;
+    async function save(): Promise<void> {
+      try {
+        await persist();
+      } catch (error) {
+        s.changes = changesBefore;
+        if (existing && existingBefore) {
+          existing.data = existingBefore.data;
+          existing.fieldTimes = existingBefore.fieldTimes;
+        }
+        throw error;
+      }
+    }
+
     if (!existing || existing.changeId === sendingId || existing.kind === "delete") {
       s.changes.push(change);
-      await persist();
+      await save();
       return change;
     }
     const attemptedCreate = existing.kind === "create" && (existing.attempts ?? 0) > 0;
@@ -187,28 +211,29 @@ export function createQueue(options: QueueOptions) {
       // The server may already have the create: the update goes after it as its own request,
       // and a delete is sent rather than dropped.
       s.changes.push(change);
-      await persist();
+      await save();
       return change;
     }
     if (change.kind === "update") {
       // update+update stays an update; create+update folds into the create.
       mergeFields(existing, change);
-      await persist();
+      await save();
       return existing;
     }
     if (change.kind === "delete") {
       if (existing.kind === "create") s.changes.splice(index, 1);
       else s.changes[index] = change; // update+delete: a single delete, same position
-      await persist();
+      await save();
       return change;
     }
     // A create for an item that already has an unsent change: keep both, in order.
     s.changes.push(change);
-    await persist();
+    await save();
     return change;
   }
 
-  async function runPass(expectedOwnerId: string | null | undefined): Promise<boolean> {
+  /** true: all sent; "fenced": stopped because the queue was cleared mid-send; false: stopped on purpose. */
+  async function runPass(expectedOwnerId: string | null | undefined): Promise<boolean | "fenced"> {
     const s = await load();
     if (s.changes.length > 0 && expectedOwnerId !== undefined && (expectedOwnerId === null || s.ownerId !== expectedOwnerId)) {
       return false; // not provably this person's changes
@@ -219,14 +244,20 @@ export function createQueue(options: QueueOptions) {
       const change = s.changes[0];
       const entitySenders = senders.get(change.entity);
       if (!entitySenders) return false;
+      const sendEpoch = epoch;
       sendingId = change.changeId;
       change.attempts = (change.attempts ?? 0) + 1;
       let response: unknown;
       try {
         await persist(); // the attempt is saved before the request leaves
+        if (epoch !== sendEpoch) {
+          sendingId = null;
+          return "fenced"; // the queue was cleared meanwhile
+        }
         response = await entitySenders[change.kind](change, token);
       } catch (error) {
         sendingId = null;
+        if (epoch !== sendEpoch) return "fenced";
         if (error instanceof ApiError) {
           if (error.code === "not_signed_in") {
             onSignedOut();
@@ -236,12 +267,14 @@ export function createQueue(options: QueueOptions) {
             // Already gone is what a delete wanted.
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
+            if (epoch !== sendEpoch) return "fenced";
             onApplied(change, undefined);
             continue;
           }
           if (isPermanentRejection(error)) {
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
+            if (epoch !== sendEpoch) return "fenced";
             onRejected(change, error);
             continue;
           }
@@ -249,14 +282,17 @@ export function createQueue(options: QueueOptions) {
         return false; // network or unknown: keep this and the rest
       }
       sendingId = null;
+      if (epoch !== sendEpoch) return "fenced"; // cleared while the request was out: not this person's any more
       s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
       await persist();
+      if (epoch !== sendEpoch) return "fenced";
       onApplied(change, response);
     }
     return true;
   }
 
   function flush(expectedOwnerId?: string | null): Promise<void> {
+    requestedOwner = expectedOwnerId;
     if (running) {
       rerun = true;
       return running;
@@ -265,8 +301,9 @@ export function createQueue(options: QueueOptions) {
       try {
         do {
           rerun = false;
-          const completed = await runPass(expectedOwnerId);
-          if (!completed) rerun = false; // stopped on purpose; wait for the next trigger
+          const completed = await runPass(requestedOwner);
+          // Stopped on purpose: wait for the next trigger. After a fence, run again for the latest requested owner.
+          if (completed === false) rerun = false;
         } while (rerun);
       } finally {
         running = null;
@@ -292,7 +329,10 @@ export function createQueue(options: QueueOptions) {
   async function setOwner(userId: string): Promise<boolean> {
     const s = await load();
     const cleared = s.ownerId !== null && s.ownerId !== userId;
-    if (cleared) s.changes = [];
+    if (cleared) {
+      s.changes = [];
+      epoch++;
+    }
     if (cleared || s.ownerId !== userId) {
       s.ownerId = userId;
       await persist();
@@ -303,6 +343,7 @@ export function createQueue(options: QueueOptions) {
   async function clear(opts: { owner?: boolean } = {}): Promise<void> {
     const s = await load();
     s.changes = [];
+    epoch++;
     if (opts.owner) s.ownerId = null;
     await persist();
   }

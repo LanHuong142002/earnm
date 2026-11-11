@@ -2,7 +2,67 @@ import { describe, expect, it } from "vitest";
 
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { changedFields, ownershipDecision, planUpdate, withApplied } from "./optimistic";
+import type { ProjectCache } from "./store";
+import { cacheOwnerToSave, cacheStep, changedFields, initialView, ownershipDecision, planUpdate, withApplied } from "./optimistic";
+
+describe("initialView", () => {
+  const cache: ProjectCache = { userId: "a", projects: [{ id: "1", name: "A", description: "", currency: "VND", role: "owner" }], currentProjectId: "1" };
+  it("shows nothing of another person's copy, but remembers the owner so it gets cleared", () => {
+    expect(initialView(cache, "b")).toEqual({ owner: "a", projects: [], currentProjectId: null });
+  });
+  it("shows the copy of the same user", () => {
+    expect(initialView(cache, "a")).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
+  });
+  it("shows the copy while the user id is not known only if the stored signed-in id is its owner", () => {
+    expect(initialView(cache, null, "a")).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
+  });
+  it("hides the copy while the user id is not known when the stored signed-in id is someone else's", () => {
+    expect(initialView(cache, null, "b")).toEqual({ owner: "a", projects: [], currentProjectId: null });
+  });
+  it("hides the copy while the user id is not known when no signed-in id is stored", () => {
+    expect(initialView(cache, null, null)).toEqual({ owner: "a", projects: [], currentProjectId: null });
+  });
+  it("ignores the stored id once the profile is known", () => {
+    expect(initialView(cache, "a", "b")).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
+  });
+  it("shows nothing when there is no copy", () => {
+    expect(initialView(null, "a")).toEqual({ owner: null, projects: [], currentProjectId: null });
+  });
+});
+
+describe("cacheStep", () => {
+  it("shows nothing and waits when signed out", () => {
+    expect(cacheStep({ signedIn: false, cacheOwner: "a", userId: "a", queueCleared: false })).toEqual({
+      show: false,
+      settleOwnership: false,
+      clear: false,
+    });
+  });
+  it("shows the cache at once when signed in but the user id is not known yet", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: "a", userId: null, queueCleared: false })).toEqual({
+      show: true,
+      settleOwnership: false,
+      clear: false,
+    });
+  });
+  it("keeps the cache of the same user once known", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: "a", userId: "a", queueCleared: false })).toEqual({
+      show: true,
+      settleOwnership: true,
+      clear: false,
+    });
+  });
+  it("clears at once when the known user differs from the cache owner", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: "a", userId: "b", queueCleared: false })).toEqual({
+      show: false,
+      settleOwnership: true,
+      clear: true,
+    });
+  });
+  it("clears when the queue dropped another person's changes", () => {
+    expect(cacheStep({ signedIn: true, cacheOwner: null, userId: "b", queueCleared: true }).clear).toBe(true);
+  });
+});
 
 const p = (id: string, name = "A"): Project => ({ id, name, description: "", currency: "VND", role: "owner" });
 const change = (kind: Change["kind"], entityId: string): Change => ({
@@ -66,5 +126,17 @@ describe("editing only what the person changed (R13)", () => {
 
   it("validates the merged result", () => {
     expect(planUpdate(p("1"), { name: "  " })).toEqual({ ok: false, errors: { name: "required" } });
+  });
+});
+
+describe("cacheOwnerToSave", () => {
+  it("never returns an empty owner", () => {
+    expect(cacheOwnerToSave(null, null, null)).toBeNull();
+    expect(cacheOwnerToSave("", null, "")).toBeNull();
+  });
+  it("prefers the known owner, then the signed-in user, then the stored id", () => {
+    expect(cacheOwnerToSave("a", "b", "c")).toBe("a");
+    expect(cacheOwnerToSave(null, "b", "c")).toBe("b");
+    expect(cacheOwnerToSave(null, null, "c")).toBe("c");
   });
 });

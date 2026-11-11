@@ -10,6 +10,13 @@ export const getToken = () => SecureStore.getItemAsync(TOKEN_KEY);
 export const saveToken = (token: string) => SecureStore.setItemAsync(TOKEN_KEY, token);
 export const deleteToken = () => SecureStore.deleteItemAsync(TOKEN_KEY);
 
+// The id of the person the token belongs to, so an offline launch can tell whose copy of the
+// projects is on the phone before the profile is fetched.
+const USER_ID_KEY = "session_user_id";
+export const getStoredUserId = () => SecureStore.getItemAsync(USER_ID_KEY);
+export const saveStoredUserId = (id: string) => SecureStore.setItemAsync(USER_ID_KEY, id);
+export const deleteStoredUserId = () => SecureStore.deleteItemAsync(USER_ID_KEY);
+
 export async function getLanguageChoice(): Promise<Language | null> {
   const value = await SecureStore.getItemAsync(LANGUAGE_KEY);
   return value === "vi" || value === "en" ? value : null;
@@ -31,6 +38,6 @@ export const deleteLanguagePendingSync = () => SecureStore.deleteItemAsync(PENDI
 export async function clearKeychainOnFreshInstall(): Promise<void> {
   const marker = new File(Paths.document, "launched.marker");
   if (marker.exists) return;
-  await Promise.all([deleteToken(), deleteLanguageChoice(), deleteLanguagePendingSync()]);
+  await Promise.all([deleteToken(), deleteStoredUserId(), deleteLanguageChoice(), deleteLanguagePendingSync()]);
   marker.create();
 }

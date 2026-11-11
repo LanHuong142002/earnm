@@ -46,3 +46,25 @@ export function onRejected(list: Project[], change: Change, error: ApiError, wai
 export function restoreFromServer(server: Project[], waiting: Change[]): Project[] {
   return applyOverlay(server, waiting);
 }
+
+const REASON_KEY: Record<RejectedReason, string> = {
+  forbidden: "errors.forbidden",
+  not_found: "errors.not_found",
+  conflict: "errors.id_conflict",
+  invalid: "errors.validation_failed",
+};
+
+/** i18n keys for a rejected-change notice: a refused create says it couldn't be created, not that the project is gone. */
+export function noticeKeys(notice: RejectedNotice): { headline: string; reason: string } {
+  const named = notice.projectName !== null;
+  if (notice.kind === "create") {
+    return {
+      headline: named ? "projects.rejectedCreate" : "projects.rejectedCreateNoName",
+      reason: notice.reason === "forbidden" || notice.reason === "not_found" ? "errors.create_failed" : REASON_KEY[notice.reason],
+    };
+  }
+  return {
+    headline: named ? "projects.rejected" : "projects.rejectedNoName",
+    reason: REASON_KEY[notice.reason],
+  };
+}
