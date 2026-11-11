@@ -1,8 +1,9 @@
-import { Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../auth/AuthProvider";
 import type { Language } from "../../i18n";
+import { useProjects } from "../../projects/ProjectsProvider";
 import { useTheme } from "../../theme/useTheme";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
@@ -16,7 +17,23 @@ export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const { setLanguage, signOut, languagePendingSync } = useAuth();
   const { colors, typography, spacing } = useTheme();
+  const { waitingCount } = useProjects();
   const current: Language = i18n.language === "vi" ? "vi" : "en";
+
+  function confirmSignOut() {
+    if (waitingCount === 0) {
+      void signOut();
+      return;
+    }
+    Alert.alert(
+      t("settings.signOutWaitingTitle"),
+      t("settings.signOutWaitingMessage", { count: waitingCount }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("settings.signOut"), style: "destructive", onPress: () => void signOut() },
+      ],
+    );
+  }
 
   return (
     <Screen edges={["bottom"]}>
@@ -49,7 +66,7 @@ export default function SettingsScreen() {
         </View>
       </Enter>
       <Enter index={1}>
-        <Button label={t("settings.signOut")} variant="danger" onPress={() => void signOut()} />
+        <Button label={t("settings.signOut")} variant="danger" onPress={confirmSignOut} />
       </Enter>
     </Screen>
   );

@@ -17,15 +17,51 @@ enum Language {
   en
 }
 
+enum Currency {
+  VND
+  USD
+}
+
+enum ProjectRole {
+  owner
+  member
+}
+
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
+  id           String          @id @default(uuid())
+  email        String          @unique
   passwordHash String
   displayName  String
   language     Language?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   sessions     Session[]
+  projects     ProjectMember[]
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  role      ProjectRole
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@index([userId])
+}
+
+model Project {
+  id                  String          @id
+  name                String
+  description         String          @default("")
+  currency            Currency
+  nameEditedAt        DateTime
+  descriptionEditedAt DateTime
+  currencyEditedAt    DateTime
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  members             ProjectMember[]
 }
 
 model Session {

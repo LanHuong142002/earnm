@@ -1,5 +1,9 @@
 {
-  "common": { "appName": "earnm", "loading": "Loading" },
+  "common": {
+    "appName": "earnm",
+    "loading": "Loading",
+    "cancel": "Cancel"
+  },
   "auth": {
     "signInTitle": "Sign in",
     "signUpTitle": "Create account",
@@ -13,15 +17,25 @@
     "goToSignUp": "No account yet? Sign up",
     "goToSignIn": "Already have an account? Sign in"
   },
-  "home": { "welcome": "Hello, {{name}}", "settingsLink": "Settings", "offline": "Offline" },
+  "home": {
+    "welcome": "Hello, {{name}}",
+    "settingsLink": "Settings",
+    "offline": "Offline"
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",
     "currentLanguage": "Current: {{language}}",
     "pendingSync": "Will save to your account once you're back online.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "signOutWaitingTitle": "Sign out and lose changes?",
+    "signOutWaitingMessage_one": "{{count}} change hasn't been saved yet and will be lost if you sign out.",
+    "signOutWaitingMessage_other": "{{count}} changes haven't been saved yet and will be lost if you sign out."
   },
-  "language": { "vi": "Tiếng Việt", "en": "English" },
+  "language": {
+    "vi": "Tiếng Việt",
+    "en": "English"
+  },
   "errors": {
     "validation_failed": "Please check the details you entered.",
     "email_in_use": "That email is already registered.",
@@ -30,6 +44,49 @@
     "not_signed_in": "Your session has ended. Please sign in again.",
     "network": "Can't reach the server. Check your connection.",
     "internal_error": "Something went wrong. Please try again.",
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "forbidden": "Only the project owner can do that.",
+    "not_found": "That project no longer exists.",
+    "id_conflict": "That project could not be created. Please try again."
+  },
+  "projects": {
+    "title": "Projects",
+    "newTitle": "New project",
+    "editTitle": "Edit project",
+    "newButton": "New project",
+    "createButton": "Create project",
+    "saveButton": "Save",
+    "deleteButton": "Delete project",
+    "deleteTitle": "Delete \"{{name}}\"?",
+    "deleteMessage": "This permanently deletes \"{{name}}\" for everyone. This can't be undone.",
+    "deleteConfirm": "Delete",
+    "name": "Name",
+    "currency": "Currency",
+    "descriptionOptional": "Description (optional)",
+    "currencies": {
+      "VND": "VND (Vietnamese đồng)",
+      "USD": "USD (US dollar)"
+    },
+    "currencyLine": "Currency: {{currency}}",
+    "details": "Details",
+    "noDescription": "No description.",
+    "switch": "Switch project",
+    "edit": "Edit project",
+    "roleMember": "Member",
+    "rowLabel": "{{name}}, {{currency}}",
+    "rowLabelMember": "{{name}}, {{currency}}, member",
+    "emptyTitle": "Create your first project",
+    "emptyBody": "A project is where you and your friends plan together.",
+    "waiting_one": "{{count}} change waiting to be saved",
+    "waiting_other": "{{count}} changes waiting to be saved",
+    "rejected": "Your change to {{name}} couldn't be saved.",
+    "rejectedNoName": "Your change couldn't be saved.",
+    "dismiss": "Dismiss",
+    "errors": {
+      "nameRequired": "Enter a project name.",
+      "nameTooLong": "The name can be at most {{max}} characters.",
+      "descriptionTooLong": "The description can be at most {{max}} characters.",
+      "currencyInvalid": "Choose a currency."
+    }
   }
 }

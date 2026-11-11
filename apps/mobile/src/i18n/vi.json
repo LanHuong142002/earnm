@@ -1,5 +1,9 @@
 {
-  "common": { "appName": "earnm", "loading": "Đang tải" },
+  "common": {
+    "appName": "earnm",
+    "loading": "Đang tải",
+    "cancel": "Hủy"
+  },
   "auth": {
     "signInTitle": "Đăng nhập",
     "signUpTitle": "Tạo tài khoản",
@@ -13,15 +17,24 @@
     "goToSignUp": "Chưa có tài khoản? Đăng ký",
     "goToSignIn": "Đã có tài khoản? Đăng nhập"
   },
-  "home": { "welcome": "Xin chào, {{name}}", "settingsLink": "Cài đặt", "offline": "Đang ngoại tuyến" },
+  "home": {
+    "welcome": "Xin chào, {{name}}",
+    "settingsLink": "Cài đặt",
+    "offline": "Đang ngoại tuyến"
+  },
   "settings": {
     "title": "Cài đặt",
     "language": "Ngôn ngữ",
     "currentLanguage": "Hiện tại: {{language}}",
     "pendingSync": "Sẽ lưu vào tài khoản khi kết nối lại.",
-    "signOut": "Đăng xuất"
+    "signOut": "Đăng xuất",
+    "signOutWaitingTitle": "Đăng xuất và mất thay đổi?",
+    "signOutWaitingMessage_other": "{{count}} thay đổi chưa được lưu và sẽ bị mất nếu bạn đăng xuất."
   },
-  "language": { "vi": "Tiếng Việt", "en": "English" },
+  "language": {
+    "vi": "Tiếng Việt",
+    "en": "English"
+  },
   "errors": {
     "validation_failed": "Vui lòng kiểm tra lại thông tin đã nhập.",
     "email_in_use": "Email này đã được đăng ký.",
@@ -30,6 +43,48 @@
     "not_signed_in": "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
     "network": "Không kết nối được máy chủ. Kiểm tra kết nối mạng.",
     "internal_error": "Đã có lỗi xảy ra. Vui lòng thử lại.",
-    "generic": "Đã có lỗi xảy ra. Vui lòng thử lại."
+    "generic": "Đã có lỗi xảy ra. Vui lòng thử lại.",
+    "forbidden": "Chỉ chủ dự án mới làm được việc này.",
+    "not_found": "Dự án này không còn tồn tại.",
+    "id_conflict": "Không tạo được dự án này. Vui lòng thử lại."
+  },
+  "projects": {
+    "title": "Dự án",
+    "newTitle": "Dự án mới",
+    "editTitle": "Sửa dự án",
+    "newButton": "Dự án mới",
+    "createButton": "Tạo dự án",
+    "saveButton": "Lưu",
+    "deleteButton": "Xóa dự án",
+    "deleteTitle": "Xóa \"{{name}}\"?",
+    "deleteMessage": "\"{{name}}\" sẽ bị xóa vĩnh viễn với tất cả mọi người. Không thể hoàn tác.",
+    "deleteConfirm": "Xóa",
+    "name": "Tên",
+    "currency": "Tiền tệ",
+    "descriptionOptional": "Mô tả (không bắt buộc)",
+    "currencies": {
+      "VND": "VND (đồng Việt Nam)",
+      "USD": "USD (đô la Mỹ)"
+    },
+    "currencyLine": "Tiền tệ: {{currency}}",
+    "details": "Chi tiết",
+    "noDescription": "Chưa có mô tả.",
+    "switch": "Đổi dự án",
+    "edit": "Sửa dự án",
+    "roleMember": "Thành viên",
+    "rowLabel": "{{name}}, {{currency}}",
+    "rowLabelMember": "{{name}}, {{currency}}, thành viên",
+    "emptyTitle": "Tạo dự án đầu tiên của bạn",
+    "emptyBody": "Dự án là nơi bạn và bạn bè cùng lên kế hoạch.",
+    "waiting_other": "{{count}} thay đổi đang chờ lưu",
+    "rejected": "Không lưu được thay đổi của bạn với {{name}}.",
+    "rejectedNoName": "Không lưu được thay đổi của bạn.",
+    "dismiss": "Đóng",
+    "errors": {
+      "nameRequired": "Hãy nhập tên dự án.",
+      "nameTooLong": "Tên tối đa {{max}} ký tự.",
+      "descriptionTooLong": "Mô tả tối đa {{max}} ký tự.",
+      "currencyInvalid": "Hãy chọn tiền tệ."
+    }
   }
 }

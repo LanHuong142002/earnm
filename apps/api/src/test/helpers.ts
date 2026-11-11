@@ -3,6 +3,8 @@ import type { Express } from "express";
 import { beforeAll, beforeEach, afterAll, expect } from "vitest";
 import { createApp } from "../app.js";
 import { createPrismaClient } from "../db.js";
+import { hashPassword } from "../auth/password.js";
+import { createSession } from "../auth/sessions.js";
 
 config({ quiet: true });
 
@@ -56,7 +58,7 @@ export function useTestApp(): { app: Express; clock: TestClock } {
     await connectWithRetry();
   }, 30_000);
   beforeEach(async () => {
-    await prisma.$executeRawUnsafe('TRUNCATE TABLE "Session", "User" CASCADE');
+    await prisma.$executeRawUnsafe('TRUNCATE TABLE "Session", "User", "Project" CASCADE');
   });
   afterAll(async () => {
     await prisma.$disconnect();
@@ -76,4 +78,20 @@ export function expectError(
   expect(Object.keys(error).sort()).toEqual(["code", "message"]);
   expect(error["code"]).toBe(code);
   expect(typeof error["message"]).toBe("string");
+}
+
+let userCounter = 0;
+
+/** Creates a user with a unique email and a session; returns the user's id and raw token. */
+export async function createSignedInUser(clock: TestClock): Promise<{ id: string; token: string }> {
+  userCounter += 1;
+  const user = await prisma.user.create({
+    data: {
+      email: `user${userCounter}@example.com`,
+      passwordHash: await hashPassword("correct horse battery"),
+      displayName: "Bob",
+    },
+  });
+  const token = await createSession(prisma, user.id, clock.now());
+  return { id: user.id, token };
 }

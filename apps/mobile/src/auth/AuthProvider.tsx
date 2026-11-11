@@ -48,8 +48,17 @@ type AuthContextValue = {
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   setLanguage: (language: Language) => Promise<void>;
+  /** Registers cleanup that runs before the user's own sign-out ends the session. Returns an unregister function. */
+  registerSignOutCleanup: (cleanup: () => Promise<void>) => () => void;
+  /** The server said "not signed in" (401): return to sign-in without clearing local data. */
+  handleNotSignedIn: () => Promise<void>;
   /** True while the local language choice has not reached the account yet. */
   languagePendingSync: boolean;
+  /**
+   * Retries the profile fetch after an offline launch. Does nothing unless signed in with
+   * profileStatus "offline"; one run at a time. Resolves true when the user is known afterwards.
+   */
+  retryProfile: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -77,9 +86,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const rerunRef = useRef(false);
   const flushRef = useRef<(token: string) => Promise<void>>(async () => {});
   const pendingRef = useRef(false);
+  const profileStatusRef = useRef<ProfileStatus>("loading");
+  const userKnownRef = useRef(false);
+  const retryingRef = useRef<Promise<boolean> | null>(null);
+  useEffect(() => {
+    profileStatusRef.current = profileStatus;
+    userKnownRef.current = user !== null;
+  }, [profileStatus, user]);
   useEffect(() => {
     pendingRef.current = languagePendingSync;
   }, [languagePendingSync]);
+
+  const signOutCleanupRef = useRef<(() => Promise<void>) | null>(null);
+
+  const registerSignOutCleanup = useCallback((cleanup: () => Promise<void>) => {
+    signOutCleanupRef.current = cleanup;
+    return () => {
+      if (signOutCleanupRef.current === cleanup) signOutCleanupRef.current = null;
+    };
+  }, []);
 
   const endSession = useCallback(async () => {
     tokenRef.current = null;
@@ -228,14 +253,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [endSession, reconcileLanguage]);
 
-  // Retry a pending language sync when the app returns to the foreground.
+  const retryProfile = useCallback((): Promise<boolean> => {
+    if (retryingRef.current) return retryingRef.current;
+    const token = tokenRef.current;
+    if (!token || profileStatusRef.current !== "offline") return Promise.resolve(userKnownRef.current);
+    const run = (async () => {
+      try {
+        const me = await getMe(token);
+        if (tokenRef.current !== token) return false;
+        setUser(me);
+        setProfileStatus("ready");
+        await reconcileLanguage(token, me.language);
+        return true;
+      } catch (error) {
+        if (tokenRef.current !== token) return false;
+        if (error instanceof ApiError && error.code === "not_signed_in") await endSession();
+        // network or other errors: stay offline and try again at the next trigger.
+        return false;
+      } finally {
+        retryingRef.current = null;
+      }
+    })();
+    retryingRef.current = run;
+    return run;
+  }, [endSession, reconcileLanguage]);
+
+  // On returning to the foreground: retry a pending language sync and an offline profile fetch.
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
       const token = tokenRef.current;
-      if (state === "active" && token && pendingRef.current) void flushPendingLanguage(token);
+      if (token && pendingRef.current) void flushPendingLanguage(token);
+      void retryProfile();
     });
     return () => subscription.remove();
-  }, [flushPendingLanguage]);
+  }, [flushPendingLanguage, retryProfile]);
 
   const startSession =useCallback(async ({ token, user: me }: AuthResult) => {
     await saveToken(token);
@@ -262,6 +314,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const token = tokenRef.current;
+    // The user's own sign-out removes the local project copy and queue first (R28).
+    try {
+      await signOutCleanupRef.current?.();
+    } catch {
+      // Cleanup is best effort: the sign-out itself must still happen.
+    }
     // Forget the session first so a slow or unreachable server cannot keep it alive (R20).
     await endSession();
     if (token) {
@@ -269,6 +327,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       apiSignOut(token).catch(() => {});
     }
   }, [endSession]);
+
+  const handleNotSignedIn = useCallback(() => endSession(), [endSession]);
 
   const setLanguage = useCallback(
     async (language: Language) => {
@@ -294,8 +354,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ status, user, profileStatus, signIn, signUp, signOut, setLanguage, languagePendingSync }),
-    [status, user, profileStatus, signIn, signUp, signOut, setLanguage, languagePendingSync],
+    () => ({
+      status,
+      user,
+      profileStatus,
+      signIn,
+      signUp,
+      signOut,
+      setLanguage,
+      languagePendingSync,
+      registerSignOutCleanup,
+      handleNotSignedIn,
+      retryProfile,
+    }),
+    [
+      status,
+      user,
+      profileStatus,
+      signIn,
+      signUp,
+      signOut,
+      setLanguage,
+      languagePendingSync,
+      registerSignOutCleanup,
+      handleNotSignedIn,
+      retryProfile,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
