@@ -48,6 +48,10 @@ type AuthContextValue = {
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   setLanguage: (language: Language) => Promise<void>;
+  /** Registers cleanup that runs before the user's own sign-out ends the session. Returns an unregister function. */
+  registerSignOutCleanup: (cleanup: () => Promise<void>) => () => void;
+  /** The server said "not signed in" (401): return to sign-in without clearing local data. */
+  handleNotSignedIn: () => Promise<void>;
   /** True while the local language choice has not reached the account yet. */
   languagePendingSync: boolean;
 };
@@ -80,6 +84,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     pendingRef.current = languagePendingSync;
   }, [languagePendingSync]);
+
+  const signOutCleanupRef = useRef<(() => Promise<void>) | null>(null);
+
+  const registerSignOutCleanup = useCallback((cleanup: () => Promise<void>) => {
+    signOutCleanupRef.current = cleanup;
+    return () => {
+      if (signOutCleanupRef.current === cleanup) signOutCleanupRef.current = null;
+    };
+  }, []);
 
   const endSession = useCallback(async () => {
     tokenRef.current = null;
@@ -262,6 +275,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const token = tokenRef.current;
+    // The user's own sign-out removes the local project copy and queue first (R28).
+    try {
+      await signOutCleanupRef.current?.();
+    } catch {
+      // Cleanup is best effort: the sign-out itself must still happen.
+    }
     // Forget the session first so a slow or unreachable server cannot keep it alive (R20).
     await endSession();
     if (token) {
@@ -269,6 +288,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       apiSignOut(token).catch(() => {});
     }
   }, [endSession]);
+
+  const handleNotSignedIn = useCallback(() => endSession(), [endSession]);
 
   const setLanguage = useCallback(
     async (language: Language) => {
@@ -294,8 +315,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ status, user, profileStatus, signIn, signUp, signOut, setLanguage, languagePendingSync }),
-    [status, user, profileStatus, signIn, signUp, signOut, setLanguage, languagePendingSync],
+    () => ({
+      status,
+      user,
+      profileStatus,
+      signIn,
+      signUp,
+      signOut,
+      setLanguage,
+      languagePendingSync,
+      registerSignOutCleanup,
+      handleNotSignedIn,
+    }),
+    [
+      status,
+      user,
+      profileStatus,
+      signIn,
+      signUp,
+      signOut,
+      setLanguage,
+      languagePendingSync,
+      registerSignOutCleanup,
+      handleNotSignedIn,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
