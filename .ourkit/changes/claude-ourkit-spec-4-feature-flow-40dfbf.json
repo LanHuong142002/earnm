@@ -185,7 +185,7 @@
         "id": 25,
         "severity": "blocking",
         "text": "Round 3: edit.tsx 233-244 + ProjectsProvider update 313-333 + ProjectForm: the form submits all fields and update() diffs against the current cache, which a refresh may have changed while the form was open; a description-only save then queues the stale name with a fresh editedAt and reverts another device's newer rename (breaks R13). Diff against the form's initial values.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 26,
@@ -197,13 +197,13 @@
         "id": 27,
         "severity": "non-blocking",
         "text": "Round 3: AC19 removal only tested on applyOverlay; add a syncCycle refresh test where cache [A,B], server [A] leaves [A].",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 28,
         "severity": "non-blocking",
         "text": "Round 3: syncCycle commits listProjects and create/patch replies to the cache without isProject checks; one malformed entry makes loadProjectCache discard the whole cache next launch (R18).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 29,
@@ -228,7 +228,14 @@
         "severity": "non-blocking",
         "text": "Round 3: spec R28 wipes the remembered project on sign-out, so R29/AC29 'opens the project used last' only happens after a 401, not a normal sign-out and sign-in; clarify AC29's by-hand step.",
         "resolved": false
+      },
+      {
+        "id": 33,
+        "severity": "non-blocking",
+        "text": "Round 4: projects/index.tsx and new.tsx call router.replace('/') after switching or creating; may leave an extra Home in the stack so Back shows Home again. Check by hand (Test Handoff); dismissTo('/') would avoid it.",
+        "resolved": false
       }
-    ]
+    ],
+    "reviewed": "a09db9f0f7a6e9555bd871aee5ced7d0064c07d5508a0cab0c30eb85907b0520"
   }
 }
