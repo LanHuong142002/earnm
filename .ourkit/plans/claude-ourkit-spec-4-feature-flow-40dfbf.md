@@ -118,3 +118,14 @@ Commands: `ourkit command test` (API today, both suites after the stack-profile 
 - **Network failures in tests (lesson):** they are simulated by fake senders that throw `ApiError("network")`, not by real closed ports. This is decided here so Review doesn't flip it.
 - **By hand in Expo Go, becoming the Test Handoff** (AC 8 note, 17, 18, 20, 21, 28–33): airplane-mode launch and refresh, the offline note, force-quit persistence, optimistic create, rename and delete, sign-out warning and switching person, the remembered project after deletion elsewhere, the empty state, the switcher, form messages and owner-only controls, using a Member row inserted with SQL since invites are #5, and both languages.
 - **Not verified automatically:** real NetInfo transitions and AppState triggers on a device, and the screens themselves. These are covered by the Test Handoff.
+
+## QA addendum: screens and navigation (approved by the user at QA)
+
+Hand testing showed the screens didn't connect (`router.replace` everywhere, so no back control or swipe-back) and that the user wants a real Home. The spec's requirements 29–31 and 32 were rewritten (29, 29a, 29b, 30, 31, keyboard part of 32). Changes:
+- `src/app/(app)/` becomes a tab layout (expo-router `Tabs`) with two tabs: Home (a nested Stack: Home, Project list, Project `projects/[id]`, New project, Edit project) and Account (today's Settings). Headers shown with the native back button; native swipe-back stays enabled.
+- Home: current-project card, then a tile grid using the theme's `tile` tokens: Projects (opens the list), Ideas and Shared schedule disabled with "Coming soon".
+- A new Project screen `projects/[id]` holds what Home shows today (name, currency, collapsible details, Edit for owners, Switch project).
+- Moves use `router.push`; New project → Project uses `replace` so back skips the form; delete uses `dismissTo('/projects')`; a vanished current project navigates to the list. Sign-in → Home stays a guarded replace.
+- Forms: `returnKeyType` next/done with focus moving name → description and submitting from the last field; keyboard-avoiding layout so the submit button stays visible.
+- The rejected notice says "couldn't be created" for a refused create instead of "no longer exists".
+- Tests: pure navigation helpers where logic exists; screens checked by hand (Test Handoff).

@@ -57,10 +57,23 @@ Today the API has accounts and sessions only (`User`, `Session`), and the mobile
 
 ### On the phone: screens
 
-29. After sign-in, the app opens the project the person used last on this phone. If there is none, or it no longer exists, it shows the project list.
-30. A person with no projects sees an empty state inviting them to create their first project.
-31. The person can switch between their projects from the current project's screen, and the choice is remembered on the phone.
-32. Create and edit forms validate the same limits as the server before saving, and show a clear message per field. Only an Owner sees the controls to edit or delete. Deleting asks for confirmation, naming the project, and says it can't be undone.
+29. **Screens.** The signed-in part of the app has a tab bar at the bottom with two tabs, Home and Account (Account holds what Settings holds today). The Home tab contains Home, Project list, Project (one project's details), New project and Edit project. Home is the starting point for the app's areas and shows, from top to bottom (Rewritten at QA, following the user's reference design):
+   - a card for the current project (the one used last on this phone), showing its name and currency, that opens it; with no project, the card invites the person to create their first project;
+   - a grid of area tiles, one per area, each with an icon and a label: Projects, which opens the Project list, and Ideas and Shared schedule, which aren't built yet, look disabled, are labelled "Coming soon" and do nothing when tapped.
+29a. **How they connect.** Each move below opens the next screen on top of the current one, so going back returns to where the person was:
+   - After sign-in or sign-up, and on every launch while signed in: Home. Going back from Home never returns to the sign-in screens.
+   - Home → the current project card → Project. Home → the Projects tile → Project list. The Account tab → Account (settings); switching tabs keeps each tab where the person left it.
+   - Project list → a project → Project (that project also becomes the current one). Project list → "New project" → New project.
+   - New project → create → Project for the new project, which becomes current; going back from it returns to the Project list (or Home, if creation started there), not to the filled-in form.
+   - Project → "Edit" (Owners only) → Edit project. Saving returns to Project, showing the saved values.
+   - Edit project → delete → confirm → Project list, without the deleted project; going back from there doesn't reach the deleted project's screens.
+   - Project → "Switch project" → Project list.
+   - Account → sign out → Sign in.
+   - If the project being viewed disappears (deleted elsewhere, or a change to it is refused with "not found"), the person is taken to the Project list, which shows the "couldn't be saved" notice when there was one.
+29b. **Going back.** Every screen except Home and Account can be left by the header's back control and by the system back gesture (on iPhone, swiping from the left edge), both returning to the previous screen in 29a. No move leaves a duplicate screen behind it, so going back never shows the same screen twice in a row. (Added at QA.)
+30. A person with no projects sees an invitation to create their first project, in Home's current-project card and on the Project list.
+31. The person can switch between their projects from the Project list, and the choice is remembered on the phone and shown on Home.
+32. Create and edit forms validate the same limits as the server before saving, and show a clear message per field. Only an Owner sees the controls to edit or delete. Deleting asks for confirmation, naming the project, and says it can't be undone. While typing, the keyboard's return key moves to the next field and, on the last field, submits the form, and the submit button is never hidden behind the keyboard. (Keyboard part added at QA.)
 33. Screens follow Decision 10 (compact vertical flows, collapsible sections starting closed, no tables), and all text is available in Vietnamese and English.
 
 ### Data
@@ -97,10 +110,12 @@ Today the API has accounts and sessions only (`User`, `Session`), and the mobile
 26. Test of the queue: a change answered with `403` or `404` is removed, the local copy shows the server's version (or no project for `404`), and the person sees a "couldn't be saved" message.
 27. Test of the queue: a change answered with `401` stays in the queue and the app shows the sign-in screen; after signing in as the same person, it is sent.
 28. By hand: sign out and sign in as a different person: none of the first person's projects show. With a change waiting (airplane mode), signing out shows the warning first.
-29. By hand: sign in with a remembered project: it opens; delete that project from another phone, then sign in again: the project list opens.
-30. By hand: a new account sees the empty state with a way to create a project.
-31. By hand: switch to another project, close and reopen the app: the switched-to project opens.
-32. By hand: an over-long name shows the field message without saving; a Member sees no edit or delete controls (set up through the database, since inviting is #5); delete asks for confirmation naming the project.
+29. By hand: sign in and reopen the app: Home opens with the tab bar (Home, Account), the current-project card and the area tiles; Ideas and Shared schedule show "Coming soon" and do nothing when tapped; back from Home doesn't return to Sign in. With a current project, the card shows it and tapping it opens that project; after that project is deleted from another phone and the app refreshes, Home shows no current project and still offers the project list.
+29a. By hand, following each move listed in requirement 29a: the named screen opens, and going back returns to the screen it was opened from. After creating a project, going back from its screen reaches the list (or Home), not the form; after deleting, going back doesn't reach the deleted project.
+29b. By hand: on every screen except Home and Account, both the header back control and swiping from the left edge go to the previous screen; walking Home → list → project → edit and back again never shows a screen twice in a row.
+30. By hand: a new account sees the invitation to create a project in Home's card and on the Project list.
+31. By hand: pick another project from the list, close and reopen the app: Home shows the picked project as current.
+32. By hand: an over-long name shows the field message without saving; a Member sees no edit or delete controls (set up through the database, since inviting is #5); delete asks for confirmation naming the project; on create and edit, the return key moves name → description and submits from the last field, and the submit button stays visible above the keyboard.
 33. By hand, in both languages: every new screen has no untranslated text and follows Decision 10.
 34. The migration applies cleanly to an empty database and to one with existing users; deleting a user in a test removes their memberships.
 
