@@ -94,6 +94,8 @@ EXPO_PUBLIC_API_URL=https://<service>.onrender.com
 
 Dùng HTTPS để mật khẩu và token được mã hóa khi truyền.
 
+Render chỉ chạy `main`. Để test một nhánh khác trên điện thoại, dùng `npm run dev:phone` (xem [test-on-phone.md](test-on-phone.md)), không cần sửa file này.
+
 ## 8. Chạy smoke test
 
 Smoke kiểm tra `/health` trả 200, tick không có secret trả 401, tick có secret trả 200.

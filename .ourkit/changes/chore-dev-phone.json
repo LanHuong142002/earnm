@@ -1,0 +1,6 @@
+{
+  "tier": "patch",
+  "tierReason": "Dev tooling script and docs for testing a branch on the phone; no product code or Sensitive Area",
+  "sensitiveAreas": [],
+  "notSensitiveReason": null
+}
