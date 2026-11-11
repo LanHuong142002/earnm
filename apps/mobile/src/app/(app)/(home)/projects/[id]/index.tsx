@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { RejectedNoticeBanner } from "../../../../../projects/RejectedNotice";
 import { useProjects } from "../../../../../projects/ProjectsProvider";
+import { useGoToProjectList } from "../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../projects/routing";
 import { useTheme } from "../../../../../theme/useTheme";
 import { Button } from "../../../../../ui/Button";
@@ -15,6 +16,7 @@ import { Screen } from "../../../../../ui/Screen";
 export default function ProjectScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const goToList = useGoToProjectList();
   const focused = useIsFocused();
   const { colors, typography, radius, spacing } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,8 +27,8 @@ export default function ProjectScreen() {
   // Unknown or vanished project: back to the list (which shows the notice). Only while this
   // screen is the one in front, so a delete started on Edit isn't raced from underneath.
   useEffect(() => {
-    if (view === "leave" && focused) router.dismissTo("/projects");
-  }, [view, focused, router]);
+    if (view === "leave" && focused) goToList("reset");
+  }, [view, focused, goToList]);
 
   if (!project) {
     return (
@@ -76,7 +78,7 @@ export default function ProjectScreen() {
               onPress={() => router.push({ pathname: "/projects/[id]/edit", params: { id: project.id } })}
             />
           ) : null}
-          <Button label={t("projects.switch")} variant="secondary" onPress={() => router.dismissTo("/projects")} />
+          <Button label={t("projects.switch")} variant="secondary" onPress={() => goToList("push")} />
         </View>
       </Enter>
     </Screen>

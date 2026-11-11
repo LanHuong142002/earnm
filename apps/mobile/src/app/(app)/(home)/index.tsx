@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../auth/AuthProvider";
 import { RejectedNoticeBanner } from "../../../projects/RejectedNotice";
 import { useProjects } from "../../../projects/ProjectsProvider";
+import { useTapOnce } from "../../../projects/useProjectNav";
 import { homeCard } from "../../../projects/routing";
 import { useTheme } from "../../../theme/useTheme";
 import { Enter } from "../../../ui/Enter";
@@ -71,6 +72,7 @@ function AreaTile({
 export default function HomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const once = useTapOnce();
   const { profileStatus } = useAuth();
   const { status, projects, currentProject, waitingCount } = useProjects();
   const { colors, typography, radius, spacing, layout, iconSize } = useTheme();
@@ -109,9 +111,11 @@ export default function HomeScreen() {
                 : t("projects.emptyTitle")
             }
             onPress={() =>
-              currentProject
-                ? router.push({ pathname: "/projects/[id]", params: { id: currentProject.id } })
-                : router.push("/projects/new")
+              once(() =>
+                currentProject
+                  ? router.push({ pathname: "/projects/[id]", params: { id: currentProject.id } })
+                  : router.push("/projects/new"),
+              )
             }
             style={{
               flexDirection: "row",
@@ -146,7 +150,7 @@ export default function HomeScreen() {
       </Enter>
       <Enter index={2}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: spacing[2] }}>
-          <AreaTile icon="folder-outline" label={t("home.areaProjects")} onPress={() => router.push("/projects")} />
+          <AreaTile icon="folder-outline" label={t("home.areaProjects")} onPress={() => once(() => router.push("/projects"))} />
           <AreaTile icon="bulb-outline" label={t("home.areaIdeas")} comingSoon={t("home.comingSoon")} />
           <AreaTile icon="calendar-outline" label={t("home.areaSchedule")} comingSoon={t("home.comingSoon")} />
         </View>

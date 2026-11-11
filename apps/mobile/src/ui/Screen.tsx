@@ -9,16 +9,20 @@ export function Screen({
   children,
   footer,
   edges = ["top", "bottom"],
+  keyboardOffset = 0,
 }: {
   children: ReactNode;
   footer?: ReactNode;
   edges?: Edge[];
+  /** Space above the screen the keyboard-avoiding view cannot see, e.g. a navigation header's height. */
+  keyboardOffset?: number;
 }) {
   const { colors, layout, spacing } = useTheme();
   return (
     <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={styles.flex}
+        keyboardVerticalOffset={keyboardOffset}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView

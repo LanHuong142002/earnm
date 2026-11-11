@@ -1,3 +1,4 @@
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useRef, useState, type ComponentRef, type ReactNode } from "react";
 import { Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -31,6 +32,8 @@ export function ProjectForm({
 }) {
   const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
+  // The Home stack header sits above this screen; the keyboard overlap must account for it.
+  const headerHeight = useHeaderHeight();
   const opened = useRef(initial).current;
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
@@ -71,6 +74,7 @@ export function ProjectForm({
   return (
     <Screen
       edges={[]}
+      keyboardOffset={headerHeight}
       footer={<Button label={submitLabel} loading={busy} onPress={submit} />}
     >
       <Enter index={0}>

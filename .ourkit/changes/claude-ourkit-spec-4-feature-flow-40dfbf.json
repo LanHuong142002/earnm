@@ -234,6 +234,30 @@
         "severity": "non-blocking",
         "text": "Round 4: projects/index.tsx and new.tsx call router.replace('/') after switching or creating; may leave an extra Home in the stack so Back shows Home again. Check by hand (Test Handoff); dismissTo('/') would avoid it.",
         "resolved": false
+      },
+      {
+        "id": 34,
+        "severity": "blocking",
+        "text": "Nav: edit.tsx:70 and :27 and [id]/index.tsx:28 use dismissTo('/projects'); POP_TO only replaces the top when the list isn't in the stack, so Home→card→Project→Edit→delete leaves [Home, Project(X), List]; back reaches the deleted project, which then redirects to the list again (R29a/R29b, AC29a/b). Reset the Home stack to [Home, List] via one shared helper.",
+        "resolved": false
+      },
+      {
+        "id": 35,
+        "severity": "blocking",
+        "text": "Keyboard: ProjectForm renders Screen whose KeyboardAvoidingView has no keyboardVerticalOffset; under the Home stack header (and tabs) it underestimates the overlap by ~header+status bar, so the submit button likely stays hidden (R32/AC32). Pass useHeaderHeight() as the offset for screens under a header.",
+        "resolved": false
+      },
+      {
+        "id": 36,
+        "severity": "non-blocking",
+        "text": "Nav: 'Switch project' via dismissTo replaces Project with the list when arrived from Home's card, so back goes to Home not Project (R29a 'opens on top'). Push the list when not in the stack, pop to it when it is.",
+        "resolved": false
+      },
+      {
+        "id": 37,
+        "severity": "non-blocking",
+        "text": "Nav: a quick double tap can push the same screen twice (list row awaits setCurrentProject before push; Home card and Projects tile) — R29b forbids duplicates. Guard with a navigating ref or push before the awaited write.",
+        "resolved": false
       }
     ],
     "reviewed": "a09db9f0f7a6e9555bd871aee5ced7d0064c07d5508a0cab0c30eb85907b0520"

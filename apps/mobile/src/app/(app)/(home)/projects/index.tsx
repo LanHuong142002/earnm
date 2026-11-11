@@ -5,6 +5,7 @@ import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { RejectedNoticeBanner } from "../../../../projects/RejectedNotice";
+import { useTapOnce } from "../../../../projects/useProjectNav";
 import { useProjects } from "../../../../projects/ProjectsProvider";
 import { useTheme } from "../../../../theme/useTheme";
 import { Button } from "../../../../ui/Button";
@@ -16,6 +17,7 @@ import { Screen } from "../../../../ui/Screen";
 export default function ProjectsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const once = useTapOnce();
   const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
   const { status, projects, setCurrentProject, refresh } = useProjects();
 
@@ -26,9 +28,12 @@ export default function ProjectsScreen() {
     }, [refresh]),
   );
 
-  async function open(id: string) {
-    await setCurrentProject(id);
-    router.push({ pathname: "/projects/[id]", params: { id } });
+  // Push first so a quick double tap pushes once; the choice is saved in the background.
+  function open(id: string) {
+    once(() => {
+      router.push({ pathname: "/projects/[id]", params: { id } });
+      void setCurrentProject(id).catch(() => {});
+    });
   }
 
   const empty = projects.length === 0 && status !== "loading";
@@ -78,7 +83,7 @@ export default function ProjectsScreen() {
                       ? t("projects.rowLabelMember", { name: p.name, currency: p.currency })
                       : t("projects.rowLabel", { name: p.name, currency: p.currency })
                   }
-                  onPress={() => void open(p.id)}
+                  onPress={() => open(p.id)}
                   style={{
                     minHeight: layout.controlHeight,
                     flexDirection: "row",
@@ -114,7 +119,7 @@ export default function ProjectsScreen() {
         <Button
           label={t("projects.newButton")}
           variant={empty ? "primary" : "secondary"}
-          onPress={() => router.push("/projects/new")}
+          onPress={() => once(() => router.push("/projects/new"))}
         />
       </Enter>
     </Screen>

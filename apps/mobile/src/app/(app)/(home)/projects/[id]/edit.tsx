@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { changedFields } from "../../../../../projects/optimistic";
 import { ProjectForm } from "../../../../../projects/ProjectForm";
+import { useGoToProjectList } from "../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../projects/routing";
 import { useProjects } from "../../../../../projects/ProjectsProvider";
 import { useTheme } from "../../../../../theme/useTheme";
@@ -14,6 +15,7 @@ import { Screen } from "../../../../../ui/Screen";
 export default function EditProjectScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const goToList = useGoToProjectList();
   const { colors, typography, radius } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { status, projects, currentProjectId, update, remove, setCurrentProject } = useProjects();
@@ -24,8 +26,8 @@ export default function EditProjectScreen() {
 
   // Gone, or not an Owner: leave for the list. Not while deleting, which navigates itself.
   useEffect(() => {
-    if (view === "leave" && focused && !deleting) router.dismissTo("/projects");
-  }, [view, focused, deleting, router]);
+    if (view === "leave" && focused && !deleting) goToList("reset");
+  }, [view, focused, deleting, goToList]);
 
   // While deleting, the project vanishes from the list; don't redirect before we navigate.
   if (deleting) return null;
@@ -67,7 +69,7 @@ export default function EditProjectScreen() {
                 if (currentProjectId === project.id) await setCurrentProject(null);
                 await remove(project.id);
                 // Back to the list; nothing of the deleted project stays in the history.
-                router.dismissTo("/projects");
+                goToList("reset");
               } catch {
                 setDeleting(false);
                 Alert.alert(t("errors.generic"));
