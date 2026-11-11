@@ -9,7 +9,7 @@
     "PostgreSQL (Neon)"
   ],
   "commands": {
-    "test": "npm --prefix apps/api test",
+    "test": "npm --prefix apps/api test && npm --prefix apps/mobile test",
     "lint": "npm --prefix apps/mobile run lint",
     "build": "npm --prefix apps/api run build",
     "run": "npm --prefix apps/api run dev",
