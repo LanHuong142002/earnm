@@ -178,9 +178,26 @@ export function createQueue(options: QueueOptions) {
     }
     const existing = index >= 0 ? s.changes[index] : null;
 
+    // A failed save must leave the queue as it was, or the change would be sent later and a retry
+    // would duplicate it.
+    const changesBefore = s.changes.slice();
+    const existingBefore = existing ? { data: { ...existing.data }, fieldTimes: { ...existing.fieldTimes } } : null;
+    async function save(): Promise<void> {
+      try {
+        await persist();
+      } catch (error) {
+        s.changes = changesBefore;
+        if (existing && existingBefore) {
+          existing.data = existingBefore.data;
+          existing.fieldTimes = existingBefore.fieldTimes;
+        }
+        throw error;
+      }
+    }
+
     if (!existing || existing.changeId === sendingId || existing.kind === "delete") {
       s.changes.push(change);
-      await persist();
+      await save();
       return change;
     }
     const attemptedCreate = existing.kind === "create" && (existing.attempts ?? 0) > 0;
@@ -188,24 +205,24 @@ export function createQueue(options: QueueOptions) {
       // The server may already have the create: the update goes after it as its own request,
       // and a delete is sent rather than dropped.
       s.changes.push(change);
-      await persist();
+      await save();
       return change;
     }
     if (change.kind === "update") {
       // update+update stays an update; create+update folds into the create.
       mergeFields(existing, change);
-      await persist();
+      await save();
       return existing;
     }
     if (change.kind === "delete") {
       if (existing.kind === "create") s.changes.splice(index, 1);
       else s.changes[index] = change; // update+delete: a single delete, same position
-      await persist();
+      await save();
       return change;
     }
     // A create for an item that already has an unsent change: keep both, in order.
     s.changes.push(change);
-    await persist();
+    await save();
     return change;
   }
 

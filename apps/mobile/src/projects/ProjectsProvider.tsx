@@ -15,7 +15,7 @@ import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { createQueue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { listProjects, type Project } from "./api";
-import { cacheStep, initialView, planUpdate } from "./optimistic";
+import { cacheOwnerToSave, cacheStep, initialView, planUpdate } from "./optimistic";
 import type { RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
@@ -91,8 +91,19 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const persist = useCallback(async () => {
     if (wipedRef.current) return;
     try {
+      let storedUserId: string | null = null;
+      if (!cacheOwnerRef.current && !userIdRef.current) {
+        try {
+          storedUserId = await getStoredUserId();
+        } catch {
+          // Unreadable: treated as unknown below.
+        }
+      }
+      const owner = cacheOwnerToSave(cacheOwnerRef.current, userIdRef.current, storedUserId);
+      // No owner can be named: keep the copy in memory only rather than save one that is unreadable later.
+      if (!owner || wipedRef.current) return;
       await saveProjectCache(asyncStorageStore, {
-        userId: cacheOwnerRef.current ?? "",
+        userId: owner,
         projects: projectsRef.current,
         currentProjectId: currentRef.current,
       });

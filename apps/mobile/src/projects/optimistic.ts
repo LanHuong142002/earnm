@@ -93,3 +93,16 @@ export function ownershipDecision(cacheUserId: string | null, queueCleared: bool
   if (queueCleared) return "clear";
   return cacheUserId !== null && cacheUserId !== userId ? "clear" : "keep";
 }
+
+/**
+ * The owner to save the project cache under: the known owner, else the signed-in user, else the
+ * user id stored at sign-in. Never empty; null means no owner can be named, so nothing is saved
+ * (an empty owner would make the copy unreadable after a restart).
+ */
+export function cacheOwnerToSave(
+  cacheOwner: string | null,
+  userId: string | null,
+  storedUserId: string | null,
+): string | null {
+  return cacheOwner || userId || storedUserId || null;
+}

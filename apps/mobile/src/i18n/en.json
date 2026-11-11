@@ -84,6 +84,8 @@
     "rowLabelMember": "{{name}}, {{currency}}, member",
     "emptyTitle": "Create your first project",
     "emptyBody": "A project is where you and your friends plan together.",
+    "offlineEmptyTitle": "Can't load your projects while offline",
+    "offlineEmptyBody": "Your projects will show up once you're back online.",
     "waiting_one": "{{count}} change waiting to be saved",
     "waiting_other": "{{count}} changes waiting to be saved",
     "rejected": "Your change to {{name}} couldn't be saved.",

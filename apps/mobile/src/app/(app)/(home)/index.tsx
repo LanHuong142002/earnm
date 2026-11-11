@@ -104,6 +104,23 @@ export default function HomeScreen() {
               backgroundColor: colors.field,
             }}
           />
+        ) : card === "offline" ? (
+          <View
+            style={{
+              borderRadius: radius.card,
+              backgroundColor: colors.tile,
+              padding: spacing[3],
+              minHeight: layout.controlHeight * 2,
+              gap: spacing[0],
+            }}
+          >
+            <Text style={[typography.screenTitle, { color: colors.text }]} numberOfLines={2}>
+              {t("projects.offlineEmptyTitle")}
+            </Text>
+            <Text style={[typography.body, { color: colors.textSecondary }]}>
+              {t("projects.offlineEmptyBody")}
+            </Text>
+          </View>
         ) : (
           <PressableScale
             accessibilityRole="button"

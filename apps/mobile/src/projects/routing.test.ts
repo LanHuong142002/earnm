@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Project } from "./api";
-import { homeCard, projectView } from "./routing";
+import { homeCard, projectView, showInvitation, showOfflineEmpty } from "./routing";
 
 const owner: Project = { id: "a", name: "A", description: "", currency: "VND", role: "owner" };
 const member: Project = { ...owner, role: "member" };
@@ -12,7 +12,9 @@ describe("homeCard", () => {
   });
   it("invites creating a project when there is none", () => {
     expect(homeCard(null, "ready", 0)).toBe("invite");
-    expect(homeCard(null, "offline", 0)).toBe("invite");
+  });
+  it("shows a neutral offline card, not an invitation, when offline with nothing cached", () => {
+    expect(homeCard(null, "offline", 0)).toBe("offline");
   });
   it("waits only while the first refresh runs with nothing cached", () => {
     expect(homeCard(null, "loading", 0)).toBe("loading");
@@ -21,6 +23,20 @@ describe("homeCard", () => {
   it("invites choosing a project when some exist but none is current", () => {
     expect(homeCard(null, "ready", 2)).toBe("choose");
     expect(homeCard(null, "offline", 1)).toBe("choose");
+  });
+});
+
+describe("Project list empty states", () => {
+  it("invites only after a successful refresh", () => {
+    expect(showInvitation("ready", 0)).toBe(true);
+    expect(showInvitation("offline", 0)).toBe(false);
+    expect(showInvitation("loading", 0)).toBe(false);
+    expect(showInvitation("ready", 1)).toBe(false);
+  });
+  it("shows the offline state when offline with nothing cached", () => {
+    expect(showOfflineEmpty("offline", 0)).toBe(true);
+    expect(showOfflineEmpty("offline", 2)).toBe(false);
+    expect(showOfflineEmpty("ready", 0)).toBe(false);
   });
 });
 

@@ -83,6 +83,8 @@
     "rowLabelMember": "{{name}}, {{currency}}, thành viên",
     "emptyTitle": "Tạo dự án đầu tiên của bạn",
     "emptyBody": "Dự án là nơi bạn và bạn bè cùng lên kế hoạch.",
+    "offlineEmptyTitle": "Không tải được dự án khi ngoại tuyến",
+    "offlineEmptyBody": "Dự án của bạn sẽ hiện ra khi bạn có mạng trở lại.",
     "waiting_other": "{{count}} thay đổi đang chờ lưu",
     "rejected": "Không lưu được thay đổi của bạn với {{name}}.",
     "rejectedNoName": "Không lưu được thay đổi của bạn.",

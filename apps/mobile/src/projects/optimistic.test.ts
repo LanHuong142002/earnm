@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
 import type { ProjectCache } from "./store";
-import { cacheStep, changedFields, initialView, ownershipDecision, planUpdate, withApplied } from "./optimistic";
+import { cacheOwnerToSave, cacheStep, changedFields, initialView, ownershipDecision, planUpdate, withApplied } from "./optimistic";
 
 describe("initialView", () => {
   const cache: ProjectCache = { userId: "a", projects: [{ id: "1", name: "A", description: "", currency: "VND", role: "owner" }], currentProjectId: "1" };
@@ -126,5 +126,17 @@ describe("editing only what the person changed (R13)", () => {
 
   it("validates the merged result", () => {
     expect(planUpdate(p("1"), { name: "  " })).toEqual({ ok: false, errors: { name: "required" } });
+  });
+});
+
+describe("cacheOwnerToSave", () => {
+  it("never returns an empty owner", () => {
+    expect(cacheOwnerToSave(null, null, null)).toBeNull();
+    expect(cacheOwnerToSave("", null, "")).toBeNull();
+  });
+  it("prefers the known owner, then the signed-in user, then the stored id", () => {
+    expect(cacheOwnerToSave("a", "b", "c")).toBe("a");
+    expect(cacheOwnerToSave(null, "b", "c")).toBe("b");
+    expect(cacheOwnerToSave(null, null, "c")).toBe("c");
   });
 });

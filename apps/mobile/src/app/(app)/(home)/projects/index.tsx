@@ -8,6 +8,7 @@ import { OfflineNote } from "../../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../../projects/RejectedNotice";
 import { useTapOnce } from "../../../../projects/useProjectNav";
 import { useProjects } from "../../../../projects/ProjectsProvider";
+import { showInvitation, showOfflineEmpty } from "../../../../projects/routing";
 import { useTheme } from "../../../../theme/useTheme";
 import { Button } from "../../../../ui/Button";
 import { projectColor } from "../../../../projects/identity";
@@ -43,7 +44,8 @@ export default function ProjectsScreen() {
     });
   }
 
-  const empty = projects.length === 0 && status !== "loading";
+  const empty = showInvitation(status, projects.length);
+  const offlineEmpty = showOfflineEmpty(status, projects.length);
 
   return (
     <Screen edges={[]}>
@@ -71,6 +73,21 @@ export default function ProjectsScreen() {
             </Text>
             <Text style={[typography.body, { color: colors.textSecondary }]}>
               {t("projects.emptyBody")}
+            </Text>
+          </View>
+        </Enter>
+      ) : null}
+      {offlineEmpty ? (
+        <Enter index={0}>
+          <View style={{ gap: spacing[0] }}>
+            <Text
+              accessibilityRole="header"
+              style={[typography.sectionTitle, { color: colors.text }]}
+            >
+              {t("projects.offlineEmptyTitle")}
+            </Text>
+            <Text style={[typography.body, { color: colors.textSecondary }]}>
+              {t("projects.offlineEmptyBody")}
             </Text>
           </View>
         </Enter>

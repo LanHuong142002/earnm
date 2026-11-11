@@ -379,6 +379,48 @@ describe("a create whose reply was lost (finding A)", () => {
 });
 
 describe("persistence failures (finding D)", () => {
+  it("a failed save rolls the change back, so it is not sent later and a retry does not duplicate", async () => {
+    const inner = createMemoryStore();
+    let failNext = true;
+    const store: KeyValueStore = {
+      ...inner,
+      setJSON: async (k, v) => {
+        if (failNext) {
+          failNext = false;
+          throw new Error("disk full");
+        }
+        return inner.setJSON(k, v);
+      },
+    };
+    const { queue, sent } = setup({ store });
+    await queue.setOwner("u1").catch(() => {}); // consumes the one failure only if it writes
+    failNext = true;
+    await expect(queue.enqueue(mk("a"))).rejects.toThrow("disk full");
+    expect(await queue.count()).toBe(0);
+    await queue.enqueue(mk("a")); // the retry
+    await queue.flush();
+    expect(ids(sent)).toEqual(["create:a"]);
+  });
+
+  it("a failed save restores a merged update", async () => {
+    const inner = createMemoryStore();
+    let fail = false;
+    const store: KeyValueStore = {
+      ...inner,
+      setJSON: async (k, v) => {
+        if (fail) throw new Error("disk full");
+        return inner.setJSON(k, v);
+      },
+    };
+    const { queue } = setup({ store });
+    await queue.enqueue({ ...mk("a"), data: { name: "N1" }, fieldTimes: { name: T1 } });
+    fail = true;
+    await expect(queue.enqueue({ ...mk("a", "update"), data: { name: "N2" }, fieldTimes: { name: T2 } })).rejects.toThrow();
+    const w = await queue.waiting();
+    expect(w).toHaveLength(1);
+    expect(w[0].data).toEqual({ name: "N1" });
+  });
+
   it("one rejected write does not poison later writes", async () => {
     const inner = createMemoryStore();
     let failNext = true;

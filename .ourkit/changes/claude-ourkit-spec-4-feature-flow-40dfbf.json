@@ -347,19 +347,19 @@
         "id": 52,
         "severity": "blocking",
         "text": "syncCycle.refresh: a non-401, non-network failure (500/502/503) sets status 'ready'; on a fresh phone with no cache Home invites 'Create your first project' to someone who has projects, and no note says the refresh failed. Treat as offline/error with retry; add a test.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 53,
         "severity": "blocking",
         "text": "HeaderBack icon size 28 and one-off inset/hitSlop break DESIGN.md (icons 20-22px, no one-off values); Home disabled tile uses opacity 0.55 and width 48% one-offs. Use tokens or record the exception in DESIGN.md.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 54,
         "severity": "non-blocking",
         "text": "Offline relaunch after A's 401 then B's sign-in killed before ownership clear can show A's cache while B's id is unknown; clear synchronously in startSession or store the token owner.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 55,
@@ -377,6 +377,30 @@
         "id": 57,
         "severity": "non-blocking",
         "text": "Additions beyond spec: root .gitignore, retryProfile and treating non-401 profile failures as offline; mention in PR.",
+        "resolved": false
+      },
+      {
+        "id": 58,
+        "severity": "non-blocking",
+        "text": "homeCard and the list show 'Create your first project' when offline with no cache (new phone + 503); show the invite only after a successful refresh, a neutral offline state otherwise.",
+        "resolved": false
+      },
+      {
+        "id": 59,
+        "severity": "non-blocking",
+        "text": "A project created offline before any cache owner is known is saved with userId '' and hidden after an offline restart until online (R20 edge).",
+        "resolved": false
+      },
+      {
+        "id": 60,
+        "severity": "non-blocking",
+        "text": "enqueue pushes into memory before persist; a storage failure leaves the change queued while create reports an error, so a retry can create a duplicate.",
+        "resolved": false
+      },
+      {
+        "id": 61,
+        "severity": "non-blocking",
+        "text": "Scope beyond numbered requirements (identity colours, hero card, choose card, waiting line, stagger, retryProfile) and new deps incl. expo-linear-gradient: approved by the user at QA/design and in the plan.",
         "resolved": false
       }
     ],
