@@ -1,0 +1,12 @@
+{
+  "ticket": "4",
+  "tier": "feature",
+  "tierReason": "Adds project data, new Prisma tables and new API endpoints, plus the offline sync layer",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "planApproval": "fd7e82de72546a99f97852ebefb4f77e481007619bd755287a46764a97fe85f3"
+}
