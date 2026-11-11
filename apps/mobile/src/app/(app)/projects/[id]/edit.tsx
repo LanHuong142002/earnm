@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Alert, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { changedFields } from "../../../../projects/optimistic";
 import { ProjectForm } from "../../../../projects/ProjectForm";
 import { useProjects } from "../../../../projects/ProjectsProvider";
 import { useTheme } from "../../../../theme/useTheme";
@@ -78,8 +79,9 @@ export default function EditProjectScreen() {
         currency: project.currency,
       }}
       submitLabel={t("projects.saveButton")}
-      onSubmit={async (fields) => {
-        const result = await update(project.id, fields);
+      onSubmit={async (fields, opened) => {
+        // Only what the person changed since the form opened; the rest may have been refreshed meanwhile.
+        const result = await update(project.id, changedFields(opened, fields));
         if (result.ok) router.back();
         return result;
       }}

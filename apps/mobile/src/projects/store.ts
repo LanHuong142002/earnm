@@ -68,7 +68,7 @@ export type ProjectCache = {
   currentProjectId: string | null;
 };
 
-function isProject(value: unknown): value is Project {
+export function isProject(value: unknown): value is Project {
   if (typeof value !== "object" || value === null) return false;
   const p = value as Record<string, unknown>;
   return (

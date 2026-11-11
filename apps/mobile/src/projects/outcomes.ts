@@ -32,8 +32,9 @@ export type RejectedOutcome = {
  * leaves the local list. Anything else keeps the list until the refresh restores the server's version.
  */
 export function onRejected(list: Project[], change: Change, error: ApiError, waiting: Change[]): RejectedOutcome {
-  const name =
-    typeof change.data.name === "string" ? change.data.name : (list.find((p) => p.id === change.entityId)?.name ?? null);
+  // Name the project as the person knows it (before this rejection is applied), not by a rename that was refused.
+  const known = list.find((p) => p.id === change.entityId)?.name;
+  const name = known ?? (typeof change.data.name === "string" ? change.data.name : null);
   const notice: RejectedNotice = { kind: change.kind, projectName: name, reason: reasonFor(error) };
   if (error.status === 404) {
     return { list: applyOverlay(list.filter((p) => p.id !== change.entityId), waiting), notice, needsRefresh: true };

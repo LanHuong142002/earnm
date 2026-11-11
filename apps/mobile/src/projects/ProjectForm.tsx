@@ -24,12 +24,14 @@ export function ProjectForm({
 }: {
   initial: ProjectInput;
   submitLabel: string;
-  onSubmit: (fields: ProjectInput) => Promise<MutationResult<object>>;
+  /** `opened` is what the form started with, so callers can send only what the person changed. */
+  onSubmit: (fields: ProjectInput, opened: ProjectInput) => Promise<MutationResult<object>>;
   /** Extra content below the form, e.g. a delete button. */
   extra?: ReactNode;
 }) {
   const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
+  const opened = useRef(initial).current;
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
   const [currency, setCurrency] = useState(initial.currency);
@@ -55,7 +57,7 @@ export function ProjectForm({
     setErrors({});
     setFormError(null);
     try {
-      const result = await onSubmit({ name, description, currency });
+      const result = await onSubmit({ name, description, currency }, opened);
       if (!result.ok) setErrors(result.errors);
     } catch {
       setFormError(t("errors.generic"));

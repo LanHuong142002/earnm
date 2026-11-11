@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { changedFields, ownershipDecision, withApplied } from "./optimistic";
+import { changedFields, ownershipDecision, planUpdate, withApplied } from "./optimistic";
 
 const p = (id: string, name = "A"): Project => ({ id, name, description: "", currency: "VND", role: "owner" });
 const change = (kind: Change["kind"], entityId: string): Change => ({
@@ -40,5 +40,31 @@ describe("ownershipDecision", () => {
   });
   it("keeps an empty cache", () => {
     expect(ownershipDecision(null, false, "a")).toBe("keep");
+  });
+});
+
+describe("editing only what the person changed (R13)", () => {
+  it("form opened on name A, cache now B, only the description edited: only description is queued", () => {
+    const opened = { name: "A", description: "", currency: "VND" as const };
+    const submitted = { name: "A", description: "new text", currency: "VND" as const };
+    const fields = changedFields({ ...p("1"), ...opened }, submitted);
+    expect(fields).toEqual({ description: "new text" });
+    const cacheNow = p("1", "B");
+    const plan = planUpdate(cacheNow, fields);
+    expect(plan).toEqual({ ok: true, changed: { description: "new text" } });
+  });
+
+  it("an unchanged save queues nothing", () => {
+    const opened = { name: "A", description: "", currency: "VND" as const };
+    expect(changedFields({ ...p("1"), ...opened }, opened)).toEqual({});
+    expect(planUpdate(p("1", "B"), {})).toEqual({ ok: true, changed: {} });
+  });
+
+  it("sends exactly the given fields, trimmed, even if equal to the cache", () => {
+    expect(planUpdate(p("1", "B"), { name: " B " })).toEqual({ ok: true, changed: { name: "B" } });
+  });
+
+  it("validates the merged result", () => {
+    expect(planUpdate(p("1"), { name: "  " })).toEqual({ ok: false, errors: { name: "required" } });
   });
 });

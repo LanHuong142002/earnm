@@ -52,6 +52,18 @@ describe("onRejected with 404 (AC27)", () => {
   });
 });
 
+describe("onRejected naming", () => {
+  it("names the project by its known local name, not the new name in the change", () => {
+    const result = onRejected([A], change("update", "a", { name: "Renamed" }), new ApiError("forbidden", 403), []);
+    expect(result.notice.projectName).toBe("Alpha");
+  });
+
+  it("falls back to the change's name when the project is unknown", () => {
+    const result = onRejected([], change("create", "z", { name: "Zed" }), new ApiError("bad_request", 400), []);
+    expect(result.notice.projectName).toBe("Zed");
+  });
+});
+
 describe("onRejected reasons", () => {
   it("maps 409 to conflict and other codes to invalid", () => {
     expect(onRejected([A], change("create", "a"), new ApiError("id_conflict", 409), []).notice.reason).toBe("conflict");

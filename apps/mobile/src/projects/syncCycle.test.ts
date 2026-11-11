@@ -171,3 +171,25 @@ describe("sync cycle: refresh errors", () => {
     expect(h.onNotSignedIn).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("sync cycle: refresh content", () => {
+  it("a project missing from the server list is gone after refresh (AC19)", async () => {
+    const h = setup({ patch: async () => ({}), list: [A] }, [A, B]);
+    await h.cycle.refresh();
+    expect(h.list.map((p) => p.id)).toEqual(["a"]);
+  });
+
+  it("a malformed entry in the server list is dropped without losing the rest", async () => {
+    const bad = { id: "x", name: 5 } as unknown as Project;
+    const h = setup({ patch: async () => ({}), list: [A, bad, B] }, []);
+    await h.cycle.refresh();
+    expect(h.list.map((p) => p.id)).toEqual(["a", "b"]);
+  });
+
+  it("a malformed patch reply does not wipe the project from the list", async () => {
+    const h = setup({ patch: async () => ({ nope: true }), list: [A, B] }, [{ ...A, name: "Edited" }, B]);
+    await editName(h, "Edited");
+    await h.cycle.flush(USER);
+    expect(h.list.map((p) => p.id)).toEqual(["a", "b"]);
+  });
+});

@@ -137,19 +137,19 @@
         "id": 17,
         "severity": "blocking",
         "text": "Round 2: rejectedNotice is drawn only on Home with a current project; a 404 rejection on the current project clears currentProjectId, Home redirects to /projects which never shows it, and the stale notice later appears on an unrelated project (R26/AC26). Show it on the list too or in a shared (app) banner; clear on show/switch.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 18,
         "severity": "blocking",
         "text": "Round 2: outcomes.test.ts AC26 403 test asserts restoreFromServer([A,B],[]) equals [A,B], true regardless; the only thing restoring the server version is ProjectsProvider wiring (needsRefresh then refreshInner after flush), untested. Extract flush/apply/refresh into a plain function and test that after a 403 the list holds the server value; also that onSignedOut reaches handleNotSignedIn (AC27).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 19,
         "severity": "non-blocking",
         "text": "Round 2: edit.tsx delete sets deleting before an un-awaited remove(); if enqueue fails the screen renders null forever. Catch, reset deleting, show errors.generic.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 20,
@@ -179,6 +179,54 @@
         "id": 24,
         "severity": "non-blocking",
         "text": "Round 2: new deps (async-storage, netinfo, expo-crypto, vitest) — approved in the plan by the user; retryProfile touches session handling, looks correct.",
+        "resolved": false
+      },
+      {
+        "id": 25,
+        "severity": "blocking",
+        "text": "Round 3: edit.tsx 233-244 + ProjectsProvider update 313-333 + ProjectForm: the form submits all fields and update() diffs against the current cache, which a refresh may have changed while the form was open; a description-only save then queues the stale name with a fresh editedAt and reverts another device's newer rename (breaks R13). Diff against the form's initial values.",
+        "resolved": false
+      },
+      {
+        "id": 26,
+        "severity": "non-blocking",
+        "text": "Round 3: AC16 'both app languages' not tested; formatMoney takes no language by design.",
+        "resolved": false
+      },
+      {
+        "id": 27,
+        "severity": "non-blocking",
+        "text": "Round 3: AC19 removal only tested on applyOverlay; add a syncCycle refresh test where cache [A,B], server [A] leaves [A].",
+        "resolved": false
+      },
+      {
+        "id": 28,
+        "severity": "non-blocking",
+        "text": "Round 3: syncCycle commits listProjects and create/patch replies to the cache without isProject checks; one malformed entry makes loadProjectCache discard the whole cache next launch (R18).",
+        "resolved": false
+      },
+      {
+        "id": 29,
+        "severity": "non-blocking",
+        "text": "Round 3: outcomes.ts names the rejected notice after change.data.name (the rejected new name), not the project's known name.",
+        "resolved": false
+      },
+      {
+        "id": 30,
+        "severity": "non-blocking",
+        "text": "Round 3: a non-network list refresh failure (5xx) shows no message.",
+        "resolved": false
+      },
+      {
+        "id": 31,
+        "severity": "non-blocking",
+        "text": "Round 3: scope notes: retryProfile on foreground changes auth behaviour (state in PR); home greeting removed leaving home.welcome unused; root .gitignore and roadmap edits.",
+        "resolved": false
+      },
+      {
+        "id": 32,
+        "severity": "non-blocking",
+        "text": "Round 3: spec R28 wipes the remembered project on sign-out, so R29/AC29 'opens the project used last' only happens after a 401, not a normal sign-out and sign-in; clarify AC29's by-hand step.",
         "resolved": false
       }
     ]

@@ -12,6 +12,7 @@ import { ApiError } from "../lib/api";
 import type { Change, Queue } from "../sync/queue";
 import type { Project } from "./api";
 import * as outcomes from "./outcomes";
+import { isProject } from "./store";
 import type { RejectedNotice } from "./outcomes";
 
 export type SyncStatus = "loading" | "ready" | "offline";
@@ -44,6 +45,12 @@ export function createSyncCycle(deps: SyncCycleDeps) {
       applyChain = applyChain.then(async () => {
         if (deps.isWiped()) return;
         const queue = deps.getQueue();
+        if (change.kind !== "delete" && !isProject(response)) {
+          // A malformed reply must not remove the project; the next refresh brings the server's version.
+          needsRefresh = true;
+          deps.setWaitingCount(await queue.count());
+          return;
+        }
         const next = outcomes.onApplied(deps.getProjects(), change, response as Project | undefined, await queue.waiting());
         await deps.commit(next);
         deps.setWaitingCount(await queue.count());
@@ -68,7 +75,7 @@ export function createSyncCycle(deps: SyncCycleDeps) {
     const token = await deps.getToken();
     if (!token || gen !== deps.getGeneration()) return;
     try {
-      const server = await deps.listProjects(token);
+      const server = (await deps.listProjects(token)).filter(isProject);
       const waiting = await deps.settleMutations();
       if (gen !== deps.getGeneration()) return;
       await deps.commit(outcomes.restoreFromServer(server, waiting));

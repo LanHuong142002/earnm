@@ -15,7 +15,7 @@ import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { createQueue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { listProjects, type Project } from "./api";
-import { changedFields, ownershipDecision } from "./optimistic";
+import { ownershipDecision, planUpdate } from "./optimistic";
 import type { RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
@@ -292,13 +292,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     async (id, fields) => {
       const current = projectsRef.current.find((p) => p.id === id);
       if (!current) return { ok: true };
-      const result = validateProjectInput({
-        name: fields.name ?? current.name,
-        description: fields.description ?? current.description,
-        currency: fields.currency ?? current.currency,
-      });
-      if (!result.ok) return result;
-      const changed = changedFields(current, result.value);
+      const plan = planUpdate(current, fields);
+      if (!plan.ok) return plan;
+      const changed = plan.changed;
       if (Object.keys(changed).length === 0) return { ok: true };
       await track(async () => {
         await queue.enqueue({ entity: PROJECT_ENTITY, entityId: id, kind: "update", data: { ...changed } });
