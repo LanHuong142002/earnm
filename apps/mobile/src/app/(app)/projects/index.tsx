@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { RejectedNoticeBanner } from "../../../projects/RejectedNotice";
 import { useProjects } from "../../../projects/ProjectsProvider";
 import { useTheme } from "../../../theme/useTheme";
 import { Button } from "../../../ui/Button";
@@ -34,6 +35,7 @@ export default function ProjectsScreen() {
 
   return (
     <Screen edges={["bottom"]}>
+      <RejectedNoticeBanner />
       {status === "offline" ? (
         <Text style={[typography.label, { color: colors.textSecondary }]}>{t("home.offline")}</Text>
       ) : null}

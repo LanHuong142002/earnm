@@ -11,13 +11,11 @@ import {
 
 import { useAuth } from "../auth/AuthProvider";
 import { getToken } from "../auth/token-store";
-import { ApiError } from "../lib/api";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
-import { createQueue, type Change } from "../sync/queue";
+import { createQueue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { listProjects, type Project } from "./api";
 import { changedFields, ownershipDecision } from "./optimistic";
-import * as outcomes from "./outcomes";
 import type { RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
@@ -29,6 +27,7 @@ import {
   type ProjectInputErrors,
 } from "./store";
 import { PROJECT_ENTITY, registerProjectEntity } from "./sync";
+import { createSyncCycle } from "./syncCycle";
 
 export type ProjectsStatus = "loading" | "ready" | "offline";
 
@@ -85,8 +84,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const mutationSeq = useRef(0);
   const inflight = useRef(new Set<Promise<unknown>>());
   const exclusive = useRef<Promise<unknown>>(Promise.resolve());
-  const applyChain = useRef<Promise<unknown>>(Promise.resolve());
-  const needsRefresh = useRef(false);
   const notSignedInRef = useRef<() => void>(() => {});
   useEffect(() => {
     notSignedInRef.current = () => void handleNotSignedIn();
@@ -119,37 +116,34 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
-  const [queue] = useState(() => {
-    const q: ReturnType<typeof createQueue> = createQueue({
-      store: asyncStorageStore,
+  const [{ queue, cycle }] = useState(() => {
+    const holder: { queue: ReturnType<typeof createQueue> | null } = { queue: null };
+    const c = createSyncCycle({
+      getQueue: () => holder.queue as ReturnType<typeof createQueue>,
       getToken,
-      onApplied: (change: Change, response: unknown) => {
-        applyChain.current = applyChain.current.then(async () => {
-          if (wipedRef.current) return;
-          const next = outcomes.onApplied(
-            projectsRef.current,
-            change,
-            response as Project | undefined,
-            await q.waiting(),
-          );
-          await commit(next);
-          setWaitingCount(await q.count());
-        });
+      listProjects,
+      getProjects: () => projectsRef.current,
+      commit,
+      setNotice: setRejectedNotice,
+      setWaitingCount,
+      setStatus,
+      getGeneration: () => genRef.current,
+      isWiped: () => wipedRef.current,
+      // Wait out any change being recorded so the overlay always includes it.
+      settleMutations: async () => {
+        for (;;) {
+          while (inflight.current.size > 0) await Promise.all([...inflight.current]);
+          const seq = mutationSeq.current;
+          const waiting = await (holder.queue as ReturnType<typeof createQueue>).waiting();
+          if (seq === mutationSeq.current && inflight.current.size === 0) return waiting;
+        }
       },
-      onRejected: (change: Change, error: ApiError) => {
-        applyChain.current = applyChain.current.then(async () => {
-          if (wipedRef.current) return;
-          const outcome = outcomes.onRejected(projectsRef.current, change, error, await q.waiting());
-          setRejectedNotice(outcome.notice);
-          if (outcome.needsRefresh) needsRefresh.current = true; // restores the server's version
-          await commit(outcome.list);
-          setWaitingCount(await q.count());
-        });
-      },
-      onSignedOut: () => notSignedInRef.current(),
+      onNotSignedIn: () => notSignedInRef.current(),
     });
+    const q = createQueue({ store: asyncStorageStore, getToken, ...c.handlers });
+    holder.queue = q;
     registerProjectEntity(q);
-    return q;
+    return { queue: q, cycle: c };
   });
 
   const runExclusive = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
@@ -158,63 +152,18 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return result;
   }, []);
 
-  const refreshInner = useCallback(async () => {
-    const gen = genRef.current;
-    const token = await getToken();
-    if (!token || gen !== genRef.current) return;
-    try {
-      const server = await listProjects(token);
-      // Wait out any change being recorded so the overlay always includes it.
-      let waiting: Change[];
-      for (;;) {
-        while (inflight.current.size > 0) await Promise.all([...inflight.current]);
-        const seq = mutationSeq.current;
-        waiting = await queue.waiting();
-        if (seq === mutationSeq.current && inflight.current.size === 0) break;
-      }
-      if (gen !== genRef.current) return;
-      await commit(outcomes.restoreFromServer(server, waiting));
-      setWaitingCount(waiting.length);
-      setStatus("ready");
-    } catch (error) {
-      if (gen !== genRef.current) return;
-      if (error instanceof ApiError && error.code === "not_signed_in") notSignedInRef.current();
-      else if (error instanceof ApiError && error.code === "network") setStatus("offline");
-      else setStatus((s) => (s === "loading" ? "ready" : s));
-    }
-  }, [commit, queue]);
-
-  /** `requestedGen` is the generation when the sync was asked for; a session change since then cancels it. */
-  const flushInner = useCallback(async (requestedGen: number = genRef.current) => {
-    const gen = genRef.current;
-    if (requestedGen !== gen) return;
-    needsRefresh.current = false;
-    if (!userId) return; // cannot tell whose changes are waiting: send nothing
-    await queue.flush(userId);
-    await applyChain.current;
-    if (gen !== genRef.current) return;
-    setWaitingCount(await queue.count());
-    if (needsRefresh.current) {
-      needsRefresh.current = false;
-      await refreshInner();
-    }
-  }, [queue, refreshInner, userId]);
-
   const flush = useCallback(() => {
     const requested = genRef.current;
-    return runExclusive(() => flushInner(requested));
-  }, [runExclusive, flushInner]);
-  const refresh = useCallback(() => runExclusive(refreshInner), [runExclusive, refreshInner]);
+    return runExclusive(() => cycle.flush(userId, requested));
+  }, [runExclusive, cycle, userId]);
+  const refresh = useCallback(() => runExclusive(() => cycle.refresh()), [runExclusive, cycle]);
   const syncNow = useCallback(async () => {
     // Without a known user nothing can be sent. Try to learn who it is first (offline launch);
     // once known, the ownership effect starts a full sync by itself.
     if (!userId && (await retryProfile())) return;
     const requested = genRef.current;
-    await runExclusive(async () => {
-      await flushInner(requested);
-      await refreshInner();
-    });
-  }, [userId, retryProfile, runExclusive, flushInner, refreshInner]);
+    await runExclusive(() => cycle.sync(userId, requested));
+  }, [userId, retryProfile, runExclusive, cycle]);
   const syncRef = useRef(syncNow);
   useEffect(() => {
     syncRef.current = syncNow;
@@ -225,14 +174,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     projectsRef.current = [];
     currentRef.current = null;
     cacheOwnerRef.current = null;
-    needsRefresh.current = false;
+    cycle.reset();
     setProjects([]);
     setCurrentId(null);
     setWaitingCount(0);
     setRejectedNotice(null);
     setStatus("loading");
     setReady(false);
-  }, []);
+  }, [cycle]);
 
   // Load the local copy, settle ownership, then refresh and send waiting changes.
   useEffect(() => {
@@ -376,6 +325,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     async (id: string | null) => {
       currentRef.current = id;
       setCurrentId(id);
+      setRejectedNotice(null); // a notice about another project must not follow the person here
       await persist();
     },
     [persist],

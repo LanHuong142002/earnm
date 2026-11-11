@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "../lib/api";
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { onApplied, onRejected, restoreFromServer } from "./outcomes";
+import { onApplied, onRejected } from "./outcomes";
 
 const T = "2026-01-01T00:00:00.000Z";
 const A: Project = { id: "a", name: "Alpha", description: "", currency: "VND", role: "owner" };
@@ -22,15 +22,13 @@ describe("onApplied", () => {
 });
 
 describe("onRejected with 403 (AC26)", () => {
-  it("sets the notice with the project's name and restores the server's version after the refresh", () => {
+  it("sets the notice with the project's name and asks for the server's version", () => {
     const local = [{ ...A, name: "Edited offline" }, B];
     const c = change("update", "a", { name: "Edited offline" });
     const result = onRejected(local, c, new ApiError("forbidden", 403), []);
     expect(result.notice).toEqual({ kind: "update", projectName: "Edited offline", reason: "forbidden" });
     expect(result.needsRefresh).toBe(true);
-    // The refresh: the server list, with the (now empty) waiting changes on top.
-    expect(restoreFromServer([A, B], [])).toEqual([A, B]);
-    expect(restoreFromServer([A, B], []).find((p) => p.id === "a")?.name).toBe("Alpha");
+    // Restoring the server's version is covered end to end in syncCycle.test.ts.
   });
 
   it("uses the local project's name when the change carries none", () => {

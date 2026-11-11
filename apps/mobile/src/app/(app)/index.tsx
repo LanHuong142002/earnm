@@ -3,34 +3,19 @@ import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../auth/AuthProvider";
+import { RejectedNoticeBanner } from "../../projects/RejectedNotice";
 import { useProjects } from "../../projects/ProjectsProvider";
 import { useTheme } from "../../theme/useTheme";
 import { Collapsible } from "../../ui/Collapsible";
 import { Enter } from "../../ui/Enter";
-import { PressableScale } from "../../ui/PressableScale";
 import { Screen } from "../../ui/Screen";
 import { TextLink } from "../../ui/TextLink";
-
-const REJECTED_REASON_KEY = {
-  forbidden: "errors.forbidden",
-  not_found: "errors.not_found",
-  conflict: "errors.id_conflict",
-  invalid: "errors.validation_failed",
-} as const;
 
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { profileStatus } = useAuth();
-  const {
-    status,
-    projects,
-    currentProject,
-    currentProjectId,
-    waitingCount,
-    rejectedNotice,
-    dismissRejectedNotice,
-  } = useProjects();
-  const { colors, typography, radius, spacing, layout } = useTheme();
+  const { status, projects, currentProject, currentProjectId, waitingCount } = useProjects();
+  const { colors, typography, radius, spacing } = useTheme();
 
   const offline = status === "offline" || profileStatus === "offline";
 
@@ -67,38 +52,7 @@ export default function HomeScreen() {
           {t("projects.waiting", { count: waitingCount })}
         </Text>
       ) : null}
-      {rejectedNotice ? (
-        <Enter index={0}>
-          <View
-            accessibilityRole="alert"
-            style={{
-              gap: spacing[0],
-              padding: spacing[2],
-              borderRadius: radius.card,
-              backgroundColor: colors.dangerBg,
-            }}
-          >
-            <Text style={[typography.bodyStrong, { color: colors.danger }]}>
-              {rejectedNotice.projectName
-                ? t("projects.rejected", { name: rejectedNotice.projectName })
-                : t("projects.rejectedNoName")}
-            </Text>
-            <Text style={[typography.label, { color: colors.danger }]}>
-              {t(REJECTED_REASON_KEY[rejectedNotice.reason])}
-            </Text>
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel={t("projects.dismiss")}
-              onPress={dismissRejectedNotice}
-              style={{ minHeight: layout.controlHeight, justifyContent: "center" }}
-            >
-              <Text style={[typography.bodyStrong, { color: colors.danger }]}>
-                {t("projects.dismiss")}
-              </Text>
-            </PressableScale>
-          </View>
-        </Enter>
-      ) : null}
+      <RejectedNoticeBanner />
       <Enter index={1}>
         <View style={{ gap: spacing[0] }}>
           <Text accessibilityRole="header" style={[typography.screenTitle, { color: colors.text }]}>

@@ -41,13 +41,13 @@
         "id": 1,
         "severity": "blocking",
         "text": "queue.ts ~146-155 + routes.ts ~130 + ProjectsProvider.tsx ~134: an update is merged into a create whose response was lost (network after server stored it); the resent create returns the existing project unchanged and onApplied overwrites the local rename, so an offline rename is silently lost (R19, R25).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 2,
         "severity": "blocking",
         "text": "apps/mobile/src/app/(app)/projects/index.tsx: the project list never calls refresh() when shown (no useFocusEffect), so R17 'refresh whenever the project list is shown' isn't met; another member's delete/rename stays stale until foreground/reconnect.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 3,
@@ -59,19 +59,19 @@
         "id": 4,
         "severity": "blocking",
         "text": "apps/mobile/src/sync/queue.test.ts ~215 and ~237: AC26 test only checks onRejected + empty queue, not that the local copy shows the server's version / project removed on 404 and the notice is shown (ProjectsProvider logic untested); AC27 test never shows the change is sent after the same person signs in again.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 5,
         "severity": "non-blocking",
         "text": "queue.ts persist ~111 / load ~99: one rejected setJSON leaves the writes chain rejected forever, and a rejected first getJSON is cached in loading forever, so the queue stops working for the session; chain from writes.catch and reset loading on failure.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 6,
         "severity": "non-blocking",
         "text": "ProjectsProvider.tsx create ~319-330 (and update/remove): commit runs before queue.enqueue; if enqueue throws, the project is shown and cached but never queued, then vanishes at next refresh.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 7,
@@ -83,7 +83,7 @@
         "id": 8,
         "severity": "non-blocking",
         "text": "store.test.ts ~36: 'a project missing from the server list is gone' calls applyOverlay([A], []) and expects [A]; it cannot fail, so AC19's 'refresh without B removes B' isn't really tested.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 9,
@@ -95,19 +95,19 @@
         "id": 10,
         "severity": "non-blocking",
         "text": "Sensitive: queue.ts runPass / ProjectsProvider flushInner: the queue never checks its ownerId against the signed-in user before sending; if setOwner fails or a flush queued before sign-in runs after it, user A's queued create could be sent with user B's token. Narrow window; fix by passing expected owner to flush or checking genRef before queue.flush().",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 11,
         "severity": "non-blocking",
         "text": "Sensitive: queue.ts isPermanentRejection: 400 invalid_json/bad_request and 413 aren't permanent, and malformed persisted changes throw a TypeError treated as network; either one blocks the queue head forever. Treat all 4xx except 401/408/429 as permanent; validate persisted changes on load.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 12,
         "severity": "non-blocking",
         "text": "Sensitive: a delete resent after a lost reply gets 404 and shows 'couldn't be saved' though it worked; treat 404 on delete as success without a notice.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 13,
@@ -131,6 +131,54 @@
         "id": 16,
         "severity": "non-blocking",
         "text": "Sensitive: GET /projects has no paging; out of scope by spec; record as a known limit.",
+        "resolved": false
+      },
+      {
+        "id": 17,
+        "severity": "blocking",
+        "text": "Round 2: rejectedNotice is drawn only on Home with a current project; a 404 rejection on the current project clears currentProjectId, Home redirects to /projects which never shows it, and the stale notice later appears on an unrelated project (R26/AC26). Show it on the list too or in a shared (app) banner; clear on show/switch.",
+        "resolved": false
+      },
+      {
+        "id": 18,
+        "severity": "blocking",
+        "text": "Round 2: outcomes.test.ts AC26 403 test asserts restoreFromServer([A,B],[]) equals [A,B], true regardless; the only thing restoring the server version is ProjectsProvider wiring (needsRefresh then refreshInner after flush), untested. Extract flush/apply/refresh into a plain function and test that after a 403 the list holds the server value; also that onSignedOut reaches handleNotSignedIn (AC27).",
+        "resolved": false
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "Round 2: edit.tsx delete sets deleting before an un-awaited remove(); if enqueue fails the screen renders null forever. Catch, reset deleting, show errors.generic.",
+        "resolved": false
+      },
+      {
+        "id": 20,
+        "severity": "non-blocking",
+        "text": "Round 2: a refresh failing with 5xx silently sets status ready; list shows no error or retry.",
+        "resolved": false
+      },
+      {
+        "id": 21,
+        "severity": "non-blocking",
+        "text": "Round 2: a change with no senders or a permanent 5xx stops the queue forever; consider a cap or way out.",
+        "resolved": false
+      },
+      {
+        "id": 22,
+        "severity": "non-blocking",
+        "text": "Round 2: create sender sends one editedAt (latest) for all fields of a merged create; harmless now, not exactly per-field.",
+        "resolved": false
+      },
+      {
+        "id": 23,
+        "severity": "non-blocking",
+        "text": "Round 2: AC22 has no test pinning the missing-sender type error (e.g. @ts-expect-error); AC16 language-independence is by design.",
+        "resolved": true
+      },
+      {
+        "id": 24,
+        "severity": "non-blocking",
+        "text": "Round 2: new deps (async-storage, netinfo, expo-crypto, vitest) — approved in the plan by the user; retryProfile touches session handling, looks correct.",
         "resolved": false
       }
     ]

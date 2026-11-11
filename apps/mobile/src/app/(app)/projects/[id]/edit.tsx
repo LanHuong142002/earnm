@@ -55,9 +55,14 @@ export default function EditProjectScreen() {
           onPress: () => {
             setDeleting(true);
             void (async () => {
-              if (currentProjectId === project.id) await setCurrentProject(null);
-              await remove(project.id);
-              router.replace("/projects");
+              try {
+                if (currentProjectId === project.id) await setCurrentProject(null);
+                await remove(project.id);
+                router.replace("/projects");
+              } catch {
+                setDeleting(false);
+                Alert.alert(t("errors.generic"));
+              }
             })();
           },
         },
