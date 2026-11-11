@@ -8,7 +8,7 @@ Ghi lại từ buổi Init ngày 2026-11-09. Mỗi mục sẽ đi qua lifecycle 
 
 - Chạy trên iPhone qua Expo Go (chưa lên App Store).
 - Song ngữ EN / VI; tiền tệ VND và USD.
-- Dùng được khi mất mạng: xem dữ liệu và ghi tạm offline, tự đồng bộ khi có mạng. Xử lý xung đột khi nhiều người sửa offline để sau.
+- Dùng được khi mất mạng: xem dữ liệu và ghi tạm offline, tự đồng bộ khi có mạng. Khi nhiều người cùng sửa offline, xung đột được xử lý theo last-write-wins trên từng field (Epic Decision 4, ticket #4).
 - Chỉ dùng hosting free tier.
 
 ## MVP
