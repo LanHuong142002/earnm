@@ -32,8 +32,7 @@ colors:
     danger: "#F2B8B5"
     dangerBg: "#3A1715"
     success: "#6FCF97"
-  heroGradient: ["#C2410C", "#7A2A12"]   # 135deg, white text only, both modes; start darkened so small white text passes 4.5:1
-  projectColors: ["#7C3AED", "#0F766E", "#B45309", "#BE185D", "#1D4ED8", "#15803D"]  # identity only: avatar + card stripe, white text on each >= 5:1
+  heroGradient: ["#C2410C", "#7A2A12"]   # optional; the banner uses accentStrong flat. White text only, both modes
 typography:
   family: "Plus Jakarta Sans"   # bundled with the app, weights 400, 600, 800 only
   screenTitle: { size: 24, weight: 800, lineHeight: 30 }
@@ -49,7 +48,7 @@ layout:
   sectionGap: 24
   controlHeight: 44
 radius:
-  avatar: 12
+  pill: 999
   field: 12
   button: 12
   tile: 14
@@ -86,11 +85,11 @@ A small, warm tool. Orange is the one accent. Rounded corners, bold short headin
 - **Text link:** `label` or `bodyStrong` in `accentStrong`, with at least 44px of touch area.
 - **Field:** `controlHeight`, `radius.field`, `field` fill, no border, a 20px leading icon in `placeholder`, and the label above it in `label`. Focused, it gets a 1.5px `accent` border. With an error, it gets a 1.5px `danger` border on `dangerBg`, plus a message below with an alert icon.
 - **Card:** `surface`, a 1px `border`, `radius.card`, 12–16 padding. Use list rows inside cards, not cards inside cards.
-- **Hero card:** `heroGradient`, `radius.card`, 16 padding, white text (title at least 20/800). Use it only for the one most important thing on a screen: a key number, or on Home the current project.
-- **Project identity:** each project gets one of `projectColors`, picked from its id so it never changes and needs no field. It shows as a 40×40 `radius.avatar` avatar with the project's initials (up to 2 letters, `bodyStrong`, white) and as a 4px stripe on the left edge of its card. Identity colours are decoration: never on buttons, links, icons or status, and the name is always shown next to them.
-- **Project card (list):** a Card with the stripe and avatar, the name in `bodyStrong`, and a row of chips below it: currency (`VND` / `USD`) and, for Members, the role. A chevron in `textSecondary` on the right. One card per project, 12 apart.
-- **Chip:** `caption` weight 600 on `tile` fill in `accentStrong`, 6×10 padding, `radius.button`. Text, never colour alone.
-- **Icon tile:** 52×48, `radius.tile`, `tile` fill, a 22px `accent` icon, with a `label` caption below. Show at most 4 in a row. A tile for an area that isn't built yet uses `disabled.opacity` and a "Sắp có" / "Coming soon" caption.
+- **Hero card:** `heroGradient`, `radius.card`, 16 padding, white text (title at least 20/800). Use it only for the one most important number on a screen; Home uses the Banner instead.
+- **Banner (Home):** `accentStrong` flat fill, `radius.tile`, 16 padding. An `overline`-style white label, the current project's name in white (at least 20/800), and a small white button with `accentStrong` text ("Mở dự án" / "Open project"). One banner per screen. With no current project it becomes a plain Card inviting the person to choose or create one.
+- **Project card:** a Card with no inner padding at the top: a 92-high top area in `tile` fill with the project icon (`storefront-outline`, 30px, `accent`) centred, and a currency **pill** in its top-right corner (`surface` fill, `caption` weight 600 in `text`, `radius.pill`, 4×8 padding). Below, 10–12 padding: the name in `bodyStrong`, then one line in `caption` `textSecondary` with the role and, if any, the start of the description. All projects use the same icon until projects have cover photos; then the photo fills the top area. One card per project, 12 apart. No coloured stripes, no initials avatars.
+- **Section header with link:** `sectionTitle` on the left and a "Xem tất cả" / "See all" text link in `accentStrong` on the right.
+- **Icon tile:** a square in `tile` fill with a 1px border slightly darker than the fill, `radius.tile`, a 24px `accent` outline icon centred, and a `label` caption below. Three or four in a row, sharing the width equally. A tile for an area that isn't built yet uses `disabled.opacity` and a "Sắp có" / "Coming soon" caption.
 - **Header back:** the platform chevron at `iconSize.md`, inset by `header.backInset` so it lines up with `screenPadding`, with a 44×44 touch area and an accessible label.
 - **Section header:** `sectionTitle` on the left, an optional "see all" link on the right. An `overline` in `accent` is allowed above the current project name.
 - **Choice (radio or checkbox):** a row inside a card. The selected row shows a ✓ icon in `accent`, never colour alone. A checkbox is 20px, `radius.checkbox`, and filled `accent` with an `onAccent` tick when done. Done text uses `textSecondary` with a line through it.
@@ -134,7 +133,7 @@ The app is iPhone only, in portrait, and must work from 375pt wide (iPhone SE) t
 
 - Filling the screen: big banners, stacked heroes, grids of more than 4 tiles, and long lists on overview screens
 - Neon, glow, glassmorphism, blur, drop shadows, and gradients anywhere other than the one hero card
-- A second accent colour for actions (no gold, no cyan), and colour as the only sign of meaning. Project identity colours are the one exception, and only as decoration
+- A second accent colour (no gold, no cyan), colour as the only sign of meaning, coloured side stripes on cards, and rainbow initials avatars
 - Delivery-app furniture: location pickers, promo banners, ratings, "HOT" badges and floating centre buttons
 - Placeholder copy, stock photos and emoji in place of icons
 - Hard-coded colours or sizes in components: use these tokens
