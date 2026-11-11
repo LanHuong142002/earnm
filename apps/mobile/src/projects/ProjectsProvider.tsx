@@ -15,7 +15,7 @@ import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { createQueue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { listProjects, type Project } from "./api";
-import { cacheStep, planUpdate } from "./optimistic";
+import { cacheStep, initialView, planUpdate } from "./optimistic";
 import type { RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
@@ -198,9 +198,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const cache = await loadProjectCache(asyncStorageStore);
       if (cancelled) return;
-      cacheOwnerRef.current = cache?.userId || null;
-      projectsRef.current = cache?.projects ?? [];
-      currentRef.current = cache?.currentProjectId ?? null;
+      // Another person's copy is never put on screen; its owner is kept so the next effect clears it.
+      const view = initialView(cache, userIdRef.current);
+      cacheOwnerRef.current = view.owner;
+      projectsRef.current = view.projects;
+      currentRef.current = view.currentProjectId;
       setProjects(projectsRef.current);
       setCurrentId(currentRef.current);
       try {

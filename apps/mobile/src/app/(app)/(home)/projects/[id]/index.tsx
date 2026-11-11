@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { OfflineNote } from "../../../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../../../projects/RejectedNotice";
 import { useProjects } from "../../../../../projects/ProjectsProvider";
-import { useGoToProjectList } from "../../../../../projects/useProjectNav";
+import { useGoToProjectList, useTapOnce } from "../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../projects/routing";
 import { useTheme } from "../../../../../theme/useTheme";
 import { Button } from "../../../../../ui/Button";
@@ -18,6 +18,7 @@ export default function ProjectScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const goToList = useGoToProjectList();
+  const once = useTapOnce();
   const focused = useIsFocused();
   const { colors, typography, radius, spacing } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,7 +29,7 @@ export default function ProjectScreen() {
   // Unknown or vanished project: back to the list (which shows the notice). Only while this
   // screen is the one in front, so a delete started on Edit isn't raced from underneath.
   useEffect(() => {
-    if (view === "leave" && focused) goToList("reset");
+    if (view === "leave" && focused) goToList();
   }, [view, focused, goToList]);
 
   if (!project) {
@@ -77,7 +78,7 @@ export default function ProjectScreen() {
             <Button
               label={t("projects.edit")}
               variant="secondary"
-              onPress={() => router.push({ pathname: "/projects/[id]/edit", params: { id: project.id } })}
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/edit", params: { id: project.id } }))}
             />
           ) : null}
         </View>

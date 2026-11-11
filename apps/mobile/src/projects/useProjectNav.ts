@@ -9,12 +9,12 @@ type StackNavigation = {
 };
 
 /** Go to the Project list without ever leaving a duplicate of it or a deleted project's screens (see stepsToList). */
-export function useGoToProjectList(): (mode: "reset" | "push") => void {
+export function useGoToProjectList(): () => void {
   const navigation = useNavigation<StackNavigation>();
   return useCallback(
-    (mode) => {
+    () => {
       const names = navigation.getState()?.routes.map((r) => r.name) ?? [];
-      for (const step of stepsToList(names, mode)) navigation.dispatch(step);
+      for (const step of stepsToList(names)) navigation.dispatch(step);
     },
     [navigation],
   );

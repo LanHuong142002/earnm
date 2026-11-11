@@ -26,7 +26,7 @@ export default function EditProjectScreen() {
 
   // Gone, or not an Owner: leave for the list. Not while deleting, which navigates itself.
   useEffect(() => {
-    if (view === "leave" && focused && !deleting) goToList("reset");
+    if (view === "leave" && focused && !deleting) goToList();
   }, [view, focused, deleting, goToList]);
 
   // While deleting, the project vanishes from the list; don't redirect before we navigate.
@@ -69,7 +69,7 @@ export default function EditProjectScreen() {
                 if (currentProjectId === project.id) await setCurrentProject(null);
                 await remove(project.id);
                 // Back to the list; nothing of the deleted project stays in the history.
-                goToList("reset");
+                goToList();
               } catch {
                 setDeleting(false);
                 Alert.alert(t("errors.generic"));

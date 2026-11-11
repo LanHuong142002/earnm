@@ -2,7 +2,24 @@ import { describe, expect, it } from "vitest";
 
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { cacheStep, changedFields, ownershipDecision, planUpdate, withApplied } from "./optimistic";
+import type { ProjectCache } from "./store";
+import { cacheStep, changedFields, initialView, ownershipDecision, planUpdate, withApplied } from "./optimistic";
+
+describe("initialView", () => {
+  const cache: ProjectCache = { userId: "a", projects: [{ id: "1", name: "A", description: "", currency: "VND", role: "owner" }], currentProjectId: "1" };
+  it("shows nothing of another person's copy, but remembers the owner so it gets cleared", () => {
+    expect(initialView(cache, "b")).toEqual({ owner: "a", projects: [], currentProjectId: null });
+  });
+  it("shows the copy of the same user", () => {
+    expect(initialView(cache, "a")).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
+  });
+  it("shows the copy while the user id is not known yet", () => {
+    expect(initialView(cache, null)).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
+  });
+  it("shows nothing when there is no copy", () => {
+    expect(initialView(null, "a")).toEqual({ owner: null, projects: [], currentProjectId: null });
+  });
+});
 
 describe("cacheStep", () => {
   it("shows nothing and waits when signed out", () => {

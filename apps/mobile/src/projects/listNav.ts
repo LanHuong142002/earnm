@@ -12,17 +12,16 @@ export type StackStep =
 /**
  * Steps that take the person to the Project list given the Home stack's current route names.
  * - The list is already in the stack: pop back to it (so no copy of it is added, and nothing above it stays).
- * - Otherwise `reset` leaves exactly [Home, List] (nothing of the screens that were open stays, for a
- *   deleted project), and `push` adds the list on top (so back returns to where the person was).
+ * - Otherwise reset to exactly [Home, List] (nothing of the screens that were open stays, for a
+ *   deleted project).
  */
-export function stepsToList(routeNames: string[], mode: "reset" | "push"): StackStep[] {
+export function stepsToList(routeNames: string[]): StackStep[] {
   const at = routeNames.lastIndexOf(LIST_ROUTE);
   if (at >= 0) {
     const count = routeNames.length - 1 - at;
     return count > 0 ? [{ type: "POP", payload: { count } }] : [];
   }
   const push: StackStep = { type: "PUSH", payload: { name: LIST_ROUTE } };
-  if (mode === "push") return [push];
   const steps: StackStep[] = [{ type: "POP_TO_TOP" }];
   if (routeNames[0] !== HOME_ROUTE) steps.push({ type: "REPLACE", payload: { name: HOME_ROUTE } });
   steps.push(push);

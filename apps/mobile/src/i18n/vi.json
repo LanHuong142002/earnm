@@ -2,7 +2,8 @@
   "common": {
     "appName": "earnm",
     "loading": "Đang tải",
-    "cancel": "Hủy"
+    "cancel": "Hủy",
+    "back": "Quay lại"
   },
   "auth": {
     "signInTitle": "Đăng nhập",

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { fontFamily } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
+import { HeaderBack } from "../../../ui/HeaderBack";
 
 // Screens are pushed, so each has the native back control and (on iPhone) swipe-back.
 export default function HomeStackLayout() {
@@ -17,6 +18,7 @@ export default function HomeStackLayout() {
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.accentStrong,
         headerTitleStyle: { fontFamily: fontFamily.extraBold, color: colors.text },
+        headerLeft: (props) => <HeaderBack canGoBack={props.canGoBack} />,
       }}
     >
       <Stack.Screen name="index" options={{ title: t("common.appName") }} />

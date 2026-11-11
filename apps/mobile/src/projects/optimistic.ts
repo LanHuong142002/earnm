@@ -1,6 +1,6 @@
 import type { Change } from "../sync/queue";
 import type { Project, ProjectField } from "./api";
-import { validateProjectInput, type ProjectInput, type ProjectInputErrors } from "./store";
+import { validateProjectInput, type ProjectCache, type ProjectInput, type ProjectInputErrors } from "./store";
 
 const FIELDS: ProjectField[] = ["name", "description", "currency"];
 
@@ -67,6 +67,21 @@ export function cacheStep(input: {
   if (!input.userId) return { show: true, settleOwnership: false, clear: false };
   const clear = ownershipDecision(input.cacheOwner, input.queueCleared, input.userId) === "clear";
   return { show: !clear, settleOwnership: true, clear };
+}
+
+/**
+ * What goes on screen when the stored copy is loaded. A copy owned by someone other than the
+ * known user is not shown (the owner is still reported so the next step clears it); with no
+ * known user yet, or the same user, it is shown at once (R17).
+ */
+export function initialView(
+  cache: ProjectCache | null,
+  userId: string | null,
+): { owner: string | null; projects: Project[]; currentProjectId: string | null } {
+  const owner = cache?.userId || null;
+  const { show } = cacheStep({ signedIn: true, cacheOwner: owner, userId, queueCleared: false });
+  if (!cache || !show) return { owner, projects: [], currentProjectId: null };
+  return { owner, projects: cache.projects, currentProjectId: cache.currentProjectId };
 }
 
 export function ownershipDecision(cacheUserId: string | null, queueCleared: boolean, userId: string): "keep" | "clear" {

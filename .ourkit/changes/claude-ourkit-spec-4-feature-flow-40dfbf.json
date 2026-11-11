@@ -312,6 +312,36 @@
         "severity": "non-blocking",
         "text": "Unused i18n keys settings.accountTitle and home.welcome.",
         "resolved": true
+      },
+      {
+        "id": 47,
+        "severity": "blocking",
+        "text": "Privacy: ProjectsProvider effect 1 shows the stored cache before checking cache.userId against the signed-in user; after A's 401 keeps the cache, B signing in briefly sees A's projects until effect 2 clears them. cacheStep.show is tested but not used. Gate the display on cacheStep (or owner match).",
+        "resolved": false
+      },
+      {
+        "id": 48,
+        "severity": "non-blocking",
+        "text": "Edit project push on the Project screen isn't wrapped in useTapOnce; a double tap can push two Edit screens (R29b).",
+        "resolved": false
+      },
+      {
+        "id": 49,
+        "severity": "non-blocking",
+        "text": "listNav 'push' mode and its 'Switch project' test are now unused; remove or rename.",
+        "resolved": false
+      },
+      {
+        "id": 50,
+        "severity": "non-blocking",
+        "text": "Home's waiting-changes note and the 'Choose a project' card aren't in the spec; settled with the user at QA as wanted.",
+        "resolved": false
+      },
+      {
+        "id": 51,
+        "severity": "non-blocking",
+        "text": "After a 403 the notice names the project by its local (offline-edited) name, which is about to be reverted.",
+        "resolved": false
       }
     ],
     "reviewed": "a09db9f0f7a6e9555bd871aee5ced7d0064c07d5508a0cab0c30eb85907b0520"
