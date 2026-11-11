@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import { AppError } from "../http/errors.js";
+import { isUniqueViolation } from "../http/prisma-errors.js";
 import { dummyVerify, hashPassword, verifyPassword, warmDummyHash } from "./password.js";
 import {
   type AttemptHandle,
@@ -67,10 +68,6 @@ const signInSchema = z.object({
 
 function tooManyAttempts(): AppError {
   return new AppError(429, "too_many_attempts", "Too many attempts. Try again later.");
-}
-
-function isUniqueViolation(err: unknown): boolean {
-  return (err as { code?: unknown } | null)?.code === "P2002";
 }
 
 export function createAuthRouter({ prisma, now }: AuthRouterDeps): Router {
