@@ -1,0 +1,8 @@
+{
+  "name": "earnm",
+  "private": true,
+  "description": "Root scripts only. The apps live in apps/api and apps/mobile, each with its own package.json.",
+  "scripts": {
+    "dev:phone": "node scripts/dev-phone.mjs"
+  }
+}
