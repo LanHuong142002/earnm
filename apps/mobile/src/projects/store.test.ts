@@ -33,8 +33,14 @@ describe("applyOverlay", () => {
     expect(out.find((p) => p.id === "b")).toEqual(B);
   });
 
-  it("a project missing from the server list is gone", () => {
-    expect(applyOverlay([A], [])).toEqual([A]);
+  it("a project missing from the server list is gone after a refresh", () => {
+    const local = [A, B]; // what the phone showed before the refresh
+    const server = [A]; // B was removed on the server
+    const waitingForOther = [change({ kind: "update", entityId: "a", data: { name: "Renamed" } })];
+    const out = applyOverlay(server, waitingForOther);
+    expect(local.some((p) => p.id === "b")).toBe(true);
+    expect(out.some((p) => p.id === "b")).toBe(false);
+    expect(out).toEqual([{ ...A, name: "Renamed" }]);
   });
 
   it("shows a waiting create as owner, after the server projects", () => {

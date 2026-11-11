@@ -5,8 +5,14 @@
  * - enqueue(input): adds a change (merging with an unsent change for the same item),
  *   persists it, and resolves with the stored change. Throws for an unregistered entity.
  *   It does not send; call flush().
- * - flush(): sends waiting changes in order, one at a time. Concurrent calls share the
- *   single runner; a call made mid-run makes it run once more.
+ * - flush(expectedOwnerId?): sends waiting changes in order, one at a time. Concurrent calls
+ *   share the single runner; a call made mid-run makes it run once more. When
+ *   expectedOwnerId is passed (a string or null), nothing is sent unless it is a string equal
+ *   to the stored owner, so another person's changes are never sent with this token.
+ * - A change that was already sent once (attempts > 0) is never merged into or dropped: the
+ *   server may have it even though the reply was lost.
+ * - A change whose entity has no registered senders is kept and stops the queue (it is not
+ *   rejected): the entity may be registered later.
  * - waiting() / count(): the changes still waiting (copies).
  * - setOwner(userId): resolves true if a different stored owner's changes were dropped.
  * - clear({ owner? }): drops all changes, and the owner too when asked.
@@ -28,6 +34,8 @@ export type Change = {
   /** ISO editedAt per field in `data`. */
   fieldTimes: Record<string, string>;
   createdAt: string;
+  /** How many times a send was started. Set (and saved) before each send; > 0 means the server may already have it. */
+  attempts?: number;
 };
 
 export type NewChange = {
@@ -74,12 +82,29 @@ function mergeFields(base: Change, incoming: Change): void {
   }
 }
 
+/** Every 4xx except 401 (sign in again), 408 (timeout) and 429 (rate limit) will never succeed on a resend. */
 function isPermanentRejection(error: ApiError): boolean {
+  if (error.code === "validation_failed") return true;
+  return error.status >= 400 && error.status < 500 && ![401, 408, 429].includes(error.status);
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isChange(value: unknown): value is Change {
+  if (!isPlainObject(value)) return false;
   return (
-    error.status === 403 ||
-    error.status === 404 ||
-    error.status === 409 ||
-    error.code === "validation_failed"
+    typeof value.changeId === "string" &&
+    value.changeId !== "" &&
+    typeof value.entity === "string" &&
+    value.entity !== "" &&
+    typeof value.entityId === "string" &&
+    value.entityId !== "" &&
+    (value.kind === "create" || value.kind === "update" || value.kind === "delete") &&
+    isPlainObject(value.data) &&
+    isPlainObject(value.fieldTimes) &&
+    typeof value.createdAt === "string"
   );
 }
 
@@ -97,20 +122,29 @@ export function createQueue(options: QueueOptions) {
 
   function load(): Promise<Persisted> {
     if (state) return Promise.resolve(state);
-    loading ??= store.getJSON<Persisted>(key).then((saved) => {
-      state = {
-        ownerId: saved?.ownerId ?? null,
-        changes: Array.isArray(saved?.changes) ? saved.changes : [],
-      };
-      return state;
-    });
+    loading ??= store.getJSON<Persisted>(key).then(
+      (saved) => {
+        state = {
+          ownerId: typeof saved?.ownerId === "string" ? saved.ownerId : null,
+          changes: Array.isArray(saved?.changes) ? saved.changes.filter(isChange) : [],
+        };
+        return state;
+      },
+      (error: unknown) => {
+        loading = null; // a failed read is retried on the next call
+        throw error;
+      },
+    );
     return loading;
   }
 
   function persist(): Promise<void> {
     const snapshot: Persisted = JSON.parse(JSON.stringify(state)) as Persisted;
-    writes = writes.then(() => store.setJSON(key, snapshot));
-    return writes;
+    // Start from a settled chain so an earlier failure never blocks this write; this write's own
+    // failure still reaches its caller.
+    const write = writes.catch(() => {}).then(() => store.setJSON(key, snapshot));
+    writes = write;
+    return write;
   }
 
   function registerEntity(entity: string, entitySenders: Record<ChangeKind, Sender>) {
@@ -148,6 +182,14 @@ export function createQueue(options: QueueOptions) {
       await persist();
       return change;
     }
+    const attemptedCreate = existing.kind === "create" && (existing.attempts ?? 0) > 0;
+    if (attemptedCreate && change.kind !== "create") {
+      // The server may already have the create: the update goes after it as its own request,
+      // and a delete is sent rather than dropped.
+      s.changes.push(change);
+      await persist();
+      return change;
+    }
     if (change.kind === "update") {
       // update+update stays an update; create+update folds into the create.
       mergeFields(existing, change);
@@ -166,8 +208,11 @@ export function createQueue(options: QueueOptions) {
     return change;
   }
 
-  async function runPass(): Promise<boolean> {
+  async function runPass(expectedOwnerId: string | null | undefined): Promise<boolean> {
     const s = await load();
+    if (s.changes.length > 0 && expectedOwnerId !== undefined && (expectedOwnerId === null || s.ownerId !== expectedOwnerId)) {
+      return false; // not provably this person's changes
+    }
     const token = await getToken();
     if (!token) return false;
     while (s.changes.length > 0) {
@@ -175,8 +220,10 @@ export function createQueue(options: QueueOptions) {
       const entitySenders = senders.get(change.entity);
       if (!entitySenders) return false;
       sendingId = change.changeId;
+      change.attempts = (change.attempts ?? 0) + 1;
       let response: unknown;
       try {
+        await persist(); // the attempt is saved before the request leaves
         response = await entitySenders[change.kind](change, token);
       } catch (error) {
         sendingId = null;
@@ -184,6 +231,13 @@ export function createQueue(options: QueueOptions) {
           if (error.code === "not_signed_in") {
             onSignedOut();
             return false;
+          }
+          if (change.kind === "delete" && error.status === 404) {
+            // Already gone is what a delete wanted.
+            s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
+            await persist();
+            onApplied(change, undefined);
+            continue;
           }
           if (isPermanentRejection(error)) {
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
@@ -202,7 +256,7 @@ export function createQueue(options: QueueOptions) {
     return true;
   }
 
-  function flush(): Promise<void> {
+  function flush(expectedOwnerId?: string | null): Promise<void> {
     if (running) {
       rerun = true;
       return running;
@@ -211,7 +265,7 @@ export function createQueue(options: QueueOptions) {
       try {
         do {
           rerun = false;
-          const completed = await runPass();
+          const completed = await runPass(expectedOwnerId);
           if (!completed) rerun = false; // stopped on purpose; wait for the next trigger
         } while (rerun);
       } finally {

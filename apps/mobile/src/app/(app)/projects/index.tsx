@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -15,7 +16,14 @@ export default function ProjectsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
-  const { status, projects, setCurrentProject } = useProjects();
+  const { status, projects, setCurrentProject, refresh } = useProjects();
+
+  // R17: fetch the server's list every time this screen is shown.
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   async function open(id: string) {
     await setCurrentProject(id);

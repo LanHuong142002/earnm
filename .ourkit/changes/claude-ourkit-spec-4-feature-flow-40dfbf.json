@@ -34,5 +34,105 @@
     "8": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "queue.ts ~146-155 + routes.ts ~130 + ProjectsProvider.tsx ~134: an update is merged into a create whose response was lost (network after server stored it); the resent create returns the existing project unchanged and onApplied overwrites the local rename, so an offline rename is silently lost (R19, R25).",
+        "resolved": false
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "apps/mobile/src/app/(app)/projects/index.tsx: the project list never calls refresh() when shown (no useFocusEffect), so R17 'refresh whenever the project list is shown' isn't met; another member's delete/rename stays stale until foreground/reconnect.",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "blocking",
+        "text": "apps/api/src/projects/routes.ts: no GET /projects/:id, so GET on a project falls to the generic notFoundHandler ('Not found.') while PATCH/DELETE say 'Project not found.'; AC10 asks reading, changing and deleting to give the same 404 body, and reading is untested.",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "blocking",
+        "text": "apps/mobile/src/sync/queue.test.ts ~215 and ~237: AC26 test only checks onRejected + empty queue, not that the local copy shows the server's version / project removed on 404 and the notice is shown (ProjectsProvider logic untested); AC27 test never shows the change is sent after the same person signs in again.",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "queue.ts persist ~111 / load ~99: one rejected setJSON leaves the writes chain rejected forever, and a rejected first getJSON is cached in loading forever, so the queue stops working for the session; chain from writes.catch and reset loading on failure.",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "ProjectsProvider.tsx create ~319-330 (and update/remove): commit runs before queue.enqueue; if enqueue throws, the project is shown and cached but never queued, then vanishes at next refresh.",
+        "resolved": false
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "routes.ts ~105: GET /projects orderBy name has no tie-breaker; same-named projects can swap order between refreshes; add projectId asc.",
+        "resolved": true
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "store.test.ts ~36: 'a project missing from the server list is gone' calls applyOverlay([A], []) and expects [A]; it cannot fail, so AC19's 'refresh without B removes B' isn't really tested.",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "Repo root has no .gitignore; root node_modules/ shows as untracked and a git add -A would pick it up.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "Sensitive: queue.ts runPass / ProjectsProvider flushInner: the queue never checks its ownerId against the signed-in user before sending; if setOwner fails or a flush queued before sign-in runs after it, user A's queued create could be sent with user B's token. Narrow window; fix by passing expected owner to flush or checking genRef before queue.flush().",
+        "resolved": false
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "Sensitive: queue.ts isPermanentRejection: 400 invalid_json/bad_request and 413 aren't permanent, and malformed persisted changes throw a TypeError treated as network; either one blocks the queue head forever. Treat all 4xx except 401/408/429 as permanent; validate persisted changes on load.",
+        "resolved": false
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "Sensitive: a delete resent after a lost reply gets 404 and shows 'couldn't be saved' though it worked; treat 404 on delete as success without a notice.",
+        "resolved": false
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "Sensitive: routes.ts requireOwner reads the role outside the write; once #5 adds role changes, a demoted Owner could still write in between. Before #5, put the owner condition in the write's where.",
+        "resolved": false
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "Sensitive: deleting a user leaves their projects with no members (reachable by nobody, ids 409 forever); handle when account deletion is built.",
+        "resolved": false
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "Sensitive: projects migration has no down script; additive only; undo by dropping ProjectMember, Project, ProjectRole, Currency; note in release notes.",
+        "resolved": false
+      },
+      {
+        "id": 16,
+        "severity": "non-blocking",
+        "text": "Sensitive: GET /projects has no paging; out of scope by spec; record as a known limit.",
+        "resolved": false
+      }
+    ]
   }
 }

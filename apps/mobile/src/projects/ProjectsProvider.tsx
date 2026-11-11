@@ -13,13 +13,14 @@ import { useAuth } from "../auth/AuthProvider";
 import { getToken } from "../auth/token-store";
 import { ApiError } from "../lib/api";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
-import { createQueue, type Change, type ChangeKind } from "../sync/queue";
+import { createQueue, type Change } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { listProjects, type Project } from "./api";
-import { changedFields, ownershipDecision, withApplied } from "./optimistic";
+import { changedFields, ownershipDecision } from "./optimistic";
+import * as outcomes from "./outcomes";
+import type { RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
-  applyOverlay,
   clearProjectCache,
   loadProjectCache,
   saveProjectCache,
@@ -31,9 +32,7 @@ import { PROJECT_ENTITY, registerProjectEntity } from "./sync";
 
 export type ProjectsStatus = "loading" | "ready" | "offline";
 
-/** Why the server refused a change for good; the screen picks the wording. */
-export type RejectedReason = "forbidden" | "not_found" | "conflict" | "invalid";
-export type RejectedNotice = { kind: ChangeKind; projectName: string | null; reason: RejectedReason };
+export type { RejectedNotice, RejectedReason } from "./outcomes";
 
 /** `errors` uses the same shape as validateProjectInput. */
 export type MutationResult<T = object> = ({ ok: true } & T) | { ok: false; errors: ProjectInputErrors };
@@ -63,16 +62,9 @@ export function useProjects(): ProjectsContextValue {
   return value;
 }
 
-function reasonFor(error: ApiError): RejectedReason {
-  if (error.status === 403) return "forbidden";
-  if (error.status === 404) return "not_found";
-  if (error.status === 409) return "conflict";
-  return "invalid";
-}
-
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  const { registerSignOutCleanup, handleNotSignedIn } = auth;
+  const { registerSignOutCleanup, handleNotSignedIn, retryProfile } = auth;
   const signedIn = auth.status === "signedIn";
   const profileKnown = auth.profileStatus !== "loading";
   const userId = auth.user?.id ?? null;
@@ -134,18 +126,25 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       onApplied: (change: Change, response: unknown) => {
         applyChain.current = applyChain.current.then(async () => {
           if (wipedRef.current) return;
-          const next = withApplied(projectsRef.current, change, response as Project | undefined);
-          await commit(applyOverlay(next, await q.waiting()));
+          const next = outcomes.onApplied(
+            projectsRef.current,
+            change,
+            response as Project | undefined,
+            await q.waiting(),
+          );
+          await commit(next);
           setWaitingCount(await q.count());
         });
       },
       onRejected: (change: Change, error: ApiError) => {
-        const name =
-          typeof change.data.name === "string"
-            ? change.data.name
-            : (projectsRef.current.find((p) => p.id === change.entityId)?.name ?? null);
-        setRejectedNotice({ kind: change.kind, projectName: name, reason: reasonFor(error) });
-        needsRefresh.current = true; // restores the server's version, or drops the project on 404
+        applyChain.current = applyChain.current.then(async () => {
+          if (wipedRef.current) return;
+          const outcome = outcomes.onRejected(projectsRef.current, change, error, await q.waiting());
+          setRejectedNotice(outcome.notice);
+          if (outcome.needsRefresh) needsRefresh.current = true; // restores the server's version
+          await commit(outcome.list);
+          setWaitingCount(await q.count());
+        });
       },
       onSignedOut: () => notSignedInRef.current(),
     });
@@ -174,7 +173,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         if (seq === mutationSeq.current && inflight.current.size === 0) break;
       }
       if (gen !== genRef.current) return;
-      await commit(applyOverlay(server, waiting));
+      await commit(outcomes.restoreFromServer(server, waiting));
       setWaitingCount(waiting.length);
       setStatus("ready");
     } catch (error) {
@@ -185,10 +184,13 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }
   }, [commit, queue]);
 
-  const flushInner = useCallback(async () => {
+  /** `requestedGen` is the generation when the sync was asked for; a session change since then cancels it. */
+  const flushInner = useCallback(async (requestedGen: number = genRef.current) => {
     const gen = genRef.current;
+    if (requestedGen !== gen) return;
     needsRefresh.current = false;
-    await queue.flush();
+    if (!userId) return; // cannot tell whose changes are waiting: send nothing
+    await queue.flush(userId);
     await applyChain.current;
     if (gen !== genRef.current) return;
     setWaitingCount(await queue.count());
@@ -196,18 +198,23 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       needsRefresh.current = false;
       await refreshInner();
     }
-  }, [queue, refreshInner]);
+  }, [queue, refreshInner, userId]);
 
-  const flush = useCallback(() => runExclusive(flushInner), [runExclusive, flushInner]);
+  const flush = useCallback(() => {
+    const requested = genRef.current;
+    return runExclusive(() => flushInner(requested));
+  }, [runExclusive, flushInner]);
   const refresh = useCallback(() => runExclusive(refreshInner), [runExclusive, refreshInner]);
-  const syncNow = useCallback(
-    () =>
-      runExclusive(async () => {
-        await flushInner();
-        await refreshInner();
-      }),
-    [runExclusive, flushInner, refreshInner],
-  );
+  const syncNow = useCallback(async () => {
+    // Without a known user nothing can be sent. Try to learn who it is first (offline launch);
+    // once known, the ownership effect starts a full sync by itself.
+    if (!userId && (await retryProfile())) return;
+    const requested = genRef.current;
+    await runExclusive(async () => {
+      await flushInner(requested);
+      await refreshInner();
+    });
+  }, [userId, retryProfile, runExclusive, flushInner, refreshInner]);
   const syncRef = useRef(syncNow);
   useEffect(() => {
     syncRef.current = syncNow;
@@ -323,8 +330,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       const id = newProjectId();
       const project: Project = { id, ...result.value, role: "owner" };
       await track(async () => {
-        void commit([...projectsRef.current, project]);
         await queue.enqueue({ entity: PROJECT_ENTITY, entityId: id, kind: "create", data: { ...result.value } });
+        void commit([...projectsRef.current.filter((p) => p.id !== id), project]);
       });
       await afterEnqueue();
       return { ok: true, id };
@@ -345,8 +352,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       const changed = changedFields(current, result.value);
       if (Object.keys(changed).length === 0) return { ok: true };
       await track(async () => {
-        void commit(projectsRef.current.map((p) => (p.id === id ? { ...p, ...changed } : p)));
         await queue.enqueue({ entity: PROJECT_ENTITY, entityId: id, kind: "update", data: { ...changed } });
+        void commit(projectsRef.current.map((p) => (p.id === id ? { ...p, ...changed } : p)));
       });
       await afterEnqueue();
       return { ok: true };
@@ -357,8 +364,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const remove = useCallback(
     async (id: string) => {
       await track(async () => {
-        void commit(projectsRef.current.filter((p) => p.id !== id));
         await queue.enqueue({ entity: PROJECT_ENTITY, entityId: id, kind: "delete", data: {} });
+        void commit(projectsRef.current.filter((p) => p.id !== id));
       });
       await afterEnqueue();
     },
