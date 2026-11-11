@@ -2,5 +2,22 @@
   "tier": "patch",
   "tierReason": "Dev tooling script and docs for testing a branch on the phone; no product code or Sensitive Area",
   "sensitiveAreas": [],
-  "notSensitiveReason": null
+  "notSensitiveReason": null,
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "scripts/dev-phone.mjs startApi: if the API crashes after start, tsx watch stays alive waiting for a file change, so the script keeps Expo running instead of stopping (seen by killing the API node process in testing). Normal tsx-watch behaviour; the [api] log shows the crash.",
+        "resolved": false
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "scripts/dev-phone.mjs readEnvFile: a PORT line with an inline comment (PORT=3000 # x) would be read as '3000 # x' and give a bad URL. .env.example has no inline comments.",
+        "resolved": false
+      }
+    ],
+    "reviewed": "c3d33378327816756887c1f5cb8f81a14c3a615282000f682cac615fdb443133"
+  }
 }
