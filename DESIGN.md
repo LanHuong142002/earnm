@@ -32,7 +32,8 @@ colors:
     danger: "#F2B8B5"
     dangerBg: "#3A1715"
     success: "#6FCF97"
-  heroGradient: ["#E8481A", "#7A2A12"]   # 135deg, white text only, both modes
+  heroGradient: ["#C2410C", "#7A2A12"]   # 135deg, white text only, both modes; start darkened so small white text passes 4.5:1
+  projectColors: ["#7C3AED", "#0F766E", "#B45309", "#BE185D", "#1D4ED8", "#15803D"]  # identity only: avatar + card stripe, white text on each >= 5:1
 typography:
   family: "Plus Jakarta Sans"   # bundled with the app, weights 400, 600, 800 only
   screenTitle: { size: 24, weight: 800, lineHeight: 30 }
@@ -48,6 +49,7 @@ layout:
   sectionGap: 24
   controlHeight: 44
 radius:
+  avatar: 12
   field: 12
   button: 12
   tile: 14
@@ -59,6 +61,10 @@ motion:
   press: { duration: 120, scale: 0.97 }
   shake: { duration: 300, distance: 4 }
   progress: { duration: 250 }
+disabled:
+  opacity: 0.5                # disabled tiles and controls, always with a text label saying why
+header:
+  backInset: 4                # extra left inset so the back chevron lines up with screenPadding
 ---
 
 # earnm design
@@ -80,8 +86,12 @@ A small, warm tool. Orange is the one accent. Rounded corners, bold short headin
 - **Text link:** `label` or `bodyStrong` in `accentStrong`, with at least 44px of touch area.
 - **Field:** `controlHeight`, `radius.field`, `field` fill, no border, a 20px leading icon in `placeholder`, and the label above it in `label`. Focused, it gets a 1.5px `accent` border. With an error, it gets a 1.5px `danger` border on `dangerBg`, plus a message below with an alert icon.
 - **Card:** `surface`, a 1px `border`, `radius.card`, 12–16 padding. Use list rows inside cards, not cards inside cards.
-- **Hero card:** `heroGradient`, `radius.card`, 16 padding, white text (title at least 20/800). Use it only for the one most important number on a screen.
-- **Icon tile:** 52×48, `radius.tile`, `tile` fill, a 22px `accent` icon, with a `label` caption below. Show at most 4 in a row.
+- **Hero card:** `heroGradient`, `radius.card`, 16 padding, white text (title at least 20/800). Use it only for the one most important thing on a screen: a key number, or on Home the current project.
+- **Project identity:** each project gets one of `projectColors`, picked from its id so it never changes and needs no field. It shows as a 40×40 `radius.avatar` avatar with the project's initials (up to 2 letters, `bodyStrong`, white) and as a 4px stripe on the left edge of its card. Identity colours are decoration: never on buttons, links, icons or status, and the name is always shown next to them.
+- **Project card (list):** a Card with the stripe and avatar, the name in `bodyStrong`, and a row of chips below it: currency (`VND` / `USD`) and, for Members, the role. A chevron in `textSecondary` on the right. One card per project, 12 apart.
+- **Chip:** `caption` weight 600 on `tile` fill in `accentStrong`, 6×10 padding, `radius.button`. Text, never colour alone.
+- **Icon tile:** 52×48, `radius.tile`, `tile` fill, a 22px `accent` icon, with a `label` caption below. Show at most 4 in a row. A tile for an area that isn't built yet uses `disabled.opacity` and a "Sắp có" / "Coming soon" caption.
+- **Header back:** the platform chevron at `iconSize.md`, inset by `header.backInset` so it lines up with `screenPadding`, with a 44×44 touch area and an accessible label.
 - **Section header:** `sectionTitle` on the left, an optional "see all" link on the right. An `overline` in `accent` is allowed above the current project name.
 - **Choice (radio or checkbox):** a row inside a card. The selected row shows a ✓ icon in `accent`, never colour alone. A checkbox is 20px, `radius.checkbox`, and filled `accent` with an `onAccent` tick when done. Done text uses `textSecondary` with a line through it.
 - **Icons:** one outline icon set, 20–22px, in `accent` or `textSecondary`.
@@ -101,6 +111,7 @@ Use `react-native-reanimated`, which the app already has.
 | What | When | Spec |
 |---|---|---|
 | Fade in and rise | A screen opens; sections appear in order | `motion.enter` |
+| Staggered list | Project cards appear one after another when the list opens (first 8 only) | `motion.enter` with `stagger` |
 | Press | Buttons, cards, tiles, rows | `motion.press` |
 | Shake and fade in a message | Wrong password or invalid input | `motion.shake` on the field |
 | Progress | A bar or count changes | `motion.progress` |
@@ -123,7 +134,7 @@ The app is iPhone only, in portrait, and must work from 375pt wide (iPhone SE) t
 
 - Filling the screen: big banners, stacked heroes, grids of more than 4 tiles, and long lists on overview screens
 - Neon, glow, glassmorphism, blur, drop shadows, and gradients anywhere other than the one hero card
-- A second accent colour (no gold, no cyan), and colour as the only sign of meaning
+- A second accent colour for actions (no gold, no cyan), and colour as the only sign of meaning. Project identity colours are the one exception, and only as decoration
 - Delivery-app furniture: location pickers, promo banners, ratings, "HOT" badges and floating centre buttons
 - Placeholder copy, stock photos and emoji in place of icons
 - Hard-coded colours or sizes in components: use these tokens
