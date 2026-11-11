@@ -317,30 +317,66 @@
         "id": 47,
         "severity": "blocking",
         "text": "Privacy: ProjectsProvider effect 1 shows the stored cache before checking cache.userId against the signed-in user; after A's 401 keeps the cache, B signing in briefly sees A's projects until effect 2 clears them. cacheStep.show is tested but not used. Gate the display on cacheStep (or owner match).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 48,
         "severity": "non-blocking",
         "text": "Edit project push on the Project screen isn't wrapped in useTapOnce; a double tap can push two Edit screens (R29b).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 49,
         "severity": "non-blocking",
         "text": "listNav 'push' mode and its 'Switch project' test are now unused; remove or rename.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 50,
         "severity": "non-blocking",
         "text": "Home's waiting-changes note and the 'Choose a project' card aren't in the spec; settled with the user at QA as wanted.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 51,
         "severity": "non-blocking",
         "text": "After a 403 the notice names the project by its local (offline-edited) name, which is about to be reverted.",
+        "resolved": false
+      },
+      {
+        "id": 52,
+        "severity": "blocking",
+        "text": "syncCycle.refresh: a non-401, non-network failure (500/502/503) sets status 'ready'; on a fresh phone with no cache Home invites 'Create your first project' to someone who has projects, and no note says the refresh failed. Treat as offline/error with retry; add a test.",
+        "resolved": false
+      },
+      {
+        "id": 53,
+        "severity": "blocking",
+        "text": "HeaderBack icon size 28 and one-off inset/hitSlop break DESIGN.md (icons 20-22px, no one-off values); Home disabled tile uses opacity 0.55 and width 48% one-offs. Use tokens or record the exception in DESIGN.md.",
+        "resolved": false
+      },
+      {
+        "id": 54,
+        "severity": "non-blocking",
+        "text": "Offline relaunch after A's 401 then B's sign-in killed before ownership clear can show A's cache while B's id is unknown; clear synchronously in startSession or store the token owner.",
+        "resolved": false
+      },
+      {
+        "id": 55,
+        "severity": "non-blocking",
+        "text": "Sign-out cleanup swallows storage errors; data may stay on disk until the next different user's sign-in clears it.",
+        "resolved": false
+      },
+      {
+        "id": 56,
+        "severity": "non-blocking",
+        "text": "A delete answered 404 is treated as done with no notice; deliberate deviation from R26 wording, note in Test Handoff.",
+        "resolved": false
+      },
+      {
+        "id": 57,
+        "severity": "non-blocking",
+        "text": "Additions beyond spec: root .gitignore, retryProfile and treating non-401 profile failures as offline; mention in PR.",
         "resolved": false
       }
     ],

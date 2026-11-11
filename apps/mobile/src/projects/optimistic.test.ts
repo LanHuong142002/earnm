@@ -13,8 +13,17 @@ describe("initialView", () => {
   it("shows the copy of the same user", () => {
     expect(initialView(cache, "a")).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
   });
-  it("shows the copy while the user id is not known yet", () => {
-    expect(initialView(cache, null)).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
+  it("shows the copy while the user id is not known only if the stored signed-in id is its owner", () => {
+    expect(initialView(cache, null, "a")).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
+  });
+  it("hides the copy while the user id is not known when the stored signed-in id is someone else's", () => {
+    expect(initialView(cache, null, "b")).toEqual({ owner: "a", projects: [], currentProjectId: null });
+  });
+  it("hides the copy while the user id is not known when no signed-in id is stored", () => {
+    expect(initialView(cache, null, null)).toEqual({ owner: "a", projects: [], currentProjectId: null });
+  });
+  it("ignores the stored id once the profile is known", () => {
+    expect(initialView(cache, "a", "b")).toEqual({ owner: "a", projects: cache.projects, currentProjectId: "1" });
   });
   it("shows nothing when there is no copy", () => {
     expect(initialView(null, "a")).toEqual({ owner: null, projects: [], currentProjectId: null });

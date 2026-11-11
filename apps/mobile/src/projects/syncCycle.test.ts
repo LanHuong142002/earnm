@@ -179,6 +179,20 @@ describe("sync cycle: refresh errors", () => {
     expect(h.list).toEqual([A]);
   });
 
+  it("a 500 on the list is treated like offline: cache kept, not shown as an empty ready list", async () => {
+    const h = setup({ patch: async () => ({}), list: [], listError: new ApiError("server", 500) }, [A]);
+    await h.cycle.refresh();
+    expect(h.status).toBe("offline");
+    expect(h.list).toEqual([A]);
+    expect(h.onNotSignedIn).not.toHaveBeenCalled();
+  });
+
+  it("a 500 with no cache stays offline so the first-project invitation is not shown", async () => {
+    const h = setup({ patch: async () => ({}), list: [], listError: new ApiError("server", 503) }, []);
+    await h.cycle.refresh();
+    expect(h.status).toBe("offline");
+  });
+
   it("a 401 on the list calls the not-signed-in handler", async () => {
     const h = setup({ patch: async () => ({}), list: [], listError: new ApiError("not_signed_in", 401) }, [A]);
     await h.cycle.refresh();

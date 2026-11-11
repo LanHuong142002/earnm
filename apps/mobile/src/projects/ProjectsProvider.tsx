@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { useAuth } from "../auth/AuthProvider";
-import { getToken } from "../auth/token-store";
+import { getStoredUserId, getToken } from "../auth/token-store";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { createQueue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
@@ -199,7 +199,16 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       const cache = await loadProjectCache(asyncStorageStore);
       if (cancelled) return;
       // Another person's copy is never put on screen; its owner is kept so the next effect clears it.
-      const view = initialView(cache, userIdRef.current);
+      let storedUserId: string | null = null;
+      if (!userIdRef.current) {
+        try {
+          storedUserId = await getStoredUserId();
+        } catch {
+          // Unreadable: no saved projects are shown until the profile is known.
+        }
+        if (cancelled) return;
+      }
+      const view = initialView(cache, userIdRef.current, storedUserId);
       cacheOwnerRef.current = view.owner;
       projectsRef.current = view.projects;
       currentRef.current = view.currentProjectId;

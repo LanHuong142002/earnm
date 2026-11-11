@@ -54,7 +54,11 @@ export const colors: { light: ColorSet; dark: ColorSet } = {
   },
 };
 
-export const heroGradient = ["#E8481A", "#7A2A12"] as const;
+// 135deg, white text only, both modes.
+export const heroGradient = ["#C2410C", "#7A2A12"] as const;
+
+// Identity only (avatar fill + card stripe); white text on each is at least 5:1.
+export const projectColors = ["#7C3AED", "#0F766E", "#B45309", "#BE185D", "#1D4ED8", "#15803D"] as const;
 
 export const fontFamily = {
   regular: "PlusJakartaSans_400Regular",
@@ -86,7 +90,7 @@ export const tile = { width: 52, height: 48 } as const;
 
 export const iconSize = { sm: 20, md: 22 } as const;
 
-export const radius = { field: 12, button: 12, tile: 14, card: 16, checkbox: 6 } as const;
+export const radius = { avatar: 12, field: 12, button: 12, tile: 14, card: 16, checkbox: 6 } as const;
 
 export const motion = {
   enter: { duration: 300, translateY: 8, stagger: 40, easing: [0.2, 0.8, 0.2, 1] },
@@ -94,3 +98,15 @@ export const motion = {
   shake: { duration: 300, distance: 4 },
   progress: { duration: 250 },
 } as const;
+
+// White for text on the hero gradient and on identity colours (both modes).
+export const onFixed = "#FFFFFF";
+
+export const disabled = { opacity: 0.5 } as const;
+
+export const header = { backInset: 4 } as const;
+
+// Sizes for project identity and chips (DESIGN.md Components).
+export const identity = { avatarSize: 40, stripeWidth: 4 } as const;
+
+export const chip = { paddingVertical: 6, paddingHorizontal: 10 } as const;

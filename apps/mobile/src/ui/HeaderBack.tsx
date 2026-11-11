@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import { Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { layout } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
 
 /**
@@ -13,24 +12,24 @@ import { useTheme } from "../theme/useTheme";
  */
 export function HeaderBack({ canGoBack }: { canGoBack?: boolean }) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, layout, header, iconSize } = useTheme();
   if (!canGoBack) return null;
   return (
     <Pressable
       onPress={() => router.back()}
       accessibilityRole="button"
       accessibilityLabel={t("common.back")}
-      hitSlop={12}
       style={({ pressed }) => ({
         // The native header already adds some inset; this brings the chevron to the gutter.
-        marginLeft: layout.screenPadding - 16,
+        marginLeft: header.backInset,
         minWidth: layout.controlHeight,
         height: layout.controlHeight,
         justifyContent: "center",
+        alignItems: "flex-start",
         opacity: pressed ? 0.5 : 1,
       })}
     >
-      <Ionicons name="chevron-back" size={28} color={colors.accentStrong} />
+      <Ionicons name="chevron-back" size={iconSize.md} color={colors.accentStrong} />
     </Pressable>
   );
 }

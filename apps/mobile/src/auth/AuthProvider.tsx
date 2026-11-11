@@ -25,12 +25,14 @@ import {
   clearKeychainOnFreshInstall,
   deleteLanguageChoice,
   deleteLanguagePendingSync,
+  deleteStoredUserId,
   deleteToken,
   getLanguageChoice,
   getLanguagePendingSync,
   getToken,
   saveLanguageChoice,
   saveLanguagePendingSync,
+  saveStoredUserId,
   saveToken,
 } from "./token-store";
 
@@ -119,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Keep whatever language is showing.
     }
-    for (const clear of [deleteToken, deleteLanguageChoice, deleteLanguagePendingSync]) {
+    for (const clear of [deleteToken, deleteStoredUserId, deleteLanguageChoice, deleteLanguagePendingSync]) {
       try {
         await clear();
       } catch {
@@ -240,6 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled || tokenRef.current !== token) return;
         setUser(me);
         setProfileStatus("ready");
+        void saveStoredUserId(me.id).catch(() => {});
         await reconcileLanguage(token, me.language);
       } catch (error) {
         if (cancelled || tokenRef.current !== token) return;
@@ -263,6 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (tokenRef.current !== token) return false;
         setUser(me);
         setProfileStatus("ready");
+        void saveStoredUserId(me.id).catch(() => {});
         await reconcileLanguage(token, me.language);
         return true;
       } catch (error) {
@@ -291,6 +295,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const startSession =useCallback(async ({ token, user: me }: AuthResult) => {
     await saveToken(token);
+    try {
+      await saveStoredUserId(me.id);
+    } catch {
+      // Without it an offline launch shows no saved projects until the profile loads.
+    }
     tokenRef.current = token;
     setUser(me);
     setProfileStatus("ready");

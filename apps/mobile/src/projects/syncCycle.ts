@@ -84,8 +84,10 @@ export function createSyncCycle(deps: SyncCycleDeps) {
     } catch (error) {
       if (gen !== deps.getGeneration()) return;
       if (error instanceof ApiError && error.code === "not_signed_in") deps.onNotSignedIn();
-      else if (error instanceof ApiError && error.code === "network") deps.setStatus("offline");
-      else deps.setStatus((s) => (s === "loading" ? "ready" : s));
+      // A network failure and a server failure (500/502/503) look the same to the person: keep the
+      // cache and try again at the next trigger. Never "ready" with nothing, or a phone without a
+      // cache would offer "Create your first project" to someone who has projects.
+      else deps.setStatus("offline");
     }
   }
 

@@ -10,10 +10,16 @@ import { useTapOnce } from "../../../../projects/useProjectNav";
 import { useProjects } from "../../../../projects/ProjectsProvider";
 import { useTheme } from "../../../../theme/useTheme";
 import { Button } from "../../../../ui/Button";
+import { projectColor } from "../../../../projects/identity";
 import { Card } from "../../../../ui/Card";
+import { Chip } from "../../../../ui/Chip";
+import { ProjectAvatar } from "../../../../ui/ProjectAvatar";
 import { Enter } from "../../../../ui/Enter";
 import { PressableScale } from "../../../../ui/PressableScale";
 import { Screen } from "../../../../ui/Screen";
+
+// Project cards that animate in one after another (DESIGN.md Motion).
+const STAGGER_LIMIT = 8;
 
 export default function ProjectsScreen() {
   const { t } = useTranslation();
@@ -70,10 +76,10 @@ export default function ProjectsScreen() {
         </Enter>
       ) : null}
       {projects.length > 0 ? (
-        <Enter index={0}>
-          <View style={{ gap: spacing[2] }}>
-            {projects.map((p) => (
-              <Card key={p.id}>
+        <View style={{ gap: spacing[2] }}>
+          {projects.map((p, i) => {
+            const card = (
+              <Card stripeColor={projectColor(p.id)}>
                 <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={
@@ -86,32 +92,35 @@ export default function ProjectsScreen() {
                     minHeight: layout.controlHeight,
                     flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: spacing[1],
+                    gap: spacing[2],
                   }}
                 >
-                  <View style={{ flex: 1 }}>
+                  <ProjectAvatar id={p.id} name={p.name} />
+                  <View style={{ flex: 1, gap: spacing[0] }}>
                     <Text style={[typography.bodyStrong, { color: colors.text }]} numberOfLines={1}>
                       {p.name}
                     </Text>
-                    <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                      {p.role === "member"
-                        ? `${p.currency} · ${t("projects.roleMember")}`
-                        : p.currency}
-                    </Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing[1] }}>
+                      <Chip label={p.currency} />
+                      {p.role === "member" ? <Chip label={t("projects.roleMember")} /> : null}
+                    </View>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={iconSize.sm}
-                    color={colors.textSecondary}
-                  />
+                  <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.textSecondary} />
                 </PressableScale>
               </Card>
-            ))}
-          </View>
-        </Enter>
+            );
+            // Only the first cards animate in, one after another.
+            return i < STAGGER_LIMIT ? (
+              <Enter key={p.id} index={i}>
+                {card}
+              </Enter>
+            ) : (
+              <View key={p.id}>{card}</View>
+            );
+          })}
+        </View>
       ) : null}
-      <Enter index={1}>
+      <Enter index={Math.min(projects.length, STAGGER_LIMIT)}>
         <Button
           label={t("projects.newButton")}
           variant={empty ? "primary" : "secondary"}

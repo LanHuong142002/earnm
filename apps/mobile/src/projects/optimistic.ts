@@ -71,15 +71,20 @@ export function cacheStep(input: {
 
 /**
  * What goes on screen when the stored copy is loaded. A copy owned by someone other than the
- * known user is not shown (the owner is still reported so the next step clears it); with no
- * known user yet, or the same user, it is shown at once (R17).
+ * known user is not shown (the owner is still reported so the next step clears it); the same
+ * user's copy is shown at once (R17). With no known user yet, the copy is shown only if its owner
+ * is the user id stored at sign-in.
  */
 export function initialView(
   cache: ProjectCache | null,
   userId: string | null,
+  storedUserId: string | null = null,
 ): { owner: string | null; projects: Project[]; currentProjectId: string | null } {
   const owner = cache?.userId || null;
-  const { show } = cacheStep({ signedIn: true, cacheOwner: owner, userId, queueCleared: false });
+  const step = cacheStep({ signedIn: true, cacheOwner: owner, userId, queueCleared: false });
+  // Profile not known yet: only the copy owned by the person whose id was stored at sign-in is
+  // shown (a 401 can leave A's copy behind and B can sign in before it is cleared).
+  const show = step.show && (userId !== null || (owner !== null && owner === storedUserId));
   if (!cache || !show) return { owner, projects: [], currentProjectId: null };
   return { owner, projects: cache.projects, currentProjectId: cache.currentProjectId };
 }

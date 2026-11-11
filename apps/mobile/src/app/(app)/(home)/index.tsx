@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import type { ComponentProps } from "react";
-import { Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Text, View, useWindowDimensions } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { OfflineNote } from "../../../projects/OfflineNote";
@@ -10,7 +11,9 @@ import { useProjects } from "../../../projects/ProjectsProvider";
 import { useTapOnce } from "../../../projects/useProjectNav";
 import { homeCard } from "../../../projects/routing";
 import { useTheme } from "../../../theme/useTheme";
+import { Chip } from "../../../ui/Chip";
 import { Enter } from "../../../ui/Enter";
+import { ProjectAvatar } from "../../../ui/ProjectAvatar";
 import { PressableScale } from "../../../ui/PressableScale";
 import { Screen } from "../../../ui/Screen";
 
@@ -27,7 +30,10 @@ function AreaTile({
   onPress?: () => void;
   comingSoon?: string;
 }) {
-  const { colors, typography, radius, spacing, tile, iconSize } = useTheme();
+  const { colors, typography, radius, spacing, tile, iconSize, layout, disabled: disabledStyle } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  // Two columns inside the screen padding, one gap apart.
+  const tileWidth = Math.floor((windowWidth - 2 * layout.screenPadding - spacing[2]) / 2);
   const disabled = comingSoon !== undefined;
   return (
     <PressableScale
@@ -37,14 +43,14 @@ function AreaTile({
       disabled={disabled}
       onPress={onPress}
       style={{
-        width: "48%",
+        width: tileWidth,
         gap: spacing[1],
         padding: spacing[2],
         borderRadius: radius.card,
         borderWidth: 1,
         borderColor: colors.border,
         backgroundColor: colors.surface,
-        opacity: disabled ? 0.55 : 1,
+        opacity: disabled ? disabledStyle.opacity : 1,
       }}
     >
       <View
@@ -74,7 +80,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const once = useTapOnce();
   const { status, projects, currentProject, waitingCount } = useProjects();
-  const { colors, typography, radius, spacing, layout, iconSize } = useTheme();
+  const { colors, typography, radius, spacing, layout, iconSize, heroGradient, onFixed } = useTheme();
 
   const card = homeCard(currentProject, status, projects.length);
 
@@ -118,44 +124,65 @@ export default function HomeScreen() {
               )
             }
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing[2],
-              padding: spacing[3],
-              minHeight: layout.controlHeight * 2,
               borderRadius: radius.card,
-              backgroundColor: colors.tile,
+              overflow: "hidden",
+              ...(currentProject ? {} : { backgroundColor: colors.tile }),
             }}
           >
-            <View style={{ flex: 1, gap: spacing[0] }}>
-              <Text style={[typography.overline, { color: colors.accentStrong }]}>
-                {currentProject ? t("home.currentProject") : t("home.noProject")}
-              </Text>
-              <Text style={[typography.screenTitle, { color: colors.text }]} numberOfLines={2}>
-                {currentProject
-                  ? currentProject.name
-                  : card === "choose"
-                    ? t("home.chooseTitle")
-                    : t("projects.emptyTitle")}
-              </Text>
-              <Text style={[typography.body, { color: colors.textSecondary }]}>
-                {currentProject
-                  ? t("projects.currencyLine", { currency: currentProject.currency })
-                  : card === "choose"
-                    ? t("home.chooseBody")
-                    : t("projects.emptyBody")}
-              </Text>
-            </View>
-            <Ionicons
-              name={currentProject || card === "choose" ? "chevron-forward" : "add-circle-outline"}
-              size={iconSize.md}
-              color={colors.accentStrong}
-            />
+            {currentProject ? (
+              <LinearGradient
+                colors={[...heroGradient]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing[2],
+                  padding: spacing[3],
+                  minHeight: layout.controlHeight * 2,
+                }}
+              >
+                <ProjectAvatar id={currentProject.id} name={currentProject.name} />
+                <View style={{ flex: 1, gap: spacing[0] }}>
+                  <Text style={[typography.overline, { color: onFixed }]}>{t("home.currentProject")}</Text>
+                  <Text style={[typography.screenTitle, { color: onFixed }]} numberOfLines={2}>
+                    {currentProject.name}
+                  </Text>
+                  <Chip label={currentProject.currency} onHero />
+                </View>
+                <Ionicons name="chevron-forward" size={iconSize.md} color={onFixed} />
+              </LinearGradient>
+            ) : (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing[2],
+                  padding: spacing[3],
+                  minHeight: layout.controlHeight * 2,
+                }}
+              >
+                <View style={{ flex: 1, gap: spacing[0] }}>
+                  <Text style={[typography.overline, { color: colors.accentStrong }]}>{t("home.noProject")}</Text>
+                  <Text style={[typography.screenTitle, { color: colors.text }]} numberOfLines={2}>
+                    {card === "choose" ? t("home.chooseTitle") : t("projects.emptyTitle")}
+                  </Text>
+                  <Text style={[typography.body, { color: colors.textSecondary }]}>
+                    {card === "choose" ? t("home.chooseBody") : t("projects.emptyBody")}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={card === "choose" ? "chevron-forward" : "add-circle-outline"}
+                  size={iconSize.md}
+                  color={colors.accentStrong}
+                />
+              </View>
+            )}
           </PressableScale>
         )}
       </Enter>
       <Enter index={2}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: spacing[2] }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing[2] }}>
           <AreaTile icon="folder-outline" label={t("home.areaProjects")} onPress={() => once(() => router.push("/projects"))} />
           <AreaTile icon="bulb-outline" label={t("home.areaIdeas")} comingSoon={t("home.comingSoon")} />
           <AreaTile icon="calendar-outline" label={t("home.areaSchedule")} comingSoon={t("home.comingSoon")} />
