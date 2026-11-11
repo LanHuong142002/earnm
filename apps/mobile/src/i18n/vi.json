@@ -76,7 +76,6 @@
     "currencyLine": "Tiền tệ: {{currency}}",
     "details": "Chi tiết",
     "noDescription": "Chưa có mô tả.",
-    "switch": "Đổi dự án",
     "edit": "Sửa dự án",
     "roleMember": "Thành viên",
     "rowLabel": "{{name}}, {{currency}}",

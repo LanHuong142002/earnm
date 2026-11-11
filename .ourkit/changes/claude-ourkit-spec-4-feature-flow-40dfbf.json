@@ -299,19 +299,19 @@
         "id": 44,
         "severity": "blocking",
         "text": "R17/R18/R24: ProjectsProvider waits for profileStatus != loading before reading the cache; AuthProvider leaves profileStatus 'loading' forever when getMe fails with a non-network, non-401 error (e.g. 500/503 at launch), and retryProfile only handles 'offline'; so cached projects never show and the queue never sends. Also a stalled request delays the cache up to 15s.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 45,
         "severity": "non-blocking",
         "text": "queue.ts header says a change with attempts > 0 is never merged into or dropped; code only protects attempted creates. Correct the comment (behaviour is safe).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 46,
         "severity": "non-blocking",
         "text": "Unused i18n keys settings.accountTitle and home.welcome.",
-        "resolved": false
+        "resolved": true
       }
     ],
     "reviewed": "a09db9f0f7a6e9555bd871aee5ced7d0064c07d5508a0cab0c30eb85907b0520"

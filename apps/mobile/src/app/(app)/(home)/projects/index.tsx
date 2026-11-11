@@ -71,11 +71,10 @@ export default function ProjectsScreen() {
       ) : null}
       {projects.length > 0 ? (
         <Enter index={0}>
-          <Card>
-            <View>
-              {projects.map((p, i) => (
+          <View style={{ gap: spacing[2] }}>
+            {projects.map((p) => (
+              <Card key={p.id}>
                 <PressableScale
-                  key={p.id}
                   accessibilityRole="button"
                   accessibilityLabel={
                     p.role === "member"
@@ -89,8 +88,6 @@ export default function ProjectsScreen() {
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: spacing[1],
-                    borderTopWidth: i > 0 ? 1 : 0,
-                    borderTopColor: colors.border,
                   }}
                 >
                   <View style={{ flex: 1 }}>
@@ -109,9 +106,9 @@ export default function ProjectsScreen() {
                     color={colors.textSecondary}
                   />
                 </PressableScale>
-              ))}
-            </View>
-          </Card>
+              </Card>
+            ))}
+          </View>
         </Enter>
       ) : null}
       <Enter index={1}>

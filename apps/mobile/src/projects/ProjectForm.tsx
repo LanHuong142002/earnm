@@ -27,7 +27,7 @@ export function ProjectForm({
   submitLabel: string;
   /** `opened` is what the form started with, so callers can send only what the person changed. */
   onSubmit: (fields: ProjectInput, opened: ProjectInput) => Promise<MutationResult<object>>;
-  /** Extra content below the form, e.g. a delete button. */
+  /** Set-apart section at the end of the scrolling form (not the footer), e.g. a delete button. */
   extra?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -124,7 +124,22 @@ export function ProjectForm({
           {formError ? <ErrorText message={formError} /> : null}
         </View>
       </Enter>
-      {extra ? <Enter index={1}>{extra}</Enter> : null}
+      {extra ? (
+        <Enter index={1}>
+          {/* Set apart from the form, with room below, so it can't be hit when reaching for Save. */}
+          <View
+            style={{
+              marginTop: spacing[6],
+              marginBottom: spacing[6],
+              paddingTop: spacing[5],
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+            }}
+          >
+            {extra}
+          </View>
+        </Enter>
+      ) : null}
     </Screen>
   );
 }

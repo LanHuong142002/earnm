@@ -77,7 +77,6 @@
     "currencyLine": "Currency: {{currency}}",
     "details": "Details",
     "noDescription": "No description.",
-    "switch": "Switch project",
     "edit": "Edit project",
     "roleMember": "Member",
     "rowLabel": "{{name}}, {{currency}}",

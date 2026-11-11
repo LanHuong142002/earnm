@@ -80,7 +80,6 @@ export default function ProjectScreen() {
               onPress={() => router.push({ pathname: "/projects/[id]/edit", params: { id: project.id } })}
             />
           ) : null}
-          <Button label={t("projects.switch")} variant="secondary" onPress={() => goToList("push")} />
         </View>
       </Enter>
     </Screen>
