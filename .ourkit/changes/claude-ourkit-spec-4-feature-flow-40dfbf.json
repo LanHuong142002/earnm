@@ -10,6 +10,9 @@
   "notSensitiveReason": null,
   "planApproval": "fd7e82de72546a99f97852ebefb4f77e481007619bd755287a46764a97fe85f3",
   "taskStatus": {
+    "3": {
+      "status": "done"
+    },
     "8": {
       "status": "done"
     }
