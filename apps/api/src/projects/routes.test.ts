@@ -142,6 +142,14 @@ describe("/projects", () => {
   });
 
   describe("list (AC6)", () => {
+    it("keeps same-named projects in a stable order (by id)", async () => {
+      const a = await user();
+      const ids = [];
+      for (let i = 0; i < 4; i += 1) ids.push(await seed(a, [], "Same"));
+      const res = await list(a);
+      expect(res.body.map((p: { id: string }) => p.id)).toEqual([...ids].sort());
+    });
+
     it("returns each person's own projects with role, ordered by name", async () => {
       const a = await user();
       const b = await user();

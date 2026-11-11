@@ -19,11 +19,11 @@ Today the API has accounts and sessions only (`User`, `Session`), and the mobile
 3. A signed-in person can create a project by giving a name, a currency and optionally a description. They become its Owner. No other members can be added in this feature.
 4. A project's id is chosen by the phone when the project is created (a UUID), so a project created offline keeps the same id once it reaches the server.
 5. Creating a project is idempotent: sending the same create again with the same id returns the existing project and doesn't create a second one. If that id already belongs to a project the person isn't a member of, the request is refused.
-6. A signed-in person can list every project they belong to, with each project's name, description, currency and their own role. Projects they don't belong to never appear.
+6. A signed-in person can list every project they belong to, with each project's name, description, currency and their own role. Projects they don't belong to never appear. The list is the only way to read projects; there is no endpoint for reading a single project. (Settled at Review.)
 7. Only an Owner can change a project's name, description or currency. A change can include any subset of those fields.
 8. Changing the currency changes only how amounts are labelled and formatted. No stored amount is converted.
 9. Only an Owner can delete a project. Deleting it removes the project and its memberships permanently (hard delete). There is no undo or trash.
-10. For any project the person doesn't belong to, or that doesn't exist, reading, changing or deleting it gives a "not found" error, so the response doesn't reveal whether the project exists. A Member who tries to change or delete a project gives a "not allowed" error.
+10. For any project the person doesn't belong to, or that doesn't exist, changing or deleting it gives a "not found" error, so the response doesn't reveal whether the project exists. A Member who tries to change or delete a project gives a "not allowed" error.
 11. Every projects endpoint requires a signed-in person, and refuses a missing, unknown or expired session with the existing "not signed in" error. Errors use the existing API error shape.
 
 ### Conflicts (last-write-wins per field)
@@ -78,7 +78,7 @@ Today the API has accounts and sessions only (`User`, `Session`), and the mobile
 7. API tests: an Owner can change name only, description only, currency only, and all three; a Member's change is refused with `403`.
 8. API test: changing currency from VND to USD leaves every other stored value unchanged. (By hand: no amount is recalculated anywhere.)
 9. API tests: an Owner's delete removes the project and its memberships, and the project no longer appears in any member's list; a Member's delete is refused with `403`; a second delete of the same project gives `404`.
-10. API tests: reading, changing and deleting a project that doesn't exist, and one the caller isn't a member of, all give `404` with the same body.
+10. API tests: changing and deleting a project that doesn't exist, and one the caller isn't a member of, all give `404` with the same body.
 11. API test: every projects endpoint without a token, and with an expired one, gives `401 not_signed_in` in the standard error shape.
 12. API test: after an accepted change, the stored time for that field equals the change's `editedAt`, and other fields' times are unchanged.
 13. API tests: a change to `name` older than the stored `name` time is ignored; a change to `name` with an older time than a recent `description` change is accepted and the description is kept.

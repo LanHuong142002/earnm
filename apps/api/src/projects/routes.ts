@@ -102,7 +102,8 @@ export function createProjectsRouter(deps: {
       const memberships = await prisma.projectMember.findMany({
         where: { userId: getAuth(res.locals).userId },
         include: { project: true },
-        orderBy: { project: { name: "asc" } },
+        // projectId breaks ties so same-named projects keep a stable order.
+        orderBy: [{ project: { name: "asc" } }, { projectId: "asc" }],
       });
       res.json(memberships.map((m) => toResponse(m.project, m.role)));
     } catch (err) {
