@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import type { PrismaClient } from "../../generated/prisma/client.js";
+import type { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
+import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 
 const nameSchema = z.string().trim().min(1).max(80);
@@ -167,34 +168,13 @@ export function createProjectsRouter(deps: {
       const { fields } = patchSchema.parse(req.body);
       const id = await requireOwner(parsedId.data, userId);
 
-      const nowMs = now().getTime();
-      const clamp = (d: Date) => new Date(Math.min(d.getTime(), nowMs));
-
-      // Last write wins per field. Each update only applies when its edit time is newer than
-      // the stored one, so the database decides atomically and no read-then-write race exists.
-      await prisma.$transaction(async (tx) => {
-        if (fields.name) {
-          const at = clamp(fields.name.editedAt);
-          await tx.project.updateMany({
-            where: { id, nameEditedAt: { lt: at } },
-            data: { name: fields.name.value, nameEditedAt: at },
-          });
-        }
-        if (fields.description) {
-          const at = clamp(fields.description.editedAt);
-          await tx.project.updateMany({
-            where: { id, descriptionEditedAt: { lt: at } },
-            data: { description: fields.description.value, descriptionEditedAt: at },
-          });
-        }
-        if (fields.currency) {
-          const at = clamp(fields.currency.editedAt);
-          await tx.project.updateMany({
-            where: { id, currencyEditedAt: { lt: at } },
-            data: { currency: fields.currency.value, currencyEditedAt: at },
-          });
-        }
-      });
+      // Last write wins per field, all in one transaction. The column names come from the
+      // field names, so TypeScript can't check them here; the route tests do.
+      await prisma.$transaction((tx) =>
+        applyLastWriteWins(fields, now(), (where, data) =>
+          tx.project.updateMany({ where: { id, ...where }, data } as Prisma.ProjectUpdateManyArgs),
+        ),
+      );
 
       // Always answer with the current state, even when every change lost.
       const current = await findForMember(prisma, id, userId);
