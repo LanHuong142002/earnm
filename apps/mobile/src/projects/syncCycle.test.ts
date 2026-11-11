@@ -121,6 +121,20 @@ describe("sync cycle: a change the server refuses for good (AC26)", () => {
   });
 });
 
+describe("sync cycle: a change the server accepts (AC25)", () => {
+  it("the queue is empty and the list equals the server's response", async () => {
+    const saved = { ...A, name: "Edited offline" };
+    const h = setup({ patch: async () => saved, list: [saved, B] }, [saved, B]);
+    await editName(h, "Edited offline");
+    await h.cycle.sync(USER);
+    expect(h.patchProject).toHaveBeenCalledTimes(1);
+    expect(await h.queue.count()).toBe(0);
+    expect(h.list).toEqual([saved, B]);
+    expect(h.notice).toBeNull();
+    expect(h.waiting).toBe(0);
+  });
+});
+
 describe("sync cycle: not signed in (AC27)", () => {
   it("a 401 calls the handler and keeps the change; flushing again for the same owner sends it", async () => {
     let calls = 0;

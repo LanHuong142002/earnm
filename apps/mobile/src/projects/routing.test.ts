@@ -16,7 +16,11 @@ describe("homeCard", () => {
   });
   it("waits only while the first refresh runs with nothing cached", () => {
     expect(homeCard(null, "loading", 0)).toBe("loading");
-    expect(homeCard(null, "loading", 2)).toBe("invite");
+    expect(homeCard(null, "loading", 2)).toBe("choose");
+  });
+  it("invites choosing a project when some exist but none is current", () => {
+    expect(homeCard(null, "ready", 2)).toBe("choose");
+    expect(homeCard(null, "offline", 1)).toBe("choose");
   });
 });
 

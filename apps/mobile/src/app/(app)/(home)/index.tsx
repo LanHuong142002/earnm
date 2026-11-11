@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { useAuth } from "../../../auth/AuthProvider";
+import { OfflineNote } from "../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../projects/RejectedNotice";
 import { useProjects } from "../../../projects/ProjectsProvider";
 import { useTapOnce } from "../../../projects/useProjectNav";
@@ -73,18 +73,14 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const once = useTapOnce();
-  const { profileStatus } = useAuth();
   const { status, projects, currentProject, waitingCount } = useProjects();
   const { colors, typography, radius, spacing, layout, iconSize } = useTheme();
 
-  const offline = status === "offline" || profileStatus === "offline";
   const card = homeCard(currentProject, status, projects.length);
 
   return (
     <Screen edges={[]}>
-      {offline ? (
-        <Text style={[typography.label, { color: colors.textSecondary }]}>{t("home.offline")}</Text>
-      ) : null}
+      <OfflineNote />
       {waitingCount > 0 ? (
         <Text style={[typography.label, { color: colors.textSecondary }]}>
           {t("projects.waiting", { count: waitingCount })}
@@ -108,13 +104,17 @@ export default function HomeScreen() {
             accessibilityLabel={
               currentProject
                 ? t("home.projectCardLabel", { name: currentProject.name, currency: currentProject.currency })
-                : t("projects.emptyTitle")
+                : card === "choose"
+                  ? t("home.chooseTitle")
+                  : t("projects.emptyTitle")
             }
             onPress={() =>
               once(() =>
                 currentProject
                   ? router.push({ pathname: "/projects/[id]", params: { id: currentProject.id } })
-                  : router.push("/projects/new"),
+                  : card === "choose"
+                    ? router.push("/projects")
+                    : router.push("/projects/new"),
               )
             }
             style={{
@@ -132,16 +132,22 @@ export default function HomeScreen() {
                 {currentProject ? t("home.currentProject") : t("home.noProject")}
               </Text>
               <Text style={[typography.screenTitle, { color: colors.text }]} numberOfLines={2}>
-                {currentProject ? currentProject.name : t("projects.emptyTitle")}
+                {currentProject
+                  ? currentProject.name
+                  : card === "choose"
+                    ? t("home.chooseTitle")
+                    : t("projects.emptyTitle")}
               </Text>
               <Text style={[typography.body, { color: colors.textSecondary }]}>
                 {currentProject
                   ? t("projects.currencyLine", { currency: currentProject.currency })
-                  : t("projects.emptyBody")}
+                  : card === "choose"
+                    ? t("home.chooseBody")
+                    : t("projects.emptyBody")}
               </Text>
             </View>
             <Ionicons
-              name={currentProject ? "chevron-forward" : "add-circle-outline"}
+              name={currentProject || card === "choose" ? "chevron-forward" : "add-circle-outline"}
               size={iconSize.md}
               color={colors.accentStrong}
             />

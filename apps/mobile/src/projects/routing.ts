@@ -2,12 +2,14 @@ import type { Project } from "./api";
 import type { ProjectsStatus } from "./ProjectsProvider";
 
 /** What Home's top card shows. */
-export type HomeCard = "project" | "loading" | "invite";
+export type HomeCard = "project" | "loading" | "choose" | "invite";
 
 export function homeCard(currentProject: Project | null, status: ProjectsStatus, projectCount: number): HomeCard {
   if (currentProject) return "project";
   // Wait for the first refresh only while there is nothing cached to show.
   if (status === "loading" && projectCount === 0) return "loading";
+  // Projects exist but none is current (e.g. the current one was deleted): ask to choose one.
+  if (projectCount > 0) return "choose";
   return "invite";
 }
 

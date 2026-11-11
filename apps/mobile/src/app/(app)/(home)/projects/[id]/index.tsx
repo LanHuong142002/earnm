@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { OfflineNote } from "../../../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../../../projects/RejectedNotice";
 import { useProjects } from "../../../../../projects/ProjectsProvider";
 import { useGoToProjectList } from "../../../../../projects/useProjectNav";
@@ -51,6 +52,7 @@ export default function ProjectScreen() {
 
   return (
     <Screen edges={[]}>
+      <OfflineNote />
       <RejectedNoticeBanner />
       <Enter index={1}>
         <View style={{ gap: spacing[0] }}>

@@ -239,24 +239,60 @@
         "id": 34,
         "severity": "blocking",
         "text": "Nav: edit.tsx:70 and :27 and [id]/index.tsx:28 use dismissTo('/projects'); POP_TO only replaces the top when the list isn't in the stack, so Home→card→Project→Edit→delete leaves [Home, Project(X), List]; back reaches the deleted project, which then redirects to the list again (R29a/R29b, AC29a/b). Reset the Home stack to [Home, List] via one shared helper.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 35,
         "severity": "blocking",
         "text": "Keyboard: ProjectForm renders Screen whose KeyboardAvoidingView has no keyboardVerticalOffset; under the Home stack header (and tabs) it underestimates the overlap by ~header+status bar, so the submit button likely stays hidden (R32/AC32). Pass useHeaderHeight() as the offset for screens under a header.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 36,
         "severity": "non-blocking",
         "text": "Nav: 'Switch project' via dismissTo replaces Project with the list when arrived from Home's card, so back goes to Home not Project (R29a 'opens on top'). Push the list when not in the stack, pop to it when it is.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 37,
         "severity": "non-blocking",
         "text": "Nav: a quick double tap can push the same screen twice (list row awaits setCurrentProject before push; Home card and Projects tile) — R29b forbids duplicates. Guard with a navigating ref or push before the awaited write.",
+        "resolved": true
+      },
+      {
+        "id": 38,
+        "severity": "blocking",
+        "text": "R18/AC18: the Project details screen ([id]/index.tsx) shows no offline note; Home and the list do. Show the same note (shared OfflineNote) when status or profileStatus is offline.",
+        "resolved": false
+      },
+      {
+        "id": 39,
+        "severity": "non-blocking",
+        "text": "Home card shows 'Create your first project' when there are projects but no current one; add a 'choose a project' state that opens the list.",
+        "resolved": false
+      },
+      {
+        "id": 40,
+        "severity": "non-blocking",
+        "text": "After a 403 rejection, if the follow-up refresh fails the refused value stays in the persisted cache until a later refresh; keep needsRefresh across failed refreshes or roll back the refused fields.",
+        "resolved": false
+      },
+      {
+        "id": 41,
+        "severity": "non-blocking",
+        "text": "GET /projects not paged: intentional per spec Out of Scope.",
+        "resolved": false
+      },
+      {
+        "id": 42,
+        "severity": "non-blocking",
+        "text": "AC25 lacks an end-to-end syncCycle assertion that the local list equals the server response after an accepted PATCH.",
+        "resolved": false
+      },
+      {
+        "id": 43,
+        "severity": "non-blocking",
+        "text": "Root .gitignore and roadmap edits beyond spec; new deps approved by the user in the plan.",
         "resolved": false
       }
     ],

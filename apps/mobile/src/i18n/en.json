@@ -26,7 +26,9 @@
     "areaProjects": "Projects",
     "areaIdeas": "Ideas",
     "areaSchedule": "Shared schedule",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "chooseTitle": "Choose a project",
+    "chooseBody": "Pick which project to work on."
   },
   "settings": {
     "language": "Language",

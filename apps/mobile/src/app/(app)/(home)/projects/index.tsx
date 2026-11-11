@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { OfflineNote } from "../../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../../projects/RejectedNotice";
 import { useTapOnce } from "../../../../projects/useProjectNav";
 import { useProjects } from "../../../../projects/ProjectsProvider";
@@ -41,9 +42,7 @@ export default function ProjectsScreen() {
   return (
     <Screen edges={[]}>
       <RejectedNoticeBanner />
-      {status === "offline" ? (
-        <Text style={[typography.label, { color: colors.textSecondary }]}>{t("home.offline")}</Text>
-      ) : null}
+      <OfflineNote />
       {projects.length === 0 && status === "loading" ? (
         <View
           accessibilityElementsHidden
