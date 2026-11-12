@@ -700,3 +700,66 @@ describe("sign-out fence and rerun owner", () => {
     expect(await queue.count()).toBe(1);
   });
 });
+
+describe("dropEntity", () => {
+  it("removes every queued change for that entity id, keeps others, and persists", async () => {
+    const { queue, store } = setup();
+    await queue.enqueue(mk("a", "update"));
+    await queue.enqueue(mk("b", "update"));
+    await queue.dropEntity("thing", "a");
+    expect(ids(await queue.waiting())).toEqual(["update:b"]);
+    const reloaded = setup({ store });
+    expect(ids(await reloaded.queue.waiting())).toEqual(["update:b"]);
+  });
+
+  it("only matches the given entity name", async () => {
+    const { queue } = setup();
+    await queue.enqueue(mk("a", "update"));
+    await queue.dropEntity("other", "a");
+    expect(await queue.count()).toBe(1);
+  });
+
+  it("an in-flight send for the dropped entity is not re-added, applied or rejected", async () => {
+    const { queue, sender, onApplied, onRejected } = setup();
+    let release!: (v: unknown) => void;
+    sender.mockImplementation(() => new Promise((r) => (release = r)));
+    await queue.enqueue(mk("a", "update"));
+    const flushing = queue.flush();
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    await queue.dropEntity("thing", "a");
+    release({ id: "a" });
+    await flushing;
+    expect(onApplied).not.toHaveBeenCalled();
+    expect(onRejected).not.toHaveBeenCalled();
+    expect(await queue.count()).toBe(0);
+  });
+
+  it("a failed in-flight send for the dropped entity is not rejected", async () => {
+    const { queue, sender, onRejected } = setup();
+    let fail!: (e: unknown) => void;
+    sender.mockImplementation(() => new Promise((_, rej) => (fail = rej)));
+    await queue.enqueue(mk("a", "update"));
+    const flushing = queue.flush();
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    await queue.dropEntity("thing", "a");
+    fail(new ApiError("forbidden", 403));
+    await flushing;
+    expect(onRejected).not.toHaveBeenCalled();
+  });
+
+  it("an in-flight send for another entity is unaffected and the queue carries on", async () => {
+    const { queue, sender, onApplied } = setup();
+    let release!: (v: unknown) => void;
+    sender.mockImplementationOnce(() => new Promise((r) => (release = r)));
+    await queue.enqueue(mk("a", "update"));
+    await queue.enqueue(mk("b", "update"));
+    const flushing = queue.flush();
+    await vi.waitFor(() => expect(sender).toHaveBeenCalledTimes(1));
+    await queue.dropEntity("thing", "b");
+    release({ id: "a" });
+    await flushing;
+    expect(onApplied).toHaveBeenCalledTimes(1);
+    expect(onApplied.mock.calls[0][0].entityId).toBe("a");
+    expect(await queue.count()).toBe(0);
+  });
+});

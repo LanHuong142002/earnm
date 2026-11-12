@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "../lib/api";
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { noticeKeys, onApplied, onRejected } from "./outcomes";
+import { noticeKeys, onApplied, onRejected, projectsToDrop } from "./outcomes";
 
 const T = "2026-01-01T00:00:00.000Z";
 const A: Project = { id: "a", name: "Alpha", description: "", currency: "VND", role: "owner" };
@@ -87,5 +87,28 @@ describe("noticeKeys", () => {
       headline: "projects.rejectedNoName",
       reason: "errors.forbidden",
     });
+  });
+});
+
+describe("projectsToDrop", () => {
+  it("returns queued project ids the server no longer lists", () => {
+    expect(projectsToDrop([A], [change("update", "a"), change("update", "b")])).toEqual(["b"]);
+  });
+
+  it("keeps a project that is only queued as a create (not on the server yet)", () => {
+    expect(projectsToDrop([A], [change("create", "new"), change("update", "gone")])).toEqual(["gone"]);
+  });
+
+  it("keeps an id with a create even when other ops for it are queued after the create", () => {
+    expect(projectsToDrop([], [change("create", "n"), change("update", "n")])).toEqual([]);
+  });
+
+  it("lists each id once and ignores other entities", () => {
+    const other = { ...change("update", "x"), entity: "invite" };
+    expect(projectsToDrop([], [change("update", "g"), { ...change("delete", "g"), changeId: "d2" }, other])).toEqual(["g"]);
+  });
+
+  it("returns nothing when everything queued is on the server", () => {
+    expect(projectsToDrop([A, B], [change("update", "a"), change("delete", "b")])).toEqual([]);
   });
 });

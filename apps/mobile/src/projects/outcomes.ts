@@ -3,6 +3,7 @@ import type { Change, ChangeKind } from "../sync/queue";
 import type { Project } from "./api";
 import { withApplied } from "./optimistic";
 import { applyOverlay } from "./store";
+import { PROJECT_ENTITY } from "./sync";
 
 /** Why the server refused a change for good; the screen picks the wording. */
 export type RejectedReason = "forbidden" | "not_found" | "conflict" | "invalid";
@@ -45,6 +46,21 @@ export function onRejected(list: Project[], change: Change, error: ApiError, wai
 /** The local list after a refresh: the server's projects with the waiting changes on top. */
 export function restoreFromServer(server: Project[], waiting: Change[]): Project[] {
   return applyOverlay(server, waiting);
+}
+
+/**
+ * Queued project ids the server no longer lists (the person lost the project), so their waiting
+ * changes can be dropped. An id with a queued create is kept: that project is not on the server yet.
+ */
+export function projectsToDrop(server: Project[], queued: Change[]): string[] {
+  const onServer = new Set(server.map((p) => p.id));
+  const projectChanges = queued.filter((c) => c.entity === PROJECT_ENTITY);
+  const pendingCreate = new Set(projectChanges.filter((c) => c.kind === "create").map((c) => c.entityId));
+  const out: string[] = [];
+  for (const c of projectChanges) {
+    if (!onServer.has(c.entityId) && !pendingCreate.has(c.entityId) && !out.includes(c.entityId)) out.push(c.entityId);
+  }
+  return out;
 }
 
 const REASON_KEY: Record<RejectedReason, string> = {

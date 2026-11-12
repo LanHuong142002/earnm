@@ -5,7 +5,7 @@
  *
  * - `handlers` go to createQueue (onApplied / onRejected / onSignedOut).
  * - flush(userId): send the queue for that owner; if the server refused something, refresh after.
- * - refresh(): fetch the server's list and show it with the waiting changes replayed.
+ * - refresh(): fetch the server's list, drop waiting changes for projects it no longer lists, and show it with the waiting changes replayed.
  * - sync(userId): flush, then refresh.
  */
 import { ApiError } from "../lib/api";
@@ -13,6 +13,7 @@ import type { Change, Queue } from "../sync/queue";
 import type { Project } from "./api";
 import * as outcomes from "./outcomes";
 import { isProject } from "./store";
+import { PROJECT_ENTITY } from "./sync";
 import type { RejectedNotice } from "./outcomes";
 
 export type SyncStatus = "loading" | "ready" | "offline";
@@ -76,6 +77,11 @@ export function createSyncCycle(deps: SyncCycleDeps) {
     if (!token || gen !== deps.getGeneration()) return;
     try {
       const server = (await deps.listProjects(token)).filter(isProject);
+      // Projects the server no longer lists: their waiting changes can never succeed (R26).
+      const queue = deps.getQueue();
+      for (const id of outcomes.projectsToDrop(server, await queue.waiting())) {
+        await queue.dropEntity(PROJECT_ENTITY, id);
+      }
       const waiting = await deps.settleMutations();
       if (gen !== deps.getGeneration()) return;
       await deps.commit(outcomes.restoreFromServer(server, waiting));

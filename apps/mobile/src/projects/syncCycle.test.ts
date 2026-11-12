@@ -221,3 +221,32 @@ describe("sync cycle: refresh content", () => {
     expect(h.list.map((p) => p.id)).toEqual(["a", "b"]);
   });
 });
+
+describe("sync cycle: a project the person lost (AC21)", () => {
+  it("a refresh that no longer returns it drops its queued update and removes it from the list", async () => {
+    const h = setup({ patch: async () => ({}), list: [B] }, [{ ...A, name: "Edited offline" }, B]);
+    await editName(h, "Edited offline");
+    await h.cycle.refresh();
+    expect(await h.queue.count()).toBe(0);
+    expect(h.list.map((p) => p.id)).toEqual(["b"]);
+    expect(h.waiting).toBe(0);
+    expect(h.patchProject).not.toHaveBeenCalled();
+  });
+
+  it("keeps a project created offline that the server does not have yet", async () => {
+    const created = { ...A, id: "new", name: "Offline" };
+    const h = setup({ patch: async () => ({}), list: [B] }, [created, B]);
+    await h.queue.setOwner(USER);
+    await h.queue.enqueue({ entity: PROJECT_ENTITY, entityId: "new", kind: "create", data: { name: "Offline" } });
+    await h.cycle.refresh();
+    expect(await h.queue.count()).toBe(1);
+    expect(h.list.map((p) => p.id).sort()).toEqual(["b", "new"]);
+  });
+
+  it("a failed server read drops nothing", async () => {
+    const h = setup({ patch: async () => ({}), list: [B], listError: new ApiError("network", 0) }, [A, B]);
+    await editName(h, "Edited offline");
+    await h.cycle.refresh();
+    expect(await h.queue.count()).toBe(1);
+  });
+});
