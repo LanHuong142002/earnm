@@ -1,6 +1,6 @@
 import type { NewChange } from "../sync/queue";
-import { applyTaskOverlay } from "./store";
-import type { Task, TaskAssignee } from "./types";
+import { applyLabelOverlay, applyTaskOverlay } from "./store";
+import type { Label, Task, TaskAssignee } from "./types";
 
 /**
  * The people a task can name, from what is known on the phone: me first, then assignees already on
@@ -23,6 +23,15 @@ export function showLocalChange(list: Task[], projectId: string, change: NewChan
   return applyTaskOverlay(
     projectId,
     list,
+    [{ ...change, fieldTimes: change.fieldTimes ?? {}, changeId: "local", createdAt: now.toISOString() }],
+  );
+}
+
+/** `labels` with a label change the person just made laid over it, to show at once. */
+export function showLocalLabelChange(labels: Label[], projectId: string, change: NewChange, now: Date): Label[] {
+  return applyLabelOverlay(
+    projectId,
+    labels,
     [{ ...change, fieldTimes: change.fieldTimes ?? {}, changeId: "local", createdAt: now.toISOString() }],
   );
 }

@@ -142,7 +142,15 @@
       "limit": "This project already has 1000 tasks.",
       "conflict": "The task couldn't be created. Please try again.",
       "invalid": "The task couldn't be saved. Check its fields and try again.",
-      "generic": "Something went wrong with this task. Please try again."
+      "generic": "Something went wrong with this task. Please try again.",
+      "labelNameTaken": "A label with this name already exists.",
+      "labelLimit": "This project already has 50 labels.",
+      "checklistLimit": "This task already has 10 checklists.",
+      "itemLimit": "This checklist already has 50 items.",
+      "labelForbiddenDelete": "Only a project Owner can delete a label.",
+      "labelNotFound": "That label no longer exists.",
+      "checklistNotFound": "That checklist no longer exists.",
+      "itemNotFound": "That item no longer exists."
     },
     "weekday": {
       "0": "Sun",
@@ -185,7 +193,11 @@
       "itemTextTooLong": "Keep the item to 200 characters.",
       "labelNameRequired": "Enter a label name.",
       "labelNameTooLong": "Keep the name to 30 characters.",
-      "labelNameDuplicate": "A label with this name already exists."
+      "labelNameDuplicate": "A label with this name already exists.",
+      "labelLimit": "A project can have at most 50 labels.",
+      "checklistLimit": "A task can have at most 10 checklists.",
+      "itemLimit": "A checklist can have at most 50 items.",
+      "labelsPerTaskLimit": "A task can have at most 10 labels."
     },
     "title": "Tasks",
     "notDone": "{{count}} not done",
@@ -238,7 +250,10 @@
     "dueTimeLabel": "Due time {{time}}. Change",
     "dueClearDay": "Clear due date",
     "dueClearTime": "Clear time",
-    "pickerDone": "Done"
+    "pickerDone": "Done",
+    "rejectedLabel": "Your change to a label couldn't be saved.",
+    "rejectedChecklist": "Your change to a checklist couldn't be saved.",
+    "rejectedItem": "Your change to a checklist item couldn't be saved."
   },
   "members": {
     "title": "Members",

@@ -140,7 +140,15 @@
       "limit": "Dự án này đã có 1000 công việc.",
       "conflict": "Không tạo được công việc. Vui lòng thử lại.",
       "invalid": "Không lưu được công việc. Hãy kiểm tra lại các trường và thử lại.",
-      "generic": "Đã xảy ra lỗi với công việc này. Vui lòng thử lại."
+      "generic": "Đã xảy ra lỗi với công việc này. Vui lòng thử lại.",
+      "labelNameTaken": "Đã có nhãn với tên này.",
+      "labelLimit": "Dự án này đã có 50 nhãn.",
+      "checklistLimit": "Công việc này đã có 10 danh sách.",
+      "itemLimit": "Danh sách này đã có 50 mục.",
+      "labelForbiddenDelete": "Chỉ Chủ dự án mới xóa được nhãn.",
+      "labelNotFound": "Nhãn này không còn tồn tại.",
+      "checklistNotFound": "Danh sách này không còn tồn tại.",
+      "itemNotFound": "Mục này không còn tồn tại."
     },
     "weekday": {
       "0": "CN",
@@ -183,7 +191,11 @@
       "itemTextTooLong": "Mục tối đa 200 ký tự.",
       "labelNameRequired": "Hãy nhập tên nhãn.",
       "labelNameTooLong": "Tên tối đa 30 ký tự.",
-      "labelNameDuplicate": "Đã có nhãn với tên này."
+      "labelNameDuplicate": "Đã có nhãn với tên này.",
+      "labelLimit": "Một dự án có tối đa 50 nhãn.",
+      "checklistLimit": "Một công việc có tối đa 10 danh sách.",
+      "itemLimit": "Một danh sách có tối đa 50 mục.",
+      "labelsPerTaskLimit": "Một công việc có tối đa 10 nhãn."
     },
     "title": "Công việc",
     "notDone": "{{count}} chưa xong",
@@ -236,7 +248,10 @@
     "dueTimeLabel": "Giờ hạn chót {{time}}. Đổi",
     "dueClearDay": "Xóa hạn chót",
     "dueClearTime": "Xóa giờ",
-    "pickerDone": "Xong"
+    "pickerDone": "Xong",
+    "rejectedLabel": "Không lưu được thay đổi với nhãn.",
+    "rejectedChecklist": "Không lưu được thay đổi với danh sách.",
+    "rejectedItem": "Không lưu được thay đổi với mục trong danh sách."
   },
   "members": {
     "title": "Thành viên",

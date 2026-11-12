@@ -13,13 +13,30 @@ import { useAuth } from "../auth/AuthProvider";
 import { getStoredUserId, getToken } from "../auth/token-store";
 import { newProjectId as newId } from "../projects/newProjectId";
 import { useProjects } from "../projects/ProjectsProvider";
+import type { NewChange } from "../sync/queue";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { loadMembers } from "../members/memberCache";
-import { listTasks } from "./api";
+import type { LabelColour } from "../theme/tokens";
+import { listLabels, listTasks } from "./api";
 import { membersToAssignees } from "./assignees";
 import { DEFAULT_FILTERS, type TaskFilters } from "./filters";
-import { deriveMembers, showLocalChange } from "./localChange";
-import { planTaskCreate, planTaskDelete, planTaskUpdate, type TaskEdit } from "./optimistic";
+import { deriveMembers, showLocalChange, showLocalLabelChange } from "./localChange";
+import {
+  planChecklistCreate,
+  planChecklistDelete,
+  planChecklistRename,
+  planItemCreate,
+  planItemDelete,
+  planItemEdit,
+  planLabelCreate,
+  planLabelDelete,
+  planLabelUpdate,
+  planSetTaskLabels,
+  planTaskCreate,
+  planTaskDelete,
+  planTaskUpdate,
+  type TaskEdit,
+} from "./optimistic";
 import type { TaskRejectedNotice } from "./outcomes";
 import {
   clearTaskCache,
@@ -27,14 +44,17 @@ import {
   openTaskCache,
   pruneTaskCache,
   saveTaskCache,
+  labelsFor as cachedLabelsFor,
   setProjectFilters,
+  setProjectLabels,
   setProjectTasks,
   type TaskCache,
 } from "./store";
-import { registerTaskEntity } from "./sync";
+import { ITEM_ENTITY, TASK_ENTITY, registerChecklistEntities, registerTaskEntity } from "./sync";
 import { createTaskSyncCycle, type RefreshResult } from "./syncCycle";
-import type { Task, TaskAssignee, TaskStatus } from "./types";
+import type { Label, Task, TaskAssignee, TaskStatus } from "./types";
 import type { TaskInput, TaskInputErrors } from "./validate";
+import { stripLabelFromWaiting, taskChangesToResend } from "./waitingLabels";
 
 export type { TaskRejectedNotice } from "./outcomes";
 export type { TaskFilters } from "./filters";
@@ -47,12 +67,59 @@ export type { RefreshResult } from "./syncCycle";
  */
 export type TaskMutationResult<T = object> = ({ ok: true } & T) | { ok: false; errors: TaskInputErrors };
 
+/**
+ * What a label, checklist or item action answers. `error` is an i18n key (a tasks.errors.* message)
+ * when the phone refused the change before recording it: a bad name, a duplicate label name, a limit.
+ */
+export type ChecklistMutationResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
+
+const findTask = (cache: TaskCache, projectId: string, taskId: string): Task | undefined =>
+  (cache.byProject[projectId] ?? []).find((t) => t.id === taskId);
+
 type TasksContextValue = {
   /** True once the local copy for the signed-in person is loaded. Mutations and refresh wait for it. */
   ready: boolean;
   /** The cached list for a project, in server order then offline-created order. Not sorted or filtered. */
   tasksFor: (projectId: string) => Task[];
   filtersFor: (projectId: string) => TaskFilters;
+  /** The project's labels, in server order then offline-created order. */
+  labelsFor: (projectId: string) => Label[];
+  createLabel: (projectId: string, name: string, colour: LabelColour) => Promise<ChecklistMutationResult<{ id: string }>>;
+  updateLabel: (
+    projectId: string,
+    labelId: string,
+    edit: { name?: string; colour?: LabelColour },
+  ) => Promise<ChecklistMutationResult>;
+  /** Takes the label off every task here and drops it; waiting task-label changes lose it too. */
+  deleteLabel: (projectId: string, labelId: string) => Promise<void>;
+  /** The whole set of label ids on the task. */
+  setTaskLabels: (projectId: string, taskId: string, labelIds: string[]) => Promise<ChecklistMutationResult>;
+  addChecklist: (projectId: string, taskId: string, name: string) => Promise<ChecklistMutationResult<{ id: string }>>;
+  renameChecklist: (projectId: string, taskId: string, checklistId: string, name: string) => Promise<ChecklistMutationResult>;
+  /** Also drops the waiting changes of the checklist items. */
+  deleteChecklist: (projectId: string, taskId: string, checklistId: string) => Promise<void>;
+  addItem: (
+    projectId: string,
+    taskId: string,
+    checklistId: string,
+    text: string,
+  ) => Promise<ChecklistMutationResult<{ id: string }>>;
+  editItem: (
+    projectId: string,
+    taskId: string,
+    checklistId: string,
+    itemId: string,
+    text: string,
+  ) => Promise<ChecklistMutationResult>;
+  /** `done` omitted flips the item. Sends only `done`. */
+  toggleItem: (
+    projectId: string,
+    taskId: string,
+    checklistId: string,
+    itemId: string,
+    done?: boolean,
+  ) => Promise<ChecklistMutationResult>;
+  deleteItem: (projectId: string, taskId: string, checklistId: string, itemId: string) => Promise<void>;
   /** Remembered per project until sign-out (R24). */
   setFilters: (projectId: string, filters: TaskFilters) => Promise<void>;
   create: (projectId: string, input: TaskInput) => Promise<TaskMutationResult<{ id: string }>>;
@@ -139,13 +206,21 @@ export function TasksProvider({ children, members }: Props) {
     [publish],
   );
 
+  const commitLabels = useCallback(
+    (projectId: string, labels: Label[]) => publish(setProjectLabels(cacheRef.current, projectId, labels)),
+    [publish],
+  );
+
   const [cycle] = useState(() => {
     const c = createTaskSyncCycle({
       getQueue: () => queue,
       getToken,
       listTasks,
+      listLabels,
       getTasks: (projectId) => cacheRef.current.byProject[projectId] ?? [],
+      getLabels: (projectId) => cachedLabelsFor(cacheRef.current, projectId),
       commit,
+      commitLabels,
       setNotice: setRejectedNotice,
       getGeneration: () => genRef.current,
       isWiped: () => wipedRef.current,
@@ -161,6 +236,7 @@ export function TasksProvider({ children, members }: Props) {
       onNotSignedIn: () => notSignedInRef.current(),
     });
     registerTaskEntity(queue, c.handlers);
+    registerChecklistEntities(queue, c.handlers);
     return c;
   });
 
@@ -257,6 +333,7 @@ export function TasksProvider({ children, members }: Props) {
     );
     const same =
       Object.keys(pruned.byProject).length === Object.keys(current.byProject).length &&
+      Object.keys(pruned.labelsByProject).length === Object.keys(current.labelsByProject).length &&
       Object.keys(pruned.filters).length === Object.keys(current.filters).length;
     if (!same) void publish(pruned);
   }, [ready, projectsStatus, projects, publish]);
@@ -362,6 +439,216 @@ export function TasksProvider({ children, members }: Props) {
     [track, commit, queue, afterEnqueue],
   );
 
+  /** Records a task, checklist or item change: queue it, show it at once, then ask for a send. */
+  const recordTaskChange = useCallback(
+    async (projectId: string, change: NewChange) => {
+      const now = new Date();
+      await track(async () => {
+        await queue.enqueue(change);
+        void commit(projectId, showLocalChange(cacheRef.current.byProject[projectId] ?? [], projectId, change, now));
+      });
+      await afterEnqueue();
+    },
+    [track, commit, queue, afterEnqueue],
+  );
+
+  const createLabel = useCallback<TasksContextValue["createLabel"]>(
+    async (projectId, name, colour) => {
+      if (!readyRef.current) return { ok: false, error: "tasks.reasons.generic" };
+      const now = new Date();
+      const id = newId();
+      const plan = planLabelCreate({ id, projectId, name, colour, labels: cachedLabelsFor(cacheRef.current, projectId), now });
+      if (!plan.ok) return plan;
+      const change = plan.change;
+      if (!change) return { ok: true, id };
+      await track(async () => {
+        await queue.enqueue(change);
+        void commitLabels(projectId, showLocalLabelChange(cachedLabelsFor(cacheRef.current, projectId), projectId, change, now));
+      });
+      await afterEnqueue();
+      return { ok: true, id };
+    },
+    [track, commitLabels, queue, afterEnqueue],
+  );
+
+  const updateLabel = useCallback<TasksContextValue["updateLabel"]>(
+    async (projectId, labelId, edit) => {
+      if (!readyRef.current) return { ok: false, error: "tasks.reasons.generic" };
+      const labels = cachedLabelsFor(cacheRef.current, projectId);
+      const current = labels.find((l) => l.id === labelId);
+      if (!current) return { ok: true };
+      const now = new Date();
+      const plan = planLabelUpdate(current, projectId, edit, labels, now);
+      if (!plan.ok) return plan;
+      const change = plan.change;
+      if (!change) return { ok: true };
+      await track(async () => {
+        await queue.enqueue(change);
+        void commitLabels(projectId, showLocalLabelChange(cachedLabelsFor(cacheRef.current, projectId), projectId, change, now));
+      });
+      await afterEnqueue();
+      return { ok: true };
+    },
+    [track, commitLabels, queue, afterEnqueue],
+  );
+
+  const deleteLabel = useCallback<TasksContextValue["deleteLabel"]>(
+    async (projectId, labelId) => {
+      const label = cachedLabelsFor(cacheRef.current, projectId).find((l) => l.id === labelId);
+      if (!readyRef.current || !label) return;
+      const change = planLabelDelete(label, projectId);
+      const now = new Date();
+      await track(async () => {
+        // Waiting task changes that still name the label are queued again without it, with a fresh time.
+        await stripLabelFromWaiting(queue, projectId, labelId, now);
+        await queue.enqueue(change);
+        void commitLabels(projectId, showLocalLabelChange(cachedLabelsFor(cacheRef.current, projectId), projectId, change, now));
+        // The label delete laid over the tasks takes the label off the local task copies.
+        void commit(projectId, showLocalChange(cacheRef.current.byProject[projectId] ?? [], projectId, change, now));
+      });
+      await afterEnqueue();
+    },
+    [track, commit, commitLabels, queue, afterEnqueue],
+  );
+
+  const setTaskLabels = useCallback<TasksContextValue["setTaskLabels"]>(
+    async (projectId, taskId, labelIds) => {
+      if (!readyRef.current) return { ok: false, error: "tasks.reasons.generic" };
+      const task = findTask(cacheRef.current, projectId, taskId);
+      if (!task) return { ok: true };
+      const now = new Date();
+      const plan = planSetTaskLabels(task, labelIds, cachedLabelsFor(cacheRef.current, projectId), now);
+      if (!plan.ok) return plan;
+      const change = plan.change;
+      if (!change) return { ok: true };
+      await track(async () => {
+        await queue.enqueue(change);
+        // A task change waiting ahead of a label created after it would reach the server first: queue it again after.
+        const resend = taskChangesToResend(await queue.waiting(), taskId, labelIds);
+        if (resend) {
+          await queue.dropEntity(TASK_ENTITY, taskId);
+          for (const again of resend) await queue.enqueue(again);
+        }
+        void commit(projectId, showLocalChange(cacheRef.current.byProject[projectId] ?? [], projectId, change, now));
+      });
+      await afterEnqueue();
+      return { ok: true };
+    },
+    [track, commit, queue, afterEnqueue],
+  );
+
+  const addChecklist = useCallback<TasksContextValue["addChecklist"]>(
+    async (projectId, taskId, name) => {
+      if (!readyRef.current) return { ok: false, error: "tasks.reasons.generic" };
+      const task = findTask(cacheRef.current, projectId, taskId);
+      if (!task) return { ok: false, error: "tasks.reasons.notFound" };
+      const id = newId();
+      const plan = planChecklistCreate({ id, task, name, now: new Date() });
+      if (!plan.ok) return plan;
+      if (plan.change) await recordTaskChange(projectId, plan.change);
+      return { ok: true, id };
+    },
+    [recordTaskChange],
+  );
+
+  const renameChecklist = useCallback<TasksContextValue["renameChecklist"]>(
+    async (projectId, taskId, checklistId, name) => {
+      if (!readyRef.current) return { ok: false, error: "tasks.reasons.generic" };
+      const task = findTask(cacheRef.current, projectId, taskId);
+      const checklist = task?.checklists.find((c) => c.id === checklistId);
+      if (!task || !checklist) return { ok: true };
+      const plan = planChecklistRename(task, checklist, name, new Date());
+      if (!plan.ok) return plan;
+      if (plan.change) await recordTaskChange(projectId, plan.change);
+      return { ok: true };
+    },
+    [recordTaskChange],
+  );
+
+  const deleteChecklist = useCallback<TasksContextValue["deleteChecklist"]>(
+    async (projectId, taskId, checklistId) => {
+      const task = findTask(cacheRef.current, projectId, taskId);
+      const checklist = task?.checklists.find((c) => c.id === checklistId);
+      if (!readyRef.current || !task || !checklist) return;
+      const change = planChecklistDelete(task, checklist);
+      const now = new Date();
+      await track(async () => {
+        // Items of a checklist that is going away must not be sent: the server would refuse them.
+        const itemIds = new Set(checklist.items.map((i) => i.id));
+        for (const waiting of await queue.waiting()) {
+          if (waiting.entity === ITEM_ENTITY && waiting.data.checklistId === checklistId) itemIds.add(waiting.entityId);
+        }
+        for (const itemId of itemIds) await queue.dropEntity(ITEM_ENTITY, itemId);
+        await queue.enqueue(change);
+        void commit(projectId, showLocalChange(cacheRef.current.byProject[projectId] ?? [], projectId, change, now));
+      });
+      await afterEnqueue();
+    },
+    [track, commit, queue, afterEnqueue],
+  );
+
+  const addItem = useCallback<TasksContextValue["addItem"]>(
+    async (projectId, taskId, checklistId, text) => {
+      if (!readyRef.current) return { ok: false, error: "tasks.reasons.generic" };
+      const task = findTask(cacheRef.current, projectId, taskId);
+      const checklist = task?.checklists.find((c) => c.id === checklistId);
+      if (!task || !checklist) return { ok: false, error: "tasks.reasons.checklistNotFound" };
+      const id = newId();
+      const plan = planItemCreate({ id, task, checklist, text, now: new Date() });
+      if (!plan.ok) return plan;
+      if (plan.change) await recordTaskChange(projectId, plan.change);
+      return { ok: true, id };
+    },
+    [recordTaskChange],
+  );
+
+  const editItemFields = useCallback(
+    async (
+      projectId: string,
+      taskId: string,
+      checklistId: string,
+      itemId: string,
+      edit: { text?: string; done?: boolean },
+    ): Promise<ChecklistMutationResult> => {
+      if (!readyRef.current) return { ok: false, error: "tasks.reasons.generic" };
+      const task = findTask(cacheRef.current, projectId, taskId);
+      const checklist = task?.checklists.find((c) => c.id === checklistId);
+      const item = checklist?.items.find((i) => i.id === itemId);
+      if (!task || !checklist || !item) return { ok: true };
+      const plan = planItemEdit(task, checklist, item, edit, new Date());
+      if (!plan.ok) return plan;
+      if (plan.change) await recordTaskChange(projectId, plan.change);
+      return { ok: true };
+    },
+    [recordTaskChange],
+  );
+
+  const editItem = useCallback<TasksContextValue["editItem"]>(
+    (projectId, taskId, checklistId, itemId, text) => editItemFields(projectId, taskId, checklistId, itemId, { text }),
+    [editItemFields],
+  );
+
+  const toggleItem = useCallback<TasksContextValue["toggleItem"]>(
+    (projectId, taskId, checklistId, itemId, done) => {
+      const current = findTask(cacheRef.current, projectId, taskId)
+        ?.checklists.find((c) => c.id === checklistId)
+        ?.items.find((i) => i.id === itemId);
+      return editItemFields(projectId, taskId, checklistId, itemId, { done: done ?? !current?.done });
+    },
+    [editItemFields],
+  );
+
+  const deleteItem = useCallback<TasksContextValue["deleteItem"]>(
+    async (projectId, taskId, checklistId, itemId) => {
+      const task = findTask(cacheRef.current, projectId, taskId);
+      const checklist = task?.checklists.find((c) => c.id === checklistId);
+      const item = checklist?.items.find((i) => i.id === itemId);
+      if (!readyRef.current || !task || !checklist || !item) return;
+      await recordTaskChange(projectId, planItemDelete(task, checklist, item));
+    },
+    [recordTaskChange],
+  );
+
   const refresh = useCallback<TasksContextValue["refresh"]>(
     async (projectId) => {
       if (!readyRef.current) return "skipped";
@@ -385,12 +672,25 @@ export function TasksProvider({ children, members }: Props) {
 
   const tasksFor = useCallback((projectId: string) => cache.byProject[projectId] ?? [], [cache]);
   const filtersFor = useCallback((projectId: string) => cache.filters[projectId] ?? DEFAULT_FILTERS, [cache]);
+  const labelsFor = useCallback((projectId: string) => cachedLabelsFor(cache, projectId), [cache]);
 
   const value = useMemo<TasksContextValue>(
     () => ({
       ready,
       tasksFor,
       filtersFor,
+      labelsFor,
+      createLabel,
+      updateLabel,
+      deleteLabel,
+      setTaskLabels,
+      addChecklist,
+      renameChecklist,
+      deleteChecklist,
+      addItem,
+      editItem,
+      toggleItem,
+      deleteItem,
       setFilters,
       create,
       update,
@@ -400,7 +700,31 @@ export function TasksProvider({ children, members }: Props) {
       rejectedNotice,
       dismissRejectedNotice,
     }),
-    [ready, tasksFor, filtersFor, setFilters, create, update, setStatus, remove, refresh, rejectedNotice, dismissRejectedNotice],
+    [
+      ready,
+      tasksFor,
+      filtersFor,
+      labelsFor,
+      createLabel,
+      updateLabel,
+      deleteLabel,
+      setTaskLabels,
+      addChecklist,
+      renameChecklist,
+      deleteChecklist,
+      addItem,
+      editItem,
+      toggleItem,
+      deleteItem,
+      setFilters,
+      create,
+      update,
+      setStatus,
+      remove,
+      refresh,
+      rejectedNotice,
+      dismissRejectedNotice,
+    ],
   );
 
   return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>;
