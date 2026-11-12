@@ -249,25 +249,25 @@
         "id": 31,
         "severity": "non-blocking",
         "text": "[sensitive qa] apps/mobile/src/tasks/assignees.ts:53-57: buildAssigneeOptions always lists me as a current member even when a loaded member list leaves me out (e.g. removed, stale cache); picking myself is then refused by the server (validation_failed) with a 'couldn't be saved' notice.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 32,
         "severity": "non-blocking",
         "text": "[qa-fix] DueField.tsx:201 + dueRules defaultTimeFor: after noon the default time is the current minute, so keeping it and saving a minute later is refused as past.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 33,
         "severity": "non-blocking",
         "text": "[qa-fix] DueField.tsx:72,177: on iOS an overdue task's calendar shows today but tapping today fires no change, so it can't be moved straight to today.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 34,
         "severity": "non-blocking",
         "text": "[qa-fix] DueField.tsx:201 + dueChangeError: opening the time on an overdue day auto-sets a time that is always refused, blocking save until the time is cleared.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 35,
@@ -276,7 +276,7 @@
         "resolved": false
       }
     ],
-    "reviewed": "19a0914d2cc3d48338f77149afe239479595001f0b9be77d1d4380eb7021d530"
+    "reviewed": "d66fe97b876dbaea174ee08fb02091345824ed096c2dc6ab60cf58bf086f20bc"
   },
   "qa": {
     "results": {
@@ -350,21 +350,82 @@
         "evidence": "mobile suite 419/419 passed; overlay keeps a waiting rename over a stale refresh; a task missing from the server list is removed",
         "criterion": "Test of the tasks sync layer: with a waiting rename of task A, a refresh returning the old title still shows the new title; a refresh without task B removes B."
       },
+      "15": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: open a project's tasks, turn on airplane mode, close and reopen the app: the task list and details show with the offline note."
+      },
       "16": {
         "result": "pass",
         "evidence": "mobile suite 419/419 passed; queue merge tests (two edits, create+edit, create+delete sends nothing) passed",
         "criterion": "Tests of the queue with task changes: two edits give one waiting change; create then edit give one create; create then delete give no request."
+      },
+      "17": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Tests of the tasks outcomes: a task change answered `403` or `404` is removed, the local copy shows the server's version (or no task), and the \"couldn't be saved\" message appears; a `401` keeps it queued. By hand: change status, create and delete a task in airplane mode, reconnect, and see the changes on a second phone or in the API."
       },
       "18": {
         "result": "pass",
         "evidence": "mobile suite 419/419 passed; 'is dropped on 404 and the next waiting change is still sent' passed",
         "criterion": "Test: a waiting task change for a project the server answers `404` for is dropped and the next waiting change is still sent."
       },
+      "19": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: sign out and sign in as another person: no tasks or filter choices from the first person show."
+      },
       "20": {
         "result": "pass",
         "evidence": "grep of apps/mobile/src/sync non-test files finds no task reference; tasks register via queue.registerEntity in src/tasks/sync.ts",
         "criterion": "Code check: the shared queue code has no reference to tasks; task kinds of change are registered from the tasks code."
+      },
+      "21": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand, following each move in requirement 21: the named screen opens; back by header and by swipe returns to where it was opened from; after creating, back doesn't reach the form; after deleting, back doesn't reach the deleted task. The Project screen shows the two-column tile grid above the details, with the Tasks tile's not-done count and the other three tiles disabled with \"Coming soon\" doing nothing when tapped; Home has no Tasks tile."
+      },
+      "22": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Unit test of the list ordering: overdue, due today, due later, no due date, then Done in its own group; tasks with the same due date ordered by creation time. By hand: the Done section starts closed and shows its count."
+      },
+      "23": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: changing status from a card updates it at once and moves it to its new place in the list."
+      },
+      "24": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Unit tests of the filters: each status, \"Assigned to me\", \"Only me\" and \"Due soon\" alone and combined select the right tasks; a task assigned to me and someone else matches \"Assigned to me\" but not \"Only me\". By hand: the choices survive closing and reopening the app."
+      },
+      "25": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Unit tests of \"due soon\" with a fixed clock: a task due yesterday, today, and in three days counts; one due in four days, a Done task, and one with no due date don't; a day with no time counts until the end of that day. By hand: an overdue task says it is overdue in words."
+      },
+      "26": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: a new project shows the invitation to create a task; filters matching nothing show the message and a way to clear them."
+      },
+      "27": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: a task saves with a title only; an over-long title shows the field message without saving; the assignee picker lists the project's members, also offline; a due day can be set, a time added, and either cleared; return moves title → description and submit stays above the keyboard; a Member who didn't create the task sees no delete control; delete asks for confirmation naming the task."
+      },
+      "28": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand, in both languages: no untranslated text, dates read naturally in each language, and screens follow `DESIGN.md` and Decision 10."
+      },
+      "29": {
+        "result": "pass",
+        "evidence": "migration 20261112060000_tasks applied cleanly with prisma migrate deploy to the dev database that already had users and projects, and to the test database (earnm_test); the app then worked on it, checked by the user",
+        "criterion": "The migration applies cleanly to an empty database and to one with existing users and projects."
       }
-    }
+    },
+    "checked": "d66fe97b876dbaea174ee08fb02091345824ed096c2dc6ab60cf58bf086f20bc"
   }
 }
