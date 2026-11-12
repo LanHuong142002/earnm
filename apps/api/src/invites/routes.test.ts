@@ -344,6 +344,46 @@ describe("invites", () => {
     });
   });
 
+  describe("dead codes give one error whoever enters them (R15)", () => {
+    it("gives invalid_invite, not already_member, to a member entering a used code", async () => {
+      const owner = await user();
+      const joiner = await user();
+      const pid = await seedProject(owner);
+      const inv = await createInvite(owner, pid);
+      expect((await join(joiner, inv.body.code)).status).toBe(200);
+      expectError(await join(joiner, inv.body.code), 404, "invalid_invite");
+      expectError(await join(owner, inv.body.code), 404, "invalid_invite");
+    });
+
+    it("gives invalid_invite, not already_member, to a member entering a revoked code", async () => {
+      const owner = await user();
+      const pid = await seedProject(owner);
+      const inv = await createInvite(owner, pid);
+      expect((await revoke(owner, pid, inv.body.id)).status).toBe(204);
+      expectError(await join(owner, inv.body.code), 404, "invalid_invite");
+    });
+
+    it("gives invalid_invite, not already_member, to a member entering an expired code", async () => {
+      const owner = await user();
+      const pid = await seedProject(owner);
+      const inv = await createInvite(owner, pid);
+      clock.advanceMs(7 * DAY + 1000);
+      expectError(await join(owner, inv.body.code), 404, "invalid_invite");
+    });
+
+    it("gives invalid_invite, not project_full, to anyone entering a used code at 50 members", async () => {
+      const owner = await user();
+      const joiner = await user();
+      const late = await user();
+      const pid = await seedProject(owner);
+      const inv = await createInvite(owner, pid);
+      expect((await join(joiner, inv.body.code)).status).toBe(200);
+      await fillMembers(pid, 48);
+      expect(await prisma.projectMember.count({ where: { projectId: pid } })).toBe(50);
+      expectError(await join(late, inv.body.code), 404, "invalid_invite");
+    });
+  });
+
   describe("concurrency (AC15)", () => {
     it("lets exactly one of two concurrent joins with one code succeed", async () => {
       for (let i = 0; i < 5; i++) {

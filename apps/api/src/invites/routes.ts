@@ -144,6 +144,16 @@ export function createInvitesRouter(deps: {
 
         const joined = await prisma.$transaction(async (tx) => {
           if (!(await lockProject(tx, invite.projectId))) throw invalidInvite();
+          // Re-read under the lock: a dead code must give one error, whoever enters it.
+          const current = await tx.invite.findUnique({ where: { id: invite.id } });
+          if (
+            !current ||
+            current.usedAt !== null ||
+            current.revokedAt !== null ||
+            current.expiresAt.getTime() <= now().getTime()
+          ) {
+            throw invalidInvite();
+          }
           const existing = await tx.projectMember.findUnique({
             where: { projectId_userId: { projectId: invite.projectId, userId } },
           });
