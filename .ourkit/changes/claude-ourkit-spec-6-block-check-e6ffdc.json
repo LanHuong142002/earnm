@@ -129,13 +129,13 @@
         "id": 11,
         "severity": "non-blocking",
         "text": "[sensitive r2] apps/api/src/tasks/routes.ts:19-28: realDate accepts year 0000, which PostgreSQL DATE rejects, likely giving 500 instead of 400 (unverified); limit the year range.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 12,
         "severity": "non-blocking",
         "text": "[sensitive r2] apps/api/src/tasks/routes.ts:172-176: GET tasks list is unbounded (paging out of scope per spec); add a generous cap or note the exception in the change report.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 13,
@@ -159,24 +159,54 @@
         "id": 16,
         "severity": "blocking",
         "text": "[r2] apps/mobile/src/app/(app)/(home)/projects/[id]/tasks/index.tsx:51-58,78: refresh result is ignored; a failed first fetch (network/500) on an empty cache shows 'No tasks yet' with no error or retry (frontend checklist: error state, way forward).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 17,
         "severity": "blocking",
         "text": "[r2] apps/mobile/src/tasks/TaskCard.tsx:236-267: status pill is a pressable nested inside the accessible card pressable, so VoiceOver can't reach it; R23 status change from the card is impossible with a screen reader.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 18,
         "severity": "non-blocking",
         "text": "[r2] apps/mobile/src/tasks/DueField.tsx:114,140: on iOS the day picker opens on today but dueDate stays null until a change fires, so picking today then Done may save no date; set today when opening, as line 161 does for time.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 19,
         "severity": "non-blocking",
         "text": "[r2] apps/mobile/src/tasks/AssigneeField.tsx:334-343: multi-select rows reuse ChoiceRow with accessibilityRole radio; use checkbox.",
+        "resolved": true
+      },
+      {
+        "id": 20,
+        "severity": "blocking",
+        "text": "[r3] apps/mobile/src/app/(app)/(home)/projects/[id]/tasks/index.tsx:131: Retry onPress={() => fetchTasks} returns the function without calling it, so Try again sends no request.",
+        "resolved": false
+      },
+      {
+        "id": 21,
+        "severity": "blocking",
+        "text": "[r3] apps/mobile/src/tasks/outcomes.ts REASON_KEY/noticeKeys reuse project wording (errors.not_found 'That project no longer exists', errors.forbidden owner-only, create_failed 'project could not be created'); task 404, creator-or-owner 403, task_limit_reached 409 and id_conflict give wrong or misleading notices (R7, R28).",
+        "resolved": false
+      },
+      {
+        "id": 22,
+        "severity": "blocking",
+        "text": "[r3] apps/mobile/src/tasks/validate.ts isRealDay + DueField.tsx picker: no 1900-9999 year check or min/max date, so the phone accepts dates the server refuses and an offline create is later dropped whole (R2, R27).",
+        "resolved": false
+      },
+      {
+        "id": 23,
+        "severity": "non-blocking",
+        "text": "[r3] apps/mobile/src/tasks/syncCycle.ts pendingRefreshes(): marks cleared before refresh runs; if it returns offline, a refused change stays visible until the next refresh; re-mark on non-ok.",
+        "resolved": false
+      },
+      {
+        "id": 24,
+        "severity": "non-blocking",
+        "text": "[sensitive r3] apps/api/src/tasks/routes.ts:298-299 (and the existing project schemas): a NUL character in title/description passes zod but PostgreSQL rejects it with 500, which the phone treats as temporary, so the change stays at the head of the shared queue and blocks all later syncs; refuse control characters with validation_failed.",
         "resolved": false
       }
     ]

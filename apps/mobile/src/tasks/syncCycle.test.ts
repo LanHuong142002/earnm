@@ -184,6 +184,24 @@ describe("a change for a deleted project (AC18)", () => {
   });
 });
 
+describe("refreshPending", () => {
+  it("keeps a project marked when its refresh fails, so the next flush retries it", async () => {
+    const h = setup({ patch: async () => ({ nope: true }), lists: { p1: new ApiError("internal_error", 500) } }, { p1: [makeTask()] });
+    await rename(h, "p1", "t1", "x");
+    await h.flush(USER);
+    await h.cycle.refreshPending();
+    expect(h.cycle.pendingRefreshes()).toEqual(["p1"]);
+  });
+
+  it("clears the mark once the refresh succeeds", async () => {
+    const h = setup({ patch: async () => ({ nope: true }), lists: { p1: [makeTask()] } }, { p1: [makeTask()] });
+    await rename(h, "p1", "t1", "x");
+    await h.flush(USER);
+    await h.cycle.refreshPending();
+    expect(h.cycle.pendingRefreshes()).toEqual([]);
+  });
+});
+
 describe("refresh(projectId)", () => {
   it("lists, replays the waiting changes, then commits", async () => {
     const h = setup({ lists: { p1: [makeTask({ title: "Old" }), makeTask({ id: "t2" })] } }, {});

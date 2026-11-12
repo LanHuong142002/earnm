@@ -47,6 +47,10 @@ describe("validateTaskInput", () => {
   it("due date and time", () => {
     expect(validateTaskInput({ ...base, dueDate: "2026-11-14", dueTime: "14:30" }).ok).toBe(true);
     expect(validateTaskInput({ ...base, dueDate: "2026-11-14" }).ok).toBe(true);
+    for (const dueDate of ["1899-12-31", "0001-01-01", "10000-01-01"])
+      expect(validateTaskInput({ ...base, dueDate })).toMatchObject({ ok: false, errors: { dueDate: "tasks.errors.dueDateInvalid" } });
+    expect(validateTaskInput({ ...base, dueDate: "1900-01-01" }).ok).toBe(true);
+    expect(validateTaskInput({ ...base, dueDate: "9999-12-31" }).ok).toBe(true);
     expect(validateTaskInput({ ...base, dueDate: "2026-02-30" })).toMatchObject({
       ok: false,
       errors: { dueDate: "tasks.errors.dueDateInvalid" },

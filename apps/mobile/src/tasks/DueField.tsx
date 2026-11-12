@@ -114,6 +114,8 @@ export function DueField({
         value={picking === "day" ? (dueDate !== null ? dayToDate(dueDate) : new Date()) : timeToDate(dueDate ?? "", dueTime)}
         display={ios ? (picking === "day" ? "inline" : "spinner") : "default"}
         presentation={ios ? "inline" : "dialog"}
+        minimumDate={picking === "day" ? new Date(1900, 0, 1) : undefined}
+        maximumDate={picking === "day" ? new Date(9999, 11, 31) : undefined}
         is24Hour
         locale={locale}
         accentColor={colors.accentStrong}

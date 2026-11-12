@@ -100,7 +100,11 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
 
   async function refreshPending(): Promise<void> {
     await applyChain;
-    for (const projectId of pendingRefreshes()) await refresh(projectId);
+    for (const projectId of pendingRefreshes()) {
+      // A refresh that could not reach the server leaves the project marked, so the next flush retries it.
+      // (A "skipped" one belongs to a session that has ended; "gone" has nothing left to fetch.)
+      if ((await refresh(projectId)) === "offline") marked.add(projectId);
+    }
   }
 
   return {

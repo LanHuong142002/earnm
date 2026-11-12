@@ -128,7 +128,7 @@ export default function TaskListScreen() {
           >
             <Text style={[typography.bodyStrong, { color: colors.danger }]}>{t("tasks.loadError")}</Text>
             <Text style={[typography.label, { color: colors.danger }]}>{t("home.offline")}</Text>
-            <Button label={t("tasks.loadRetry")} variant="secondary" onPress={() => fetchTasks} />
+            <Button label={t("tasks.loadRetry")} variant="secondary" onPress={fetchTasks} />
           </View>
         ) : listState === "loading" ? (
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ gap: spacing[2] }}>

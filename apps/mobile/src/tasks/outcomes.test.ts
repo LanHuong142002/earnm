@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "../lib/api";
 import type { Change } from "../sync/queue";
 import { makeTask } from "./fixtures";
-import { noticeKeys, onApplied, onRejected } from "./outcomes";
+import { noticeKeys, onApplied, onRejected, type TaskRejectedNotice } from "./outcomes";
 
 function change(over: Partial<Change> = {}): Change {
   return {
@@ -60,13 +60,52 @@ describe("onRejected (AC17)", () => {
   it("409 is a conflict", () => {
     expect(onRejected(list, change(), new ApiError("id_conflict", 409), []).notice.reason).toBe("conflict");
   });
+
+  it.each([
+    ["task_limit_reached", 409, "limit"],
+    ["id_conflict", 409, "conflict"],
+    ["validation_failed", 400, "invalid"],
+    ["not_found", 404, "not_found"],
+    ["forbidden", 403, "forbidden"],
+    ["weird", 409, "conflict"],
+    ["weird", 500, "generic"],
+    ["weird", 400, "generic"],
+  ])("code %s with status %i gives reason %s", (code, status, reason) => {
+    expect(onRejected(list, change(), new ApiError(code, status), []).notice.reason).toBe(reason);
+  });
+
+  it("a task_limit_reached code wins over the status", () => {
+    expect(onRejected(list, change(), new ApiError("task_limit_reached", 400), []).notice.reason).toBe("limit");
+  });
+});
+
+describe("noticeKeys reasons use task wording", () => {
+  const reason = (kind: "create" | "update" | "delete", r: TaskRejectedNotice["reason"]) =>
+    noticeKeys({ kind, taskTitle: "A", reason: r }).reason;
+
+  it("maps each reason to a tasks.* key", () => {
+    expect(reason("update", "not_found")).toBe("tasks.reasons.notFound");
+    expect(reason("delete", "forbidden")).toBe("tasks.reasons.forbiddenDelete");
+    expect(reason("update", "forbidden")).toBe("tasks.reasons.forbidden");
+    expect(reason("create", "limit")).toBe("tasks.reasons.limit");
+    expect(reason("create", "conflict")).toBe("tasks.reasons.conflict");
+    expect(reason("update", "invalid")).toBe("tasks.reasons.invalid");
+    expect(reason("update", "generic")).toBe("tasks.reasons.generic");
+    expect(reason("create", "forbidden")).toBe("tasks.reasons.forbidden");
+  });
+
+  it("never uses project wording", () => {
+    for (const kind of ["create", "update", "delete"] as const)
+      for (const r of ["forbidden", "not_found", "conflict", "invalid", "limit", "generic"] as const)
+        expect(reason(kind, r).startsWith("errors.")).toBe(false);
+  });
 });
 
 describe("noticeKeys", () => {
   it("uses tasks.* headlines and says a refused create could not be created", () => {
     expect(noticeKeys({ kind: "update", taskTitle: "A", reason: "forbidden" })).toEqual({
       headline: "tasks.rejected",
-      reason: "errors.forbidden",
+      reason: "tasks.reasons.forbidden",
     });
     expect(noticeKeys({ kind: "create", taskTitle: "A", reason: "forbidden" }).headline).toBe("tasks.rejectedCreate");
     expect(noticeKeys({ kind: "delete", taskTitle: null, reason: "not_found" }).headline).toBe("tasks.rejectedNoTitle");

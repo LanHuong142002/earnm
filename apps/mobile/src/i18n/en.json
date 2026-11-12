@@ -128,6 +128,15 @@
     "rejectedNoTitle": "Your change to a task couldn't be saved.",
     "rejectedCreate": "Your new task {{title}} couldn't be created.",
     "rejectedCreateNoTitle": "Your new task couldn't be created.",
+    "reasons": {
+      "notFound": "That task no longer exists.",
+      "forbiddenDelete": "Only the person who created the task or a project Owner can delete it.",
+      "forbidden": "You're not allowed to do that with this task.",
+      "limit": "This project already has 1000 tasks.",
+      "conflict": "The task couldn't be created. Please try again.",
+      "invalid": "The task couldn't be saved. Check its fields and try again.",
+      "generic": "Something went wrong with this task. Please try again."
+    },
     "weekday": {
       "0": "Sun",
       "1": "Mon",

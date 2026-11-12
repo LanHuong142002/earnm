@@ -1,13 +1,33 @@
 import type { ApiError } from "../lib/api";
 import type { Change, ChangeKind } from "../sync/queue";
-import { reasonFor, type RejectedReason } from "../projects/outcomes";
 import { withApplied } from "./optimistic";
 import { applyTaskOverlay } from "./store";
 import { taskProjectId } from "./sync";
 import type { Task } from "./types";
 
-export type { RejectedReason };
+/** Why the server refused a task change for good; the notice picks task wording from it. */
+export type RejectedReason = "forbidden" | "not_found" | "conflict" | "invalid" | "limit" | "generic";
 export type TaskRejectedNotice = { kind: ChangeKind; taskTitle: string | null; reason: RejectedReason };
+
+/** The refusal's error code decides first, then its status; anything else is "generic". */
+export function reasonFor(error: ApiError): RejectedReason {
+  switch (error.code) {
+    case "task_limit_reached":
+      return "limit";
+    case "id_conflict":
+      return "conflict";
+    case "validation_failed":
+      return "invalid";
+    case "not_found":
+      return "not_found";
+    case "forbidden":
+      return "forbidden";
+  }
+  if (error.status === 403) return "forbidden";
+  if (error.status === 404) return "not_found";
+  if (error.status === 409) return "conflict";
+  return "generic";
+}
 
 /** The cached list after the server accepted `change`, with the changes still waiting replayed on top. */
 export function onApplied(list: Task[], change: Change, response: Task | undefined, waiting: Change[]): Task[] {
@@ -37,20 +57,18 @@ export function onRejected(list: Task[], change: Change, error: ApiError, waitin
 }
 
 const REASON_KEY: Record<RejectedReason, string> = {
-  forbidden: "errors.forbidden",
-  not_found: "errors.not_found",
-  conflict: "errors.id_conflict",
-  invalid: "errors.validation_failed",
+  forbidden: "tasks.reasons.forbidden",
+  not_found: "tasks.reasons.notFound",
+  conflict: "tasks.reasons.conflict",
+  invalid: "tasks.reasons.invalid",
+  limit: "tasks.reasons.limit",
+  generic: "tasks.reasons.generic",
 };
 
-/** i18n keys for a refused-change notice; a refused create says it couldn't be created. */
+/** i18n keys for a refused-change notice. Only the creator or an Owner can delete, so a refused delete says that. */
 export function noticeKeys(notice: TaskRejectedNotice): { headline: string; reason: string } {
   const named = notice.taskTitle !== null;
-  if (notice.kind === "create") {
-    return {
-      headline: named ? "tasks.rejectedCreate" : "tasks.rejectedCreateNoTitle",
-      reason: notice.reason === "forbidden" || notice.reason === "not_found" ? "errors.create_failed" : REASON_KEY[notice.reason],
-    };
-  }
-  return { headline: named ? "tasks.rejected" : "tasks.rejectedNoTitle", reason: REASON_KEY[notice.reason] };
+  const reason = notice.kind === "delete" && notice.reason === "forbidden" ? "tasks.reasons.forbiddenDelete" : REASON_KEY[notice.reason];
+  if (notice.kind === "create") return { headline: named ? "tasks.rejectedCreate" : "tasks.rejectedCreateNoTitle", reason };
+  return { headline: named ? "tasks.rejected" : "tasks.rejectedNoTitle", reason };
 }

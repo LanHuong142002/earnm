@@ -126,6 +126,15 @@
     "rejectedNoTitle": "Không lưu được thay đổi của bạn với một công việc.",
     "rejectedCreate": "Không tạo được công việc mới {{title}}.",
     "rejectedCreateNoTitle": "Không tạo được công việc mới của bạn.",
+    "reasons": {
+      "notFound": "Công việc này không còn tồn tại.",
+      "forbiddenDelete": "Chỉ người tạo công việc hoặc Chủ dự án mới xóa được.",
+      "forbidden": "Bạn không có quyền thực hiện thao tác này với công việc.",
+      "limit": "Dự án này đã có 1000 công việc.",
+      "conflict": "Không tạo được công việc. Vui lòng thử lại.",
+      "invalid": "Không lưu được công việc. Hãy kiểm tra lại các trường và thử lại.",
+      "generic": "Đã xảy ra lỗi với công việc này. Vui lòng thử lại."
+    },
     "weekday": {
       "0": "CN",
       "1": "T2",
