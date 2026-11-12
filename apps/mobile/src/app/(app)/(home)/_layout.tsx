@@ -5,6 +5,14 @@ import { fontFamily } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
 import { HeaderBack } from "../../../ui/HeaderBack";
 
+const sheet = {
+  presentation: "formSheet" as const,
+  headerShown: false,
+  sheetAllowedDetents: [0.6, 1],
+  sheetGrabberVisible: true,
+  sheetExpandsWhenScrolledToEdge: true,
+};
+
 // Screens are pushed, so each has the native back control and (on iPhone) swipe-back.
 export default function HomeStackLayout() {
   const { t } = useTranslation();
@@ -31,6 +39,17 @@ export default function HomeStackLayout() {
       <Stack.Screen name="projects/[id]/tasks/new" options={{ title: t("tasks.newTitle") }} />
       <Stack.Screen name="projects/[id]/tasks/[taskId]/index" options={{ title: t("tasks.detailsTitle") }} />
       <Stack.Screen name="projects/[id]/tasks/[taskId]/edit" options={{ title: t("tasks.editTitle") }} />
+      <Stack.Screen
+        name="projects/[id]/tasks/labels/index"
+        options={{ title: t("tasks.labels.manageTitle"), headerTitleAlign: "center" }}
+      />
+      {/* Bottom sheets (iOS formSheet with a grabber; Android falls back to a modal). The sheet draws its own head. */}
+      <Stack.Screen name="projects/[id]/tasks/labels/filter" options={{ ...sheet, title: t("tasks.labels.filterTitle") }} />
+      <Stack.Screen name="projects/[id]/tasks/labels/pick" options={{ ...sheet, title: t("tasks.labels.pickTitle") }} />
+      <Stack.Screen
+        name="projects/[id]/tasks/labels/form"
+        options={{ ...sheet, sheetAllowedDetents: [0.8, 1], title: t("tasks.labels.newTitle") }}
+      />
       <Stack.Screen name="projects/[id]/members" options={{ title: t("members.title") }} />
     </Stack>
   );

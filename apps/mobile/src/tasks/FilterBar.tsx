@@ -104,8 +104,7 @@ export function FilterBar({
           accessibilityRole="button"
           accessibilityLabel={t("tasks.labels.filterRowA11y", { value: summary })}
           onPress={() =>
-            // The filter route is added with the label screens; typed loosely until then.
-            router.push({ pathname: "/projects/[id]/tasks/labels/filter", params: { id: projectId } } as never)
+            router.push({ pathname: "/projects/[id]/tasks/labels/filter", params: { id: projectId } })
           }
           style={{
             minHeight: layout.controlHeight,
