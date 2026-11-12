@@ -1,4 +1,4 @@
-import { useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ import { useTasks } from "../../../../../../tasks/TasksProvider";
 import type { Task } from "../../../../../../tasks/types";
 import { useTheme } from "../../../../../../theme/useTheme";
 import { Button } from "../../../../../../ui/Button";
+import { PressableScale } from "../../../../../../ui/PressableScale";
 import { Collapsible } from "../../../../../../ui/Collapsible";
 import { Enter } from "../../../../../../ui/Enter";
 import { Screen } from "../../../../../../ui/Screen";
@@ -93,14 +94,23 @@ export default function TaskListScreen() {
 
   return (
     <Screen edges={[]}>
+      {/* "+ Add" sits at the top right, next to the title, as a text link (approved mockup). */}
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <PressableScale
+              accessibilityRole="link"
+              accessibilityLabel={t("tasks.newTask")}
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/tasks/new", params: { id: project.id } }))}
+              style={{ minHeight: layout.controlHeight, justifyContent: "center", paddingHorizontal: spacing[1] }}
+            >
+              <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>{t("tasks.addLink")}</Text>
+            </PressableScale>
+          ),
+        }}
+      />
       <OfflineNote />
       <TaskRejectedNotice />
-      <Enter index={1}>
-        <Button
-          label={t("tasks.newTask")}
-          onPress={() => once(() => router.push({ pathname: "/projects/[id]/tasks/new", params: { id: project.id } }))}
-        />
-      </Enter>
       <Enter index={2}>
         <FilterBar filters={filters} onChange={(next) => void setFilters(project.id, next)} />
       </Enter>

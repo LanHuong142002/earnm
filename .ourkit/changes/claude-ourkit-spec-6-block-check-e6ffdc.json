@@ -8,13 +8,38 @@
   ],
   "notSensitiveReason": null,
   "ticket": "6",
-  "planApproval": "cf1f8f73a89557eab5dac0b934cf4b49508afafdb15000f02f387f6bb3dc5085",
+  "planApproval": "76f96d22b83977931df24252977bbdd68f75ef94c3a27facd543b333bad6978f",
   "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
     "3": {
       "status": "done"
     },
     "4": {
       "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    },
+    "8": {
+      "status": "done"
     }
-  }
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Due date picker uses @expo/ui/community/datetime-picker, no new dependency",
+      "why": "@expo/ui is already installed and the SDK 58 docs say it is included in Expo Go"
+    }
+  ]
 }
