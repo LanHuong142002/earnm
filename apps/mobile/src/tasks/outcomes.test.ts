@@ -92,6 +92,7 @@ describe("noticeKeys reasons use task wording", () => {
     expect(reason("update", "invalid")).toBe("tasks.reasons.invalid");
     expect(reason("update", "generic")).toBe("tasks.reasons.generic");
     expect(reason("create", "forbidden")).toBe("tasks.reasons.forbidden");
+    expect(reason("create", "not_found")).toBe("tasks.reasons.projectGone");
   });
 
   it("never uses project wording", () => {

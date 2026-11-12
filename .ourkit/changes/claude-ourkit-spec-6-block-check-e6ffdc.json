@@ -207,6 +207,30 @@
         "id": 24,
         "severity": "non-blocking",
         "text": "[sensitive r3] apps/api/src/tasks/routes.ts:298-299 (and the existing project schemas): a NUL character in title/description passes zod but PostgreSQL rejects it with 500, which the phone treats as temporary, so the change stays at the head of the shared queue and blocks all later syncs; refuse control characters with validation_failed.",
+        "resolved": true
+      },
+      {
+        "id": 25,
+        "severity": "blocking",
+        "text": "[r4] apps/mobile/src/tasks/TasksProvider.tsx:228-229 still loops pendingRefreshes()+refresh, so the re-mark-on-offline fix in syncCycle.refreshPending (finding 23) never runs in the app; refused edits stay on screen after a failed refresh (R17).",
+        "resolved": false
+      },
+      {
+        "id": 26,
+        "severity": "non-blocking",
+        "text": "[r4] apps/mobile/src/tasks/outcomes.ts:59-74: a create refused with 404 (project gone) says the task 'no longer exists'; needs create+not_found wording.",
+        "resolved": false
+      },
+      {
+        "id": 27,
+        "severity": "non-blocking",
+        "text": "[r4] apps/api/src/http/text.ts:4-7, apps/mobile/src/lib/text.ts:3-4: C1 control characters U+0080-U+009F are not covered by the control-character rule.",
+        "resolved": false
+      },
+      {
+        "id": 28,
+        "severity": "non-blocking",
+        "text": "[r4] apps/api/src/projects/routes.test.ts:126: refused-name characters test omits \\r (task test has it).",
         "resolved": false
       }
     ]

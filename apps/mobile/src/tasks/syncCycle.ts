@@ -111,7 +111,6 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
     handlers,
     refresh,
     refreshPending,
-    pendingRefreshes,
     /** Resolves when every result received so far has been applied. */
     idle: () => applyChain.then(() => undefined),
     /** Forget pending refreshes (the session ended). */

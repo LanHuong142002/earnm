@@ -225,8 +225,7 @@ export function TasksProvider({ children, members }: Props) {
     return onFlushed(() => {
       if (!readyRef.current) return;
       void runExclusive(async () => {
-        await cycle.idle();
-        for (const projectId of cycle.pendingRefreshes()) await cycle.refresh(projectId);
+        await cycle.refreshPending();
       }).catch(() => {});
     });
   }, [onFlushed, runExclusive, cycle]);

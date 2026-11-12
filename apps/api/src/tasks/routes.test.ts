@@ -97,10 +97,10 @@ describe("/projects/:projectId/tasks", () => {
     it("refuses control characters; descriptions may keep newline, return and tab", async () => {
       const u = await user();
       const p = await seed(u);
-      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\n", "\r", "\t"]) {
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\u0080", "\u009f", "\n", "\r", "\t"]) {
         expectError(await create(u, p, { title: `a${ch}b` }), 400, "validation_failed");
       }
-      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f"]) {
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\u0080", "\u009f"]) {
         expectError(await create(u, p, { description: `a${ch}b` }), 400, "validation_failed");
       }
       expect(await prisma.task.count()).toBe(0);

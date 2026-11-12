@@ -154,7 +154,10 @@ describe("a task change the server accepts", () => {
     await rename(h, "p1", "t1", "x");
     await h.flush(USER);
     expect(h.lists.p1.map((t) => t.id)).toEqual(["t1"]);
-    expect(h.cycle.pendingRefreshes()).toEqual(["p1"]);
+    expect(h.listTasks).not.toHaveBeenCalled();
+    await h.cycle.refreshPending();
+    expect(h.listTasks).toHaveBeenCalledTimes(1);
+    expect(h.listTasks.mock.calls[0][1]).toBe("p1");
   });
 });
 
@@ -190,7 +193,9 @@ describe("refreshPending", () => {
     await rename(h, "p1", "t1", "x");
     await h.flush(USER);
     await h.cycle.refreshPending();
-    expect(h.cycle.pendingRefreshes()).toEqual(["p1"]);
+    expect(h.listTasks).toHaveBeenCalledTimes(1);
+    await h.cycle.refreshPending();
+    expect(h.listTasks).toHaveBeenCalledTimes(2);
   });
 
   it("clears the mark once the refresh succeeds", async () => {
@@ -198,7 +203,9 @@ describe("refreshPending", () => {
     await rename(h, "p1", "t1", "x");
     await h.flush(USER);
     await h.cycle.refreshPending();
-    expect(h.cycle.pendingRefreshes()).toEqual([]);
+    expect(h.listTasks).toHaveBeenCalledTimes(1);
+    await h.cycle.refreshPending();
+    expect(h.listTasks).toHaveBeenCalledTimes(1);
   });
 });
 

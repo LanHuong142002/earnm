@@ -68,7 +68,10 @@ const REASON_KEY: Record<RejectedReason, string> = {
 /** i18n keys for a refused-change notice. Only the creator or an Owner can delete, so a refused delete says that. */
 export function noticeKeys(notice: TaskRejectedNotice): { headline: string; reason: string } {
   const named = notice.taskTitle !== null;
-  const reason = notice.kind === "delete" && notice.reason === "forbidden" ? "tasks.reasons.forbiddenDelete" : REASON_KEY[notice.reason];
+  let reason = REASON_KEY[notice.reason];
+  if (notice.kind === "delete" && notice.reason === "forbidden") reason = "tasks.reasons.forbiddenDelete";
+  // A refused create answered 404 means the project is gone; there is no task yet to have "disappeared".
+  if (notice.kind === "create" && notice.reason === "not_found") reason = "tasks.reasons.projectGone";
   if (notice.kind === "create") return { headline: named ? "tasks.rejectedCreate" : "tasks.rejectedCreateNoTitle", reason };
   return { headline: named ? "tasks.rejected" : "tasks.rejectedNoTitle", reason };
 }

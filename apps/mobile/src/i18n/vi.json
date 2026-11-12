@@ -128,6 +128,7 @@
     "rejectedCreateNoTitle": "Không tạo được công việc mới của bạn.",
     "reasons": {
       "notFound": "Công việc này không còn tồn tại.",
+      "projectGone": "Dự án này không còn nữa.",
       "forbiddenDelete": "Chỉ người tạo công việc hoặc Chủ dự án mới xóa được.",
       "forbidden": "Bạn không có quyền thực hiện thao tác này với công việc.",
       "limit": "Dự án này đã có 1000 công việc.",

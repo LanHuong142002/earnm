@@ -65,10 +65,10 @@ describe("/projects", () => {
 
     it("refuses control characters; descriptions may keep newline, return and tab", async () => {
       const u = await user();
-      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\n", "\t"]) {
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\u0080", "\u009f", "\n", "\r", "\t"]) {
         expectError(await create(u, { name: `a${ch}b` }), 400, "validation_failed");
       }
-      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f"]) {
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\u0080", "\u009f"]) {
         expectError(await create(u, { description: `a${ch}b` }), 400, "validation_failed");
       }
       const ok = await create(u, { description: "line1\nline2\r\n\tx" });

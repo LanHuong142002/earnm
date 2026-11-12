@@ -96,7 +96,7 @@ describe("validateProjectInput", () => {
 
   it("strips control characters, keeping newline, return and tab in the description", () => {
     expect(
-      validateProjectInput({ name: " Ho\u0000m\te\n\u007f ", description: " a\u0000b\nc\r\n\td\u0001 ", currency: "VND" }),
+      validateProjectInput({ name: " Ho\u0000m\te\n\u007f\u0085\u009f ", description: " a\u0000b\nc\r\n\td\u0001 ", currency: "VND" }),
     ).toEqual({ ok: true, value: { name: "Home", description: "ab\nc\r\n\td", currency: "VND" } });
     expect(validateProjectInput({ ...ok, name: "\u0000" })).toEqual({ ok: false, errors: { name: "required" } });
   });

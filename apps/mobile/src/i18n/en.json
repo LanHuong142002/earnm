@@ -130,6 +130,7 @@
     "rejectedCreateNoTitle": "Your new task couldn't be created.",
     "reasons": {
       "notFound": "That task no longer exists.",
+      "projectGone": "The project is no longer available.",
       "forbiddenDelete": "Only the person who created the task or a project Owner can delete it.",
       "forbidden": "You're not allowed to do that with this task.",
       "limit": "This project already has 1000 tasks.",

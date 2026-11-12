@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-// U+0000-U+001F and U+007F. PostgreSQL rejects NUL outright, and the rest never belong in a name.
-const CONTROL = /[\u0000-\u001f\u007f]/;
+// U+0000-U+001F and U+007F-U+009F. PostgreSQL rejects NUL outright, and the rest never belong in a name.
+const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 // Same, except tab, line feed and carriage return, which a description may hold.
-const CONTROL_EXCEPT_WHITESPACE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
+const CONTROL_EXCEPT_WHITESPACE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 
 /** A single-line text field: trimmed, 1 to `max` characters, no control characters. */
 export const singleLineText = (max: number) =>
