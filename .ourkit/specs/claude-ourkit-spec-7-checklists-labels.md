@@ -51,7 +51,7 @@ Today (after #6) a task has a title, description, status, assignees and a due da
 
 ### Appearance (added at the mockup review)
 
-24. The Settings screen gains an "Appearance" section, under Language, with three choices: System (the default), Light and Dark, shown as choice rows with a ✓ on the selected one. Choosing one changes every screen at once, including native headers, sheets and alerts. The choice is kept on the phone and stays after closing the app and after signing out; it isn't saved to the account.
+24. The Settings screen gains an "Appearance" section, under Language, with three choices: System (the default), Light and Dark, shown as three tiles side by side, each with an icon (phone, sun, moon) and its name; the selected tile is highlighted and shows a ✓, so colour is never the only sign. Tapping a tile presses it, the selected icon turns or lifts slightly, and the screen's colours change smoothly rather than snapping; with Reduce Motion on, only the colour change fades. Choosing one changes every screen at once, including native headers, sheets and alerts. The choice is kept on the phone and stays after closing the app and after signing out; it isn't saved to the account.
 
 ### Data
 

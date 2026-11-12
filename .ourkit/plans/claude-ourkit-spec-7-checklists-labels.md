@@ -90,7 +90,13 @@ Mobile: three new queue entities, `label`, `checklist` and `checklistItem`, regi
 - **Appearance (R24, mockup 5a–5b):**
   - `src/theme/appearance.ts`: `readAppearance(store)` and `writeAppearance(store, choice)`, where the choice is `"system" | "light" | "dark"`. The key is `appearance.v1`, and a missing or unknown value reads as `"system"`.
   - At start-up (root `_layout.tsx`, before the first screen), and whenever the choice changes, call React Native's `Appearance.setColorScheme(choice === "system" ? null : choice)`. `useColorScheme()`, and so `useTheme`, native headers, sheets and alerts, all follow it without other changes.
-  - `app/(app)/account.tsx`: an "Appearance" section under Language with three `ChoiceRow`s.
+  - `app/(app)/account.tsx`: an "Appearance" section under Language, with a new `src/ui/AppearancePicker.tsx`:
+    - three equal tiles in a radiogroup, using Ionicons `phone-portrait-outline`, `sunny-outline` and `moon-outline`;
+    - the selected tile uses `tile` fill, `tileBorder`, an `accent` icon and a ✓;
+    - press uses `motion.press` (PressableScale);
+    - with reanimated, the selected icon animates over `motion.progress` (sun rotates 90°, moon tilts −20°, phone lifts 2pt, each scaled 1.12);
+    - the theme switch cross-fades: a full-screen snapshot overlay is not available in Expo Go, so the Settings screen's own content fades out and back in over 300ms while the colour scheme changes underneath;
+    - Reduce Motion (`useReducedMotion`) keeps only the fade.
   - The key is not registered with sign-out cleanup, so the choice survives sign-out. At Build, confirm that sign-out doesn't clear all storage.
 - `src/i18n/en.json`, `vi.json`: `settings.appearance.*` (System, Light, Dark), `tasks.checklist.*`, `tasks.labels.*`, the colour names, notices and errors. The parity test covers both.
 

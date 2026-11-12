@@ -613,11 +613,27 @@
 
 
 <!-- ============ THEME ============ -->
-<h2 class="group">5. Cài đặt: Giao diện (R24)</h2>
+<h2 class="group">5. Cài đặt: Giao diện (R24), bấm thử được</h2>
+<style>
+  .thm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; position:relative; }
+  .thm { position:relative; z-index:1; height:84px; border-radius:14px; background:var(--field); border:1px solid transparent;
+         display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer;
+         color:var(--text2); font-size:13px; font-weight:600; transition:transform 120ms, color 250ms, background 250ms, border-color 250ms; user-select:none; }
+  .thm:active { transform:scale(.97); }
+  .thm .ic { display:flex; transition:transform 300ms cubic-bezier(.2,.8,.2,1); }
+  .thm .ok { position:absolute; top:6px; right:8px; color:var(--accent); font-weight:800; font-size:13px; opacity:0; transform:scale(.6); transition:opacity 200ms, transform 200ms; }
+  .thm.sel { background:var(--tile); border-color:var(--tileBorder); color:var(--text); }
+  .thm.sel .ic { color:var(--accent); }
+  .thm.sel .ok { opacity:1; transform:scale(1); }
+  .thm.sel[data-v=light] .ic { transform:rotate(90deg) scale(1.12); }
+  .thm.sel[data-v=dark] .ic { transform:rotate(-20deg) scale(1.12); }
+  .thm.sel[data-v=system] .ic { transform:translateY(-2px) scale(1.12); }
+  .phone.anim, .phone.anim * { transition:background-color 300ms, color 300ms, border-color 300ms; }
+</style>
 <div class="row">
   <div class="shot">
-    <div class="cap">5a. Cài đặt, sáng<small>Mục “Giao diện” mới ngay dưới “Ngôn ngữ”, cùng kiểu dòng chọn có ✓. Mặc định “Theo hệ thống”. Lưu trên máy, giữ khi đăng xuất.</small></div>
-    <div class="phone">
+    <div class="cap">5a. Cài đặt: Giao diện<small>3 ô ngang, mỗi ô có icon và tên. Ô được chọn: nền tile, icon cam, dấu ✓ (không chỉ dựa vào màu). Chạm vào: ô nhún (motion.press), icon xoay/phóng nhẹ (mặt trời xoay 90°, trăng nghiêng, điện thoại nhấc lên), cả màn chuyển màu mượt 300ms. Bật Reduce Motion thì chỉ còn đổi màu mờ dần.</small></div>
+    <div class="phone anim" id="thmPhone">
       <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
       <div class="nav"><span class="chev">‹</span><span class="ttl">Cài đặt</span></div>
       <div class="scr">
@@ -629,39 +645,33 @@
             <div class="rowline"><span class="body grow">English</span></div>
           </div></div>
         <div class="rel"><span class="ann" style="right:0;top:0">R24</span><div class="h2" style="margin-bottom:8px">Giao diện</div>
-          <div class="card flush">
-            <div class="rowline"><span class="body grow">Theo hệ thống</span><span style="color:var(--accent);font-weight:800">✓</span></div>
-            <div class="rowline"><span class="body grow">Sáng</span></div>
-            <div class="rowline"><span class="body grow">Tối</span></div>
-          </div></div>
-        <div class="btn dan">Đăng xuất</div>
-      </div>
-    </div>
-  </div>
-  <div class="shot">
-    <div class="cap">5b. Chọn “Tối”<small>Đổi ngay cả app, kể cả header, sheet và hộp thoại, dù điện thoại đang ở chế độ sáng.</small></div>
-    <div class="phone dark">
-      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
-      <div class="nav"><span class="chev">‹</span><span class="ttl">Cài đặt</span></div>
-      <div class="scr">
-        <div><div class="h2" style="margin-bottom:8px">Hồ sơ</div>
-          <div class="card"><div class="body strong">Lan Hương</div><div class="cap12">lan@example.com</div></div></div>
-        <div><div class="h2" style="margin-bottom:8px">Ngôn ngữ</div>
-          <div class="card flush">
-            <div class="rowline"><span class="body grow">Tiếng Việt</span><span style="color:var(--accent);font-weight:800">✓</span></div>
-            <div class="rowline"><span class="body grow">English</span></div>
-          </div></div>
-        <div><div class="h2" style="margin-bottom:8px">Giao diện</div>
-          <div class="card flush">
-            <div class="rowline"><span class="body grow">Theo hệ thống</span></div>
-            <div class="rowline"><span class="body grow">Sáng</span></div>
-            <div class="rowline"><span class="body grow">Tối</span><span style="color:var(--accent);font-weight:800">✓</span></div>
-          </div></div>
+          <div class="thm-grid" role="radiogroup">
+            <div class="thm sel" data-v="system" role="radio"><span class="ok">✓</span><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>Theo hệ thống</div>
+            <div class="thm" data-v="light" role="radio"><span class="ok">✓</span><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></span>Sáng</div>
+            <div class="thm" data-v="dark" role="radio"><span class="ok">✓</span><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg></span>Tối</div>
+          </div>
+          <div class="cap12" style="margin-top:8px" id="thmNote">Đang theo điện thoại (sáng).</div>
+        </div>
         <div class="btn dan">Đăng xuất</div>
       </div>
     </div>
   </div>
 </div>
+<script>
+  (function () {
+    var phone = document.getElementById('thmPhone'), note = document.getElementById('thmNote');
+    var notes = { system: 'Đang theo điện thoại (sáng).', light: 'Luôn dùng giao diện sáng.', dark: 'Luôn dùng giao diện tối.' };
+    phone.querySelectorAll('.thm').forEach(function (el) {
+      el.addEventListener('click', function () {
+        phone.querySelectorAll('.thm').forEach(function (o) { o.classList.remove('sel'); });
+        el.classList.add('sel');
+        phone.classList.toggle('dark', el.dataset.v === 'dark');
+        note.textContent = notes[el.dataset.v];
+      });
+    });
+  })();
+</script>
+
 <!-- ============ PALETTE ============ -->
 <h2 class="group">4. Bảng màu nhãn (R21)</h2>
 <div class="legend">

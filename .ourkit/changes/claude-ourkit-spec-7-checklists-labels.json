@@ -11,5 +11,7 @@
   "mockup": {
     "needed": true,
     "reason": null
-  }
+  },
+  "mockupApproval": "0f15f3d21927ea48dcb2c8c88c512786e4afcda45a0ce7cb2b392b291beadd89",
+  "planApproval": "27a17365d5da88f6440b7b3e66bcaf5ce74704d423024d1271e4544a1edd2575"
 }
