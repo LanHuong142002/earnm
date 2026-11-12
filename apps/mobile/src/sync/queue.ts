@@ -12,6 +12,8 @@
  * - A create that was already sent once (attempts > 0) is never merged into or dropped by a
  *   later update or delete: the server may have it even though the reply was lost, so those
  *   are queued after it as their own requests.
+ * - registerEntity(entity, senders, handlers?): optional per-entity onApplied / onRejected are used
+ *   instead of the queue-level ones for that entity's changes (a missing one falls back to the queue's).
  * - A change whose entity has no registered senders is kept and stops the queue (it is not
  *   rejected): the entity may be registered later.
  * - waiting() / count(): the changes still waiting (copies).
@@ -52,6 +54,12 @@ export type NewChange = {
 };
 
 export type Sender = (change: Change, token: string) => Promise<unknown>;
+
+/** Optional per-entity result handlers; each one that is missing falls back to the queue-level handler. */
+export type EntityHandlers = {
+  onApplied?: (change: Change, response: unknown) => void;
+  onRejected?: (change: Change, error: ApiError) => void;
+};
 
 export type QueueOptions = {
   store: KeyValueStore;
@@ -115,6 +123,7 @@ export function createQueue(options: QueueOptions) {
   const { store, getToken, onApplied, onRejected, onSignedOut } = options;
   const key = options.storageKey ?? DEFAULT_KEY;
   const senders = new Map<string, Record<ChangeKind, Sender>>();
+  const entityHandlers = new Map<string, EntityHandlers>();
 
   let state: Persisted | null = null;
   let loading: Promise<Persisted> | null = null;
@@ -154,8 +163,18 @@ export function createQueue(options: QueueOptions) {
     return write;
   }
 
-  function registerEntity(entity: string, entitySenders: Record<ChangeKind, Sender>) {
+  function registerEntity(entity: string, entitySenders: Record<ChangeKind, Sender>, handlers?: EntityHandlers) {
     senders.set(entity, entitySenders);
+    if (handlers) entityHandlers.set(entity, handlers);
+    else entityHandlers.delete(entity);
+  }
+
+  function applied(change: Change, response: unknown): void {
+    (entityHandlers.get(change.entity)?.onApplied ?? onApplied)(change, response);
+  }
+
+  function rejected(change: Change, error: ApiError): void {
+    (entityHandlers.get(change.entity)?.onRejected ?? onRejected)(change, error);
   }
 
   async function enqueue(input: NewChange): Promise<Change> {
@@ -268,14 +287,14 @@ export function createQueue(options: QueueOptions) {
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
             if (epoch !== sendEpoch) return "fenced";
-            onApplied(change, undefined);
+            applied(change, undefined);
             continue;
           }
           if (isPermanentRejection(error)) {
             s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
             await persist();
             if (epoch !== sendEpoch) return "fenced";
-            onRejected(change, error);
+            rejected(change, error);
             continue;
           }
         }
@@ -286,7 +305,7 @@ export function createQueue(options: QueueOptions) {
       s.changes = s.changes.filter((c) => c.changeId !== change.changeId);
       await persist();
       if (epoch !== sendEpoch) return "fenced";
-      onApplied(change, response);
+      applied(change, response);
     }
     return true;
   }
