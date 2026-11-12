@@ -10,6 +10,8 @@ export type Config = {
   trustProxy: number;
   internalSecret: string;
   port: number;
+  /** Where an invitee installs the app; null when not configured. Always https. */
+  inviteInstallUrl: string | null;
 };
 
 const MIN_SECRET_LENGTH = 32;
@@ -42,10 +44,26 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     throw new ConfigError("INTERNAL_SECRET must not contain spaces or line breaks.");
   }
 
+  const inviteInstallRaw = env["INVITE_INSTALL_URL"] ?? "";
+  let inviteInstallUrl: string | null = null;
+  if (inviteInstallRaw !== "") {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(inviteInstallRaw);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed || parsed.protocol !== "https:") {
+      throw new ConfigError("INVITE_INSTALL_URL must be a valid https:// URL.");
+    }
+    inviteInstallUrl = inviteInstallRaw;
+  }
+
   return {
     databaseUrl,
     trustProxy: Number(trustProxyRaw),
     internalSecret,
     port: Number(env["PORT"] ?? 3000),
+    inviteInstallUrl,
   };
 }

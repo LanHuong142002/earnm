@@ -1,5 +1,5 @@
 # Render Blueprint for the earnm API. See docs/deploy.md for setup steps.
-# Secret values (DATABASE_URL, INTERNAL_SECRET, TRUST_PROXY) are entered in
+# Secret values (DATABASE_URL, INTERNAL_SECRET, TRUST_PROXY, and the optional INVITE_INSTALL_URL) are entered in
 # Render's dashboard, never in this file.
 services:
   - type: web
@@ -23,4 +23,7 @@ services:
       - key: INTERNAL_SECRET
         sync: false
       - key: TRUST_PROXY
+        sync: false
+      # Optional: https:// link where invitees install the app. Leave empty if unused.
+      - key: INVITE_INSTALL_URL
         sync: false

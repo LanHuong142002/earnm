@@ -21,8 +21,29 @@ describe("loadConfig", () => {
       trustProxy: 0,
       internalSecret: SECRET,
       port: 3000,
+      inviteInstallUrl: null,
     });
   });
+
+  it.each([undefined, ""])("treats INVITE_INSTALL_URL %j as unset", (value) => {
+    expect(loadConfig({ ...base, INVITE_INSTALL_URL: value }).inviteInstallUrl).toBeNull();
+  });
+
+  it("reads an https INVITE_INSTALL_URL", () => {
+    expect(
+      loadConfig({ ...base, INVITE_INSTALL_URL: "https://testflight.apple.com/join/abc" })
+        .inviteInstallUrl,
+    ).toBe("https://testflight.apple.com/join/abc");
+  });
+
+  it.each(["http://example.com/x", "not a url", "javascript:alert(1)", "ftp://example.com"])(
+    "rejects a non-https INVITE_INSTALL_URL %j without echoing it",
+    (value) => {
+      const err = failure({ ...base, INVITE_INSTALL_URL: value });
+      expect(err.message).toContain("INVITE_INSTALL_URL");
+      expect(err.message).not.toContain(value);
+    },
+  );
 
   it("reads TRUST_PROXY and PORT when set", () => {
     const cfg = loadConfig({ ...base, TRUST_PROXY: "2", PORT: "8080" });
