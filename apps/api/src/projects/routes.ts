@@ -5,6 +5,7 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
+import { findForMember, requireOwner } from "./access.js";
 
 const nameSchema = z.string().trim().min(1).max(80);
 const descriptionSchema = z.string().trim().max(500);
@@ -72,30 +73,6 @@ export function createProjectsRouter(deps: {
   const { prisma, now } = deps;
   const router = Router();
   router.use(requireAuth(deps));
-
-  /** The project plus the caller's role, or null when it doesn't exist or the caller isn't a member. */
-  async function findForMember(db: Pick<PrismaClient, "projectMember">, id: string, userId: string) {
-    const membership = await db.projectMember.findUnique({
-      where: { projectId_userId: { projectId: id, userId } },
-      include: { project: true },
-    });
-    return membership ? { project: membership.project, role: membership.role } : null;
-  }
-
-  /**
-   * Resolves `:id` for an owner-only action. A missing project, a non-uuid id and a
-   * project the caller isn't in all give the same 404 so nothing is revealed.
-   */
-  async function requireOwner(rawId: string | undefined, userId: string): Promise<string> {
-    const parsed = idSchema.safeParse(rawId);
-    if (!parsed.success) throw notFound();
-    const found = await findForMember(prisma, parsed.data, userId);
-    if (!found) throw notFound();
-    if (found.role !== "owner") {
-      throw new AppError(403, "forbidden", "Only the owner can do this.");
-    }
-    return parsed.data;
-  }
 
   router.get("/", async (_req, res, next) => {
     try {
@@ -167,7 +144,7 @@ export function createProjectsRouter(deps: {
       // Check the id first so a bad id is a 404 even when the body is also wrong.
       if (!parsedId.success) throw notFound();
       const { fields } = patchSchema.parse(req.body);
-      const id = await requireOwner(parsedId.data, userId);
+      const id = await requireOwner(prisma, parsedId.data, userId);
 
       // Last write wins per field, all in one transaction. The column names come from the
       // field names, so TypeScript can't check them here; the route tests do.
@@ -188,7 +165,7 @@ export function createProjectsRouter(deps: {
 
   router.delete("/:id", async (req, res, next) => {
     try {
-      const id = await requireOwner(req.params["id"], getAuth(res.locals).userId);
+      const id = await requireOwner(prisma, req.params["id"], getAuth(res.locals).userId);
       // Memberships are removed by the database cascade.
       const { count } = await prisma.project.deleteMany({ where: { id } });
       if (count === 0) throw notFound(); // someone else deleted it first
