@@ -95,3 +95,12 @@ export async function createSignedInUser(clock: TestClock): Promise<{ id: string
   const token = await createSession(prisma, user.id, clock.now());
   return { id: user.id, token };
 }
+
+/** Inserts a ProjectMember row directly, without going through the API. */
+export async function addMember(
+  projectId: string,
+  userId: string,
+  role: "owner" | "member",
+): Promise<void> {
+  await prisma.projectMember.create({ data: { projectId, userId, role } });
+}
