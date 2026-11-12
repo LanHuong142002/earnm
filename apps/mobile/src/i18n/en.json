@@ -178,7 +178,14 @@
       "dueDatePast": "Choose today or a later day.",
       "dueTimePast": "Choose a time that hasn't passed yet.",
       "assigneesTooMany": "A task can have at most 20 people.",
-      "assigneesDuplicate": "Each person can be added only once."
+      "assigneesDuplicate": "Each person can be added only once.",
+      "checklistNameRequired": "Enter a checklist name.",
+      "checklistNameTooLong": "Keep the name to 60 characters.",
+      "itemTextRequired": "Enter some text.",
+      "itemTextTooLong": "Keep the item to 200 characters.",
+      "labelNameRequired": "Enter a label name.",
+      "labelNameTooLong": "Keep the name to 30 characters.",
+      "labelNameDuplicate": "A label with this name already exists."
     },
     "title": "Tasks",
     "notDone": "{{count}} not done",

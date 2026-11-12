@@ -20,6 +20,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isStringArray(value: unknown): boolean {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
 export function isTask(value: unknown): value is Task {
   if (!isRecord(value)) return false;
   return (
@@ -33,7 +37,10 @@ export function isTask(value: unknown): value is Task {
     Array.isArray(value.assignees) &&
     value.assignees.every((a) => isRecord(a) && typeof a.id === "string" && typeof a.displayName === "string") &&
     (value.createdById === null || typeof value.createdById === "string") &&
-    typeof value.createdAt === "string"
+    typeof value.createdAt === "string" &&
+    // Copies saved before labels and checklists existed have neither; readTaskCache fills them in.
+    (value.labelIds === undefined || isStringArray(value.labelIds)) &&
+    (value.checklists === undefined || Array.isArray(value.checklists))
   );
 }
 
@@ -44,7 +51,9 @@ function isFilters(value: unknown): value is TaskFilters {
     typeof value.mine === "boolean" &&
     // Copies saved before "only me" existed have no onlyMe; they load with it off.
     (value.onlyMe === undefined || typeof value.onlyMe === "boolean") &&
-    typeof value.dueSoon === "boolean"
+    typeof value.dueSoon === "boolean" &&
+    // Copies saved before labels existed have no labelIds; they load with no label filter.
+    (value.labelIds === undefined || isStringArray(value.labelIds))
   );
 }
 
@@ -68,7 +77,12 @@ async function readTaskCache(store: KeyValueStore): Promise<TaskCache | null> {
   // Older copies also hold membersByProject; members live in the members cache now, so it is ignored.
   return {
     ownerId: saved.ownerId,
-    byProject: saved.byProject as Record<string, Task[]>,
+    byProject: Object.fromEntries(
+      Object.entries(saved.byProject).map(([id, list]) => [
+        id,
+        (list as Partial<Task>[]).map((t) => ({ labelIds: [], checklists: [], ...t }) as Task),
+      ]),
+    ),
     filters: withDefaults(saved.filters as Record<string, Partial<TaskFilters>>),
   };
 }
@@ -171,6 +185,8 @@ export function applyTaskOverlay(projectId: string, serverList: Task[], waiting:
         assignees: [],
         createdById: typeof change.data.createdById === "string" ? change.data.createdById : null,
         createdAt: change.createdAt,
+        labelIds: [],
+        checklists: [],
       };
       list.push(withFields(blank, change.data));
     }

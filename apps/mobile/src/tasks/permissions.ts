@@ -5,3 +5,8 @@ export function canDeleteTask(task: Pick<Task, "createdById">, myId: string, myR
   if (myRole === "owner") return true;
   return task.createdById !== null && task.createdById === myId;
 }
+
+/** Spec R6: only an Owner deletes a label. */
+export function canDeleteLabel(myRole: ProjectRole): boolean {
+  return myRole === "owner";
+}

@@ -1,6 +1,6 @@
 import { applyFilters, type TaskFilters } from "./filters";
 import { orderTasks } from "./listOrder";
-import type { Task } from "./types";
+import type { Label, Task } from "./types";
 
 /** Tasks still to do or in progress, for the Project screen's Tasks tile. */
 export function countNotDone(tasks: Task[]): number {
@@ -17,8 +17,9 @@ export function visibleTasks(
   filters: TaskFilters,
   myId: string,
   now: Date,
+  labels: readonly Pick<Label, "id">[] = [],
 ): { open: Task[]; done: Task[]; total: number } {
-  const filtered = applyFilters(tasks, filters, myId, now);
+  const filtered = applyFilters(tasks, filters, myId, now, labels);
   const ordered = orderTasks(filtered, now);
   if (filters.status === "all") return { ...ordered, total: filtered.length };
   return { open: [...ordered.open, ...ordered.done], done: [], total: filtered.length };

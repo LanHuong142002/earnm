@@ -176,7 +176,14 @@
       "dueDatePast": "Hãy chọn hôm nay hoặc một ngày sau đó.",
       "dueTimePast": "Hãy chọn một giờ chưa qua.",
       "assigneesTooMany": "Một công việc có tối đa 20 người.",
-      "assigneesDuplicate": "Mỗi người chỉ được thêm một lần."
+      "assigneesDuplicate": "Mỗi người chỉ được thêm một lần.",
+      "checklistNameRequired": "Hãy nhập tên danh sách.",
+      "checklistNameTooLong": "Tên tối đa 60 ký tự.",
+      "itemTextRequired": "Hãy nhập nội dung.",
+      "itemTextTooLong": "Mục tối đa 200 ký tự.",
+      "labelNameRequired": "Hãy nhập tên nhãn.",
+      "labelNameTooLong": "Tên tối đa 30 ký tự.",
+      "labelNameDuplicate": "Đã có nhãn với tên này."
     },
     "title": "Công việc",
     "notDone": "{{count}} chưa xong",

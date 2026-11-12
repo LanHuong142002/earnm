@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canDeleteTask } from "./permissions";
+import { canDeleteLabel, canDeleteTask } from "./permissions";
 
 describe("canDeleteTask", () => {
   it("the creator can delete, as owner or member", () => {
@@ -16,5 +16,12 @@ describe("canDeleteTask", () => {
   it("a task with no creator can be deleted only by an owner", () => {
     expect(canDeleteTask({ createdById: null }, "me", "owner")).toBe(true);
     expect(canDeleteTask({ createdById: null }, "me", "member")).toBe(false);
+  });
+});
+
+describe("canDeleteLabel", () => {
+  it("only an owner can delete a label", () => {
+    expect(canDeleteLabel("owner")).toBe(true);
+    expect(canDeleteLabel("member")).toBe(false);
   });
 });

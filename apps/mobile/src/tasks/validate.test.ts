@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { validateTaskInput, type TaskInput } from "./validate";
+import {
+  CHECKLISTS_PER_TASK_MAX,
+  isDuplicateLabelName,
+  ITEMS_PER_CHECKLIST_MAX,
+  LABELS_PER_PROJECT_MAX,
+  LABELS_PER_TASK_MAX,
+  validateChecklistName,
+  validateItemText,
+  validateLabelName,
+  validateTaskInput,
+  type TaskInput,
+} from "./validate";
 
 const base: TaskInput = {
   title: "Buy flour",
@@ -92,5 +103,47 @@ describe("validateTaskInput", () => {
     const r = validateTaskInput({ ...base, title: "", description: "a".repeat(2001) });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(["description", "title"]);
+  });
+});
+
+describe("checklist and label text", () => {
+  it("accepts the maximum length and refuses one more", () => {
+    expect(validateChecklistName("a".repeat(60)).ok).toBe(true);
+    expect(validateChecklistName("a".repeat(61))).toEqual({ ok: false, error: "tasks.errors.checklistNameTooLong" });
+    expect(validateItemText("a".repeat(200)).ok).toBe(true);
+    expect(validateItemText("a".repeat(201))).toEqual({ ok: false, error: "tasks.errors.itemTextTooLong" });
+    expect(validateLabelName("a".repeat(30)).ok).toBe(true);
+    expect(validateLabelName("a".repeat(31))).toEqual({ ok: false, error: "tasks.errors.labelNameTooLong" });
+  });
+  it("trims, and refuses empty or control-only text", () => {
+    expect(validateLabelName("  Urgent ")).toEqual({ ok: true, value: "Urgent" });
+    expect(validateLabelName("  ")).toEqual({ ok: false, error: "tasks.errors.labelNameRequired" });
+    expect(validateLabelName("\u0000\u0007")).toEqual({ ok: false, error: "tasks.errors.labelNameRequired" });
+    expect(validateChecklistName("")).toEqual({ ok: false, error: "tasks.errors.checklistNameRequired" });
+    expect(validateItemText(" ")).toEqual({ ok: false, error: "tasks.errors.itemTextRequired" });
+  });
+  it("strips control characters inside the text", () => {
+    expect(validateItemText("Buy\u0000 flour")).toEqual({ ok: true, value: "Buy flour" });
+  });
+  it("has the spec's count limits", () => {
+    expect([CHECKLISTS_PER_TASK_MAX, ITEMS_PER_CHECKLIST_MAX, LABELS_PER_PROJECT_MAX, LABELS_PER_TASK_MAX]).toEqual([
+      10, 50, 50, 10,
+    ]);
+  });
+});
+
+describe("isDuplicateLabelName", () => {
+  const labels = [
+    { id: "l1", name: "Pha chế" },
+    { id: "l2", name: "Urgent" },
+  ];
+  it("ignores case, spaces and Unicode form", () => {
+    expect(isDuplicateLabelName(" PHA CHẾ ", labels)).toBe(true);
+    expect(isDuplicateLabelName("Pha ch\u00ea\u0301".toUpperCase(), labels)).toBe(true);
+    expect(isDuplicateLabelName("Pha che", labels)).toBe(false);
+  });
+  it("lets a label keep its own name when renaming", () => {
+    expect(isDuplicateLabelName("urgent", labels, "l2")).toBe(false);
+    expect(isDuplicateLabelName("urgent", labels, "l1")).toBe(true);
   });
 });

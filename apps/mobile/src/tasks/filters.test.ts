@@ -17,6 +17,8 @@ function task(id: string, patch: Partial<Task>): Task {
     assignees: [],
     createdById: null,
     createdAt: "2026-11-01T00:00:00.000Z",
+    labelIds: [],
+    checklists: [],
     ...patch,
   };
 }
@@ -34,7 +36,7 @@ const ids = (list: Task[]) => list.map((t) => t.id);
 
 describe("DEFAULT_FILTERS", () => {
   it("has every switch off", () => {
-    expect(DEFAULT_FILTERS).toEqual({ status: "all", mine: false, onlyMe: false, dueSoon: false });
+    expect(DEFAULT_FILTERS).toEqual({ status: "all", mine: false, onlyMe: false, dueSoon: false, labelIds: [] });
   });
 });
 
@@ -71,5 +73,36 @@ describe("applyFilters", () => {
     const copy = [...tasks];
     applyFilters(tasks, { ...DEFAULT_FILTERS, mine: true }, "me", now);
     expect(tasks).toEqual(copy);
+  });
+});
+
+describe("label filter", () => {
+  const labels = [{ id: "l1" }, { id: "l2" }, { id: "l3" }];
+  const labelled = [
+    task("a", { labelIds: ["l1"], status: "todo", assignees: [me] }),
+    task("b", { labelIds: ["l2"], status: "doing" }),
+    task("c", { labelIds: ["l1", "l2"], status: "doing", assignees: [me] }),
+    task("d", { labelIds: [] }),
+  ];
+  const f = (patch: Partial<typeof DEFAULT_FILTERS>) => ({ ...DEFAULT_FILTERS, ...patch });
+
+  it("one label keeps the tasks that have it", () => {
+    expect(ids(applyFilters(labelled, f({ labelIds: ["l1"] }), "me", now, labels))).toEqual(["a", "c"]);
+  });
+  it("two labels match tasks with any of them", () => {
+    expect(ids(applyFilters(labelled, f({ labelIds: ["l1", "l2"] }), "me", now, labels))).toEqual(["a", "b", "c"]);
+  });
+  it("combines with status and Assigned to me by AND", () => {
+    const filters = f({ labelIds: ["l1", "l2"], status: "doing", mine: true });
+    expect(ids(applyFilters(labelled, filters, "me", now, labels))).toEqual(["c"]);
+  });
+  it("ignores a label id that is not in the project's labels", () => {
+    expect(ids(applyFilters(labelled, f({ labelIds: ["gone", "l2"] }), "me", now, labels))).toEqual(["b", "c"]);
+  });
+  it("shows everything when only deleted labels are chosen", () => {
+    expect(ids(applyFilters(labelled, f({ labelIds: ["gone"] }), "me", now, labels))).toEqual(["a", "b", "c", "d"]);
+  });
+  it("an empty list is no label filter", () => {
+    expect(ids(applyFilters(labelled, f({ labelIds: [] }), "me", now, labels))).toEqual(["a", "b", "c", "d"]);
   });
 });
