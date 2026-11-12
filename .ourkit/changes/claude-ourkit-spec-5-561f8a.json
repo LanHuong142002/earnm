@@ -9,5 +9,43 @@
     "public-api"
   ],
   "notSensitiveReason": null,
-  "planApproval": "b9011a4768a2a8a1094e2ff7f7cf526c136658e3d7e1f6c2ced2afa896899d49"
+  "planApproval": "b9011a4768a2a8a1094e2ff7f7cf526c136658e3d7e1f6c2ced2afa896899d49",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    },
+    "8": {
+      "status": "done"
+    },
+    "9": {
+      "status": "done"
+    },
+    "10": {
+      "status": "done"
+    },
+    "11": {
+      "status": "done"
+    },
+    "12": {
+      "status": "done"
+    }
+  }
 }
