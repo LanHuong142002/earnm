@@ -7,5 +7,9 @@
     "public-api"
   ],
   "notSensitiveReason": null,
-  "ticket": "7"
+  "ticket": "7",
+  "mockup": {
+    "needed": true,
+    "reason": null
+  }
 }
