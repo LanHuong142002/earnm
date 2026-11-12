@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { MembersAvatarRow } from "../../../../../members/MembersAvatarRow";
+import { useMembers } from "../../../../../members/useMembers";
 import { ProjectCover, roleKey } from "../../../../../projects/ProjectCard";
 import { OfflineNote } from "../../../../../projects/OfflineNote";
 import { RejectedNoticeBanner } from "../../../../../projects/RejectedNotice";
@@ -26,6 +28,7 @@ export default function ProjectScreen() {
   const { status, projects } = useProjects();
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
+  const { members } = useMembers(id, focused);
 
   // Unknown or vanished project: back to the list (which shows the notice). Only while this
   // screen is the one in front, so a delete started on Edit isn't raced from underneath.
@@ -70,6 +73,10 @@ export default function ProjectScreen() {
             </Text>
             <Text style={[typography.caption, { color: colors.textSecondary }]}>{t(roleKey(project.role))}</Text>
           </View>
+          <MembersAvatarRow
+            members={members}
+            onPress={() => once(() => router.push({ pathname: "/projects/[id]/members", params: { id: project.id } }))}
+          />
         </View>
       </Enter>
       <Enter index={2}>

@@ -14,6 +14,7 @@ import { getStoredUserId, getToken } from "../auth/token-store";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { createQueue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
+import { clearMemberCache } from "../members/memberCache";
 import { listProjects, type Project } from "./api";
 import { cacheOwnerToSave, cacheStep, initialView, planUpdate } from "./optimistic";
 import type { RejectedNotice } from "./outcomes";
@@ -260,6 +261,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       if (step.clear) {
         try {
           await clearProjectCache(asyncStorageStore);
+          await clearMemberCache(asyncStorageStore);
         } catch {
           // Overwritten by the next save.
         }
@@ -295,6 +297,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       genRef.current += 1;
       try {
         await clearProjectCache(asyncStorageStore);
+          await clearMemberCache(asyncStorageStore);
       } catch {
         // Best effort.
       }
