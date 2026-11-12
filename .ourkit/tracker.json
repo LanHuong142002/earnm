@@ -1,0 +1,13 @@
+{
+  "progress": "both",
+  "board": {
+    "owner": "LanHuong142002",
+    "number": 2,
+    "field": "Status",
+    "columns": {
+      "in-progress": "In Progress",
+      "in-review": "In Review",
+      "blocked": "Blocked"
+    }
+  }
+}
