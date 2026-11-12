@@ -1,4 +1,5 @@
 import { Alert, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../auth/AuthProvider";
@@ -6,6 +7,7 @@ import type { Language } from "../../i18n";
 import { useProjects } from "../../projects/ProjectsProvider";
 import { useTheme } from "../../theme/useTheme";
 import { Button } from "../../ui/Button";
+import { AppearancePicker, useContentFade } from "../../ui/AppearancePicker";
 import { Card } from "../../ui/Card";
 import { ChoiceRow } from "../../ui/ChoiceRow";
 import { Enter } from "../../ui/Enter";
@@ -16,8 +18,9 @@ const LANGUAGES: Language[] = ["vi", "en"];
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const { setLanguage, signOut, languagePendingSync, profile } = useAuth();
-  const { colors, typography, spacing } = useTheme();
+  const { colors, typography, spacing, layout } = useTheme();
   const { waitingCount } = useProjects();
+  const fade = useContentFade();
   const current: Language = i18n.language === "vi" ? "vi" : "en";
 
   function confirmSignOut() {
@@ -37,6 +40,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen edges={[]}>
+      <Animated.View style={[{ gap: layout.sectionGap }, fade.style]}>
       {profile ? (
         <Enter index={0}>
           <View style={{ gap: spacing[1] }}>
@@ -82,8 +86,20 @@ export default function SettingsScreen() {
         </View>
       </Enter>
       <Enter index={2}>
+        <View style={{ gap: spacing[1] }}>
+          <Text
+            accessibilityRole="header"
+            style={[typography.sectionTitle, { color: colors.text }]}
+          >
+            {t("settings.appearance.title")}
+          </Text>
+          <AppearancePicker contentOpacity={fade.opacity} />
+        </View>
+      </Enter>
+      <Enter index={3}>
         <Button label={t("settings.signOut")} variant="danger" onPress={confirmSignOut} />
       </Enter>
+      </Animated.View>
     </Screen>
   );
 }

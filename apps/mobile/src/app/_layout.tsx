@@ -6,13 +6,16 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Appearance } from "react-native";
 import { I18nextProvider } from "react-i18next";
 
 import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import i18n from "../i18n";
 import { ProjectsProvider } from "../projects/ProjectsProvider";
+import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { TasksProvider } from "../tasks/TasksProvider";
+import { readAppearance, schemeOverride } from "../theme/appearance";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -45,8 +48,23 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
 
-  // Keep the splash screen up until the fonts are ready (or failed, so the app still opens).
-  if (!fontsLoaded && !fontError) return null;
+  // Apply the saved appearance before the first screen renders (the splash stays up until then).
+  const [appearanceReady, setAppearanceReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void readAppearance(asyncStorageStore)
+      .then((choice) => Appearance.setColorScheme(schemeOverride(choice)))
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setAppearanceReady(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Keep the splash screen up until the fonts and appearance are ready (or failed, so the app still opens).
+  if ((!fontsLoaded && !fontError) || !appearanceReady) return null;
 
   return (
     <I18nextProvider i18n={i18n}>

@@ -34,6 +34,12 @@
     "openProjectLabel": "Open project {{name}}, {{currency}}"
   },
   "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "language": "Language",
     "currentLanguage": "Current: {{language}}",
     "pendingSync": "Will save to your account once you're back online.",

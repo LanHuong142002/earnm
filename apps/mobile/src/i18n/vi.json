@@ -34,6 +34,12 @@
     "openProjectLabel": "Mở dự án {{name}}, {{currency}}"
   },
   "settings": {
+    "appearance": {
+      "title": "Giao diện",
+      "system": "Theo hệ thống",
+      "light": "Sáng",
+      "dark": "Tối"
+    },
     "language": "Ngôn ngữ",
     "currentLanguage": "Hiện tại: {{language}}",
     "pendingSync": "Sẽ lưu vào tài khoản khi kết nối lại.",
