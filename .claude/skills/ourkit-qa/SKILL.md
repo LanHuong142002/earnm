@@ -16,7 +16,7 @@ Passing tests prove the code does what its tests say. QA proves the change does 
 
 ## Steps
 
-1. **Start the `ourkit-qa` subagent.** Tell it only to check the Active Change against its Acceptance Criteria. Don't explain the work or what you're worried about, because a tester who knows how it was built tests what was built, not what was asked.
+1. **Start the `ourkit-qa` subagent.** Tell it only to check the Active Change against its Acceptance Criteria, and, if `ourkit mockup show` says there's an approved mockup, against that mockup's path too: a screen that works but doesn't look like what the user approved is a fail. Don't explain the work or what you're worried about, because a tester who knows how it was built tests what was built, not what was asked.
 2. **Record each result** with `ourkit qa check <n> <pass|fail|manual> "<how it was checked and what was seen>"`. Keep the subagent's words, and don't turn a fail into a pass because it's inconvenient. If you think a result is wrong, check it yourself first.
 3. **Handle each fail as a blocking Review finding.** Record it with `ourkit review add blocking "QA criterion <n>: <what was expected and what was seen>"`, then fix it the way `/ourkit-review` does: delegate the fix to the `ourkit-implementer` subagent, verify it, run `ourkit review resolve <id>`, and review again what changed. Then run the QA subagent again for that criterion and any other the fix could affect, and record the new results.
    - In Pair, ask the user if the fix is a judgment call, or if the criterion itself looks wrong. Changing the spec is the user's decision.
