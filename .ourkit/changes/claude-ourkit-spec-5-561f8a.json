@@ -47,5 +47,75 @@
     "12": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "apps/api/src/invites/routes.ts join (~L467-487): invite looked up by codeHash only; inside the tx already_member and project_full are checked before the pending check, so a used/revoked/expired code returns 409 already_member or project_full instead of 404 invalid_invite, revealing the code once existed (breaks R15). Fix: after lockProject re-read the invite and throw invalid_invite unless pending, then the other checks; add tests (used/revoked code by existing member; used code on a full project).",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "apps/mobile/src/members/useMembers.ts + projects/[id]/members.tsx: on a 404 not_found useMembers sets members null with status ready, and the screen shows an endless ActivityIndicator for a removed person (no no-permission state; R33). Fix: on not_found refresh the projects so the existing leave-redirect sends them to the list, or show a 'no longer in this project' state with a way back.",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "blocking",
+        "text": "apps/api/src/invites/schema.test.ts (~L92-106): no test checks AC26. The test inserts an invite after all migrations; it never applies the invites migration to a database that already has projects and members. Fix: apply migrations up to 20261111032020_projects, seed, apply 20261112023324_invites, compare rows; otherwise record AC26 as verified by inspection in the Test Handoff.",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts create/list/revoke: requireOwner runs before lockProject, so an Owner demoted at the same moment can still create one invite. Re-check the caller's role inside the tx after lockProject, as members change() does.",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts create (~L383): a codeHash collision (about 1 in 31^8) hits the unique constraint and returns 500; retry with a fresh code on a unique violation.",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/mobile/.../projects/[id]/members.tsx (~L329-346): the action sheet opens from a per-row '…' button, while the R29 navigation map says 'tapping a member'. Confirm in QA or make the whole row pressable.",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "apps/api/src/members/routes.ts (~L667-669): removing yourself returns 400 validation_failed without the field details the ZodError path adds; a dedicated code such as use_leave would be clearer for clients.",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/members/MembersAvatarRow.tsx (OVERLAP -11, GAP 6, minHeight 44) and src/ui/Avatar.tsx (34, 2) hard-code sizes; DESIGN.md says to use tokens. minHeight 44 could use layout.controlHeight.",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "blocking",
+        "text": "apps/mobile/src/projects/syncCycle.ts (~L79-84): refresh() drops queued project writes after listProjects resolves without re-checking the generation; if A signs out and B signs in while A's slow listProjects is pending, B's queued offline edits for projects not in A's list are silently dropped. Fix: return if gen changed right after listProjects resolves (and optionally confirm queue owner), with a syncCycle test that changes the generation while listProjects is pending.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/projects/syncCycle.ts (~L79): projectsToDrop uses the server list after .filter(isProject), so one malformed item would drop that project's queued writes as if access were lost. Build the id set from the raw response (any item with a string id).",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/page-routes.ts and invites/routes.ts: page and join limits are per IP, and until TRUST_PROXY is set behind Render every request shares the proxy IP, so one scanner could block everyone. Add invites to the existing TRUST_PROXY note in docs/deploy.md.",
+        "resolved": true
+      }
+    ]
   }
 }
