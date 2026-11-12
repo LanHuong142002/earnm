@@ -701,6 +701,73 @@ describe("sign-out fence and rerun owner", () => {
   });
 });
 
+describe("per-entity result handlers", () => {
+  function setupWithHandlers() {
+    const base = setup();
+    const other = vi.fn<Sender>(async () => ({ ok: "other" }));
+    const failing = vi.fn<Sender>(async () => {
+      throw new ApiError("validation_failed", 422, "bad");
+    });
+    const handlers = { onApplied: vi.fn(), onRejected: vi.fn() };
+    base.queue.registerEntity("other", { create: other, update: other, delete: other }, handlers);
+    base.queue.registerEntity("bad", { create: failing, update: failing, delete: failing }, handlers);
+    return { ...base, other, failing, handlers };
+  }
+
+  it("an applied change for an entity with handlers reaches only those handlers", async () => {
+    const { queue, onApplied, handlers } = setupWithHandlers();
+    await queue.setOwner("u1");
+    const change = await queue.enqueue({ entity: "other", entityId: "o1", kind: "create", data: {}, fieldTimes: {} });
+    await queue.flush("u1");
+    expect(handlers.onApplied).toHaveBeenCalledTimes(1);
+    expect(handlers.onApplied).toHaveBeenCalledWith({ ...change, attempts: 1 }, { ok: "other" });
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it("a rejected change for an entity with handlers reaches only those handlers", async () => {
+    const { queue, onRejected, handlers } = setupWithHandlers();
+    await queue.setOwner("u1");
+    await queue.enqueue({ entity: "bad", entityId: "b1", kind: "create", data: {}, fieldTimes: {} });
+    await queue.flush("u1");
+    expect(handlers.onRejected).toHaveBeenCalledTimes(1);
+    expect(onRejected).not.toHaveBeenCalled();
+  });
+
+  it("a 404 on delete is applied through the entity's handler", async () => {
+    const { queue, onApplied, handlers, other } = setupWithHandlers();
+    other.mockRejectedValueOnce(new ApiError("not_found", 404, "gone"));
+    await queue.setOwner("u1");
+    await queue.enqueue({ entity: "other", entityId: "o1", kind: "delete", data: {}, fieldTimes: {} });
+    await queue.flush("u1");
+    expect(handlers.onApplied).toHaveBeenCalledTimes(1);
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it("a change for an entity registered without handlers still reaches the queue-level handlers", async () => {
+    const { queue, onApplied, handlers } = setupWithHandlers();
+    await queue.setOwner("u1");
+    await queue.enqueue(mk("a"));
+    await queue.flush("u1");
+    expect(onApplied).toHaveBeenCalledTimes(1);
+    expect(handlers.onApplied).not.toHaveBeenCalled();
+  });
+
+  it("an entity with only one handler falls back to the queue-level handler for the other", async () => {
+    const { queue, onRejected, onApplied } = setup();
+    const failing = vi.fn<Sender>(async () => {
+      throw new ApiError("validation_failed", 422, "bad");
+    });
+    const partial = { onApplied: vi.fn() };
+    queue.registerEntity("part", { create: failing, update: failing, delete: failing }, partial);
+    await queue.setOwner("u1");
+    await queue.enqueue({ entity: "part", entityId: "p1", kind: "create", data: {}, fieldTimes: {} });
+    await queue.flush("u1");
+    expect(onRejected).toHaveBeenCalledTimes(1);
+    expect(partial.onApplied).not.toHaveBeenCalled();
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+});
+
 describe("dropEntity", () => {
   it("removes every queued change for that entity id, keeps others, and persists", async () => {
     const { queue, store } = setup();

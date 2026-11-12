@@ -14,8 +14,9 @@ type State = { key: string; members: Member[] | null; status: MembersStatus };
 
 /** Cached members of a project, refreshed from the server on mount and whenever `refreshKey` changes (focus). */
 export function useMembers(projectId: string, refreshKey: unknown = null) {
-  const { user } = useAuth();
-  const userId = user?.id ?? null;
+  // The saved id counts while the profile has not answered, so the members still load and show.
+  const { identity } = useAuth();
+  const userId = identity?.id ?? null;
   const key = `${userId ?? ""}/${projectId}`;
   const [state, setState] = useState<State>({ key, members: null, status: "loading" });
   const keyRef = useRef(key);

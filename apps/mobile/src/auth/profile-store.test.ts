@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createMemoryStore } from "../sync/storage";
-import { clearProfile, readProfile, visibleProfile, writeProfile } from "./profile-store";
+import { clearProfile, knownIdentity, readProfile, visibleProfile, writeProfile } from "./profile-store";
 
 const ME = { userId: "u1", email: "a@b.vn", displayName: "An" };
 
@@ -54,5 +54,21 @@ describe("visibleProfile", () => {
   });
   it("is null when neither is known", () => {
     expect(visibleProfile(null, null)).toBeNull();
+  });
+});
+
+describe("knownIdentity (found at QA: with the profile offline the app did not know who was signed in)", () => {
+  it("is the signed-in user when known", () => {
+    expect(knownIdentity({ id: "u1", displayName: "An" }, "u1", { email: "a@x.vn", displayName: "Old" })).toEqual({
+      id: "u1",
+      displayName: "An",
+    });
+  });
+  it("falls back to the saved id and name while the server has not answered", () => {
+    expect(knownIdentity(null, "u1", { email: "a@x.vn", displayName: "An" })).toEqual({ id: "u1", displayName: "An" });
+  });
+  it("is null with no saved copy", () => {
+    expect(knownIdentity(null, "u1", null)).toBeNull();
+    expect(knownIdentity(null, null, { email: "a@x.vn", displayName: "An" })).toBeNull();
   });
 });

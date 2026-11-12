@@ -63,6 +63,24 @@ describe("/projects", () => {
       }
     });
 
+    it("refuses control characters; descriptions may keep newline, return and tab", async () => {
+      const u = await user();
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\u0080", "\u009f", "\n", "\r", "\t"]) {
+        expectError(await create(u, { name: `a${ch}b` }), 400, "validation_failed");
+      }
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\u0080", "\u009f"]) {
+        expectError(await create(u, { description: `a${ch}b` }), 400, "validation_failed");
+      }
+      const ok = await create(u, { description: "line1\nline2\r\n\tx" });
+      expect(ok.status).toBe(201);
+      expect(ok.body.description).toBe("line1\nline2\r\n\tx");
+      const id = ok.body.id as string;
+      const c = (value: string) => ({ value, editedAt: iso(1000) });
+      expectError(await patch(u, id, { name: c("a\u0000b") }), 400, "validation_failed");
+      expectError(await patch(u, id, { description: c("a\u0000b") }), 400, "validation_failed");
+      expect((await patch(u, id, { description: c("x\ny") })).status).toBe(200);
+    });
+
     it("accepts boundary values and both currencies", async () => {
       const u = await user();
       const a = await create(u, { name: "a".repeat(80), description: "", currency: "USD" });
