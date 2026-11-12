@@ -8,5 +8,13 @@
   ],
   "notSensitiveReason": null,
   "ticket": "6",
-  "planApproval": "cf1f8f73a89557eab5dac0b934cf4b49508afafdb15000f02f387f6bb3dc5085"
+  "planApproval": "cf1f8f73a89557eab5dac0b934cf4b49508afafdb15000f02f387f6bb3dc5085",
+  "taskStatus": {
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    }
+  }
 }

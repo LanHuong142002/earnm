@@ -173,3 +173,24 @@ Commands: `ourkit command test` (`npm --prefix apps/api test && npm --prefix app
   - the form: title only, field messages, date and time set and cleared, the keyboard, delete only for creator or Owner (a Member inserted by SQL until #5 merges);
   - both languages and DESIGN.md.
 - **Not verified automatically:** the screens, the date picker, `ActionSheetIOS`, and real NetInfo and AppState triggers. These are covered by the Test Handoff.
+
+## Approved mockup
+
+Reviewed with the user on 2026-11-12 (task 7). Spec R21, R24 and AC 21, 24 were updated to match.
+
+- **Project screen:** the Tasks entry is not a row next to the collapsible details. It is a grid of area tiles in **two equal columns**, placed above the details:
+  - Tasks, with its icon and "n chưa xong" / "n not done";
+  - Ideas, Products and Fixed costs, which aren't built yet. They use `disabled.opacity`, are labelled "Sắp có" / "Coming soon", and do nothing when tapped.
+  - The tiles reuse the Home tile style (`tile` fill, `tileBorder`, `radius.tile`, a 24px `accent` outline icon, a `label` caption).
+- **Filters:**
+  - The status pills (All, To do, Doing, Done) show the selected one with a ✓ and `tile` fill.
+  - Three switches follow: "Giao cho tôi" / "Assigned to me" (I'm among the assignees), "Chỉ mình tôi" / "Only me" (I'm the only assignee) and "Sắp đến hạn" / "Due soon".
+  - `filters.ts` gains `onlyMe`. This is done in task 8.
+- **Task card:**
+  - The title in `bodyStrong`.
+  - One `caption` line with a status pill (tapping it opens the status picker) and the assignees' first names, "+n" after three.
+  - The due date, with an alert icon and "Quá hạn" / "Overdue" in `danger` when overdue.
+- The **"Xong (n)" / "Done (n)"** section starts closed.
+- **Form:**
+  - The field order is title, description, status (`ChoiceRow`s in a card), due date (a field with a calendar icon and a clear ×), then assignees (task 10).
+  - The primary "Lưu" / "Save" button is followed, with clear space, by "Xoá công việc" / "Delete task" in `danger` text.

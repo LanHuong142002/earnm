@@ -167,7 +167,10 @@ Verify: the user approves the mockup (user check).
   - refreshes on focus (R14);
   - leads to `tasks/new` and to `tasks/[taskId]`;
   - navigates here whenever a viewed task disappears (R21).
-- On `projects/[id]/index.tsx`, add one Tasks row between the details and Edit. It shows the not-done count from the cache (no count when the project's tasks were never loaded), refreshes that project's tasks on focus, and pushes the Task list.
+- On `projects/[id]/index.tsx`, add the two-column area tile grid above the details, as in the plan's Approved mockup:
+  - The Tasks tile shows the not-done count from the cache (no count when the project's tasks were never loaded), refreshes that project's tasks on focus, and pushes the Task list.
+  - Ideas, Products and Fixed costs are disabled "Coming soon" tiles.
+- Add `onlyMe` to `filters.ts` (tasks where I'm the only assignee), with tests, and add the three switches to the filter bar (R24).
 - Add all new text to `en.json`/`vi.json`.
 
 Depends on: 4, 6, 7
