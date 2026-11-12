@@ -12,7 +12,7 @@ const A: Project = { id: "a", name: "Alpha", description: "", currency: "VND", r
 const B: Project = { id: "b", name: "Beta", description: "", currency: "USD", role: "member" };
 const USER = "user-1";
 
-type Server = { patch: () => Promise<unknown>; list: Project[]; listError?: ApiError };
+type Server = { patch: () => Promise<unknown>; list: Project[]; listError?: ApiError; listGate?: Promise<void> };
 
 function setup(server: Server, initial: Project[]) {
   let list = initial;
@@ -20,6 +20,7 @@ function setup(server: Server, initial: Project[]) {
   let status: SyncStatus = "loading";
   let waiting = -1;
   let token: string | null = "tok";
+  let generation = 0;
   const onNotSignedIn = vi.fn();
   const patchProject = vi.fn(() => server.patch());
   let queue!: Queue;
@@ -27,6 +28,7 @@ function setup(server: Server, initial: Project[]) {
     getQueue: () => queue,
     getToken: async () => token,
     listProjects: async () => {
+      if (server.listGate) await server.listGate;
       if (server.listError) throw server.listError;
       return server.list;
     },
@@ -43,7 +45,7 @@ function setup(server: Server, initial: Project[]) {
     setStatus: (update) => {
       status = typeof update === "function" ? update(status) : update;
     },
-    getGeneration: () => 0,
+    getGeneration: () => generation,
     isWiped: () => false,
     settleMutations: async () => queue.waiting(),
     onNotSignedIn,
@@ -59,6 +61,9 @@ function setup(server: Server, initial: Project[]) {
     cycle,
     patchProject,
     onNotSignedIn,
+    bumpGeneration: () => {
+      generation += 1;
+    },
     setToken: (t: string | null) => {
       token = t;
     },
@@ -247,6 +252,41 @@ describe("sync cycle: a project the person lost (AC21)", () => {
     const h = setup({ patch: async () => ({}), list: [B], listError: new ApiError("network", 0) }, [A, B]);
     await editName(h, "Edited offline");
     await h.cycle.refresh();
+    expect(await h.queue.count()).toBe(1);
+  });
+
+  it("a slow refresh that finishes after the person changed drops nothing and commits nothing (R26)", async () => {
+    let release!: () => void;
+    const listGate = new Promise<void>((r) => {
+      release = r;
+    });
+    const h = setup({ patch: async () => ({}), list: [A], listGate }, [A]);
+    const pending = h.cycle.refresh();
+    await new Promise((r) => setTimeout(r, 0));
+    // Person A signs out, person B signs in and queues an edit for a project A's list does not have.
+    h.bumpGeneration();
+    await h.queue.setOwner("user-2");
+    await h.queue.enqueue({ entity: PROJECT_ENTITY, entityId: "b", kind: "update", data: { name: "B edit" } });
+    release();
+    await pending;
+    expect(await h.queue.count()).toBe(1);
+    expect(h.list).toEqual([A]);
+    expect(h.status).toBe("loading");
+  });
+
+  it("drops nothing when the queue owner changed during the read, even if the generation did not", async () => {
+    let release!: () => void;
+    const listGate = new Promise<void>((r) => {
+      release = r;
+    });
+    const h = setup({ patch: async () => ({}), list: [A], listGate }, [A]);
+    await h.queue.setOwner(USER);
+    const pending = h.cycle.refresh();
+    await new Promise((r) => setTimeout(r, 0));
+    await h.queue.setOwner("user-2");
+    await h.queue.enqueue({ entity: PROJECT_ENTITY, entityId: "b", kind: "update", data: { name: "B edit" } });
+    release();
+    await pending;
     expect(await h.queue.count()).toBe(1);
   });
 });

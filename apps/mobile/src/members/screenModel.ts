@@ -35,3 +35,13 @@ export function formatExpiry(iso: string, language: string): string {
     year: "numeric",
   }).format(new Date(iso));
 }
+
+export type MembersStatus = "loading" | "ready" | "offline" | "gone";
+export type MembersBody = "list" | "loading" | "error" | "gone";
+
+/** What the Members screen shows: the list, a wait, a retry, or nothing while it leaves a project that is gone. */
+export function membersBody(members: Member[] | null, status: MembersStatus): MembersBody {
+  if (status === "gone") return "gone";
+  if (members) return "list";
+  return status === "offline" ? "error" : "loading";
+}

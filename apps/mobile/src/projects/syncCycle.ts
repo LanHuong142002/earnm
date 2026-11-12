@@ -76,14 +76,20 @@ export function createSyncCycle(deps: SyncCycleDeps) {
     const token = await deps.getToken();
     if (!token || gen !== deps.getGeneration()) return;
     try {
+      const ownerAtStart = await deps.getQueue().ownerId();
       const server = (await deps.listProjects(token)).filter(isProject);
-      // Projects the server no longer lists: their waiting changes can never succeed (R26).
+      // A slow read that finishes after the session or the person changed must touch nothing.
+      if (gen !== deps.getGeneration()) return;
       const queue = deps.getQueue();
-      for (const id of outcomes.projectsToDrop(server, await queue.waiting())) {
-        await queue.dropEntity(PROJECT_ENTITY, id);
+      // Projects the server no longer lists: their waiting changes can never succeed (R26).
+      // Only for the person this read was made for.
+      if ((await queue.ownerId()) === ownerAtStart) {
+        for (const id of outcomes.projectsToDrop(server, await queue.waiting())) {
+          await queue.dropEntity(PROJECT_ENTITY, id);
+        }
       }
       const waiting = await deps.settleMutations();
-      if (gen !== deps.getGeneration()) return;
+      if (gen !== deps.getGeneration() || (await queue.ownerId()) !== ownerAtStart) return;
       await deps.commit(outcomes.restoreFromServer(server, waiting));
       deps.setWaitingCount(waiting.length);
       deps.setStatus("ready");

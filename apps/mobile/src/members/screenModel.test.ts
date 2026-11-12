@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Member } from "../lib/api";
-import { formatExpiry, inviteLink, rowModel, viewerRole } from "./screenModel";
+import { formatExpiry, inviteLink, membersBody, rowModel, viewerRole } from "./screenModel";
 
 const M = (userId: string, role: "owner" | "member"): Member => ({
   userId,
@@ -58,5 +58,23 @@ describe("formatExpiry", () => {
   });
   it("formats in English with the same fields", () => {
     expect(formatExpiry("2026-03-05T12:00:00.000Z", "en")).toMatch(/2026/);
+  });
+});
+
+describe("membersBody (R33)", () => {
+  const list = [M("u1", "owner")];
+  it("shows the list whenever there are members, even offline", () => {
+    expect(membersBody(list, "ready")).toBe("list");
+    expect(membersBody(list, "offline")).toBe("list");
+  });
+  it("waits while loading with nothing cached", () => {
+    expect(membersBody(null, "loading")).toBe("loading");
+  });
+  it("offers a retry when offline with nothing cached", () => {
+    expect(membersBody(null, "offline")).toBe("error");
+  });
+  it("shows nothing and leaves when the project is gone, never a spinner", () => {
+    expect(membersBody(null, "gone")).toBe("gone");
+    expect(membersBody(list, "gone")).toBe("gone");
   });
 });

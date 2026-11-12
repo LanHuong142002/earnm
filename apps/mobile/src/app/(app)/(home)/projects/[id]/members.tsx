@@ -18,7 +18,7 @@ import {
 } from "../../../../../lib/api";
 import { initialOf } from "../../../../../members/avatarRow";
 import { memberErrorKey } from "../../../../../members/errors";
-import { formatExpiry, inviteLink, rowModel, viewerRole } from "../../../../../members/screenModel";
+import { formatExpiry, inviteLink, membersBody, rowModel, viewerRole } from "../../../../../members/screenModel";
 import { useMembers } from "../../../../../members/useMembers";
 import { OfflineNote } from "../../../../../projects/OfflineNote";
 import { useProjects } from "../../../../../projects/ProjectsProvider";
@@ -57,6 +57,13 @@ export default function MembersScreen() {
   useEffect(() => {
     if (view === "leave" && focused && !leaving) goToList();
   }, [view, focused, leaving, goToList]);
+
+  const body = membersBody(members, membersStatus);
+
+  // The server says the project is gone for this person: refresh the projects so the leave logic above runs.
+  useEffect(() => {
+    if (body === "gone") void refreshProjects().catch(() => {});
+  }, [body, refreshProjects]);
 
   // Resolves to null on any failure: the pending list is a convenience, keep what is shown.
   const fetchInvites = useCallback(async (): Promise<PendingInvite[] | null> => {
@@ -199,11 +206,13 @@ export default function MembersScreen() {
     ]);
   }
 
+  if (body === "gone") return <Screen edges={[]}>{null}</Screen>;
+
   if (!members) {
     return (
       <Screen edges={[]}>
         <OfflineNote />
-        {membersStatus === "offline" ? (
+        {body === "error" ? (
           <View style={{ gap: spacing[2], alignItems: "flex-start" }}>
             <Text style={[typography.body, { color: colors.textSecondary }]}>{t("members.loadError")}</Text>
             <Button label={t("members.retry")} variant="secondary" onPress={() => void refresh()} />

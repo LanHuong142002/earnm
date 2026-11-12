@@ -6,7 +6,9 @@ import { ApiError, listMembers, type Member } from "../lib/api";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { loadMembers, removeProjectMembers, saveMembers } from "./memberCache";
 
-export type MembersStatus = "loading" | "ready" | "offline";
+import type { MembersStatus } from "./screenModel";
+
+export type { MembersStatus };
 
 type State = { key: string; members: Member[] | null; status: MembersStatus };
 
@@ -39,7 +41,7 @@ export function useMembers(projectId: string, refreshKey: unknown = null) {
       if (keyRef.current === mine) await saveMembers(asyncStorageStore, userId, projectId, list).catch(() => {});
     } catch (error) {
       if (error instanceof ApiError && error.code === "not_found") {
-        apply(null, "ready");
+        apply(null, "gone");
         await removeProjectMembers(asyncStorageStore, userId, projectId).catch(() => {});
       } else {
         apply(undefined, "offline"); // network or anything else: keep what is cached
