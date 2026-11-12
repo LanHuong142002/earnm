@@ -296,7 +296,44 @@
       "teal": "Ngọc",
       "blue": "Lam",
       "purple": "Tím"
-    }
+    },
+    "checklists": {
+      "heading": "Checklist",
+      "summary": "{{done}}/{{total}} mục xong",
+      "addLink": "＋ Thêm",
+      "addLinkA11y": "Thêm checklist",
+      "limitReached": "Mỗi công việc có tối đa 10 checklist.",
+      "emptyBody": "Chia công việc thành các bước để theo dõi tiến độ.",
+      "emptyAdd": "＋ Thêm checklist",
+      "newName": "Tên checklist",
+      "newHint": "Tối đa 60 ký tự · tối đa 10 checklist mỗi công việc",
+      "optionsA11y": "Tùy chọn checklist {{name}}",
+      "rename": "Đổi tên",
+      "delete": "Xóa checklist",
+      "renameA11y": "Tên checklist",
+      "deleteTitle": "Xóa checklist “{{name}}”?",
+      "deleteMessage": "{{count}} mục trong checklist này cũng bị xóa. Không thể hoàn tác.",
+      "progressA11y": "{{name}}: xong {{done}} trên {{total}} mục",
+      "itemDeleteA11y": "Xóa mục {{text}}",
+      "itemEditA11y": "Sửa mục {{text}}",
+      "addItem": "＋ Thêm mục",
+      "addItemA11y": "Thêm mục vào {{name}}",
+      "newItemPlaceholder": "Thêm mục",
+      "newItemA11y": "Mục mới cho {{name}}",
+      "itemHint": "Return để thêm · tối đa 200 ký tự",
+      "itemEditHint": "Return để lưu",
+      "itemLimit": "Mỗi checklist có tối đa 50 mục."
+    },
+    "labelsField": {
+      "label": "Nhãn",
+      "none": "Chưa có nhãn",
+      "edit": "Sửa",
+      "add": "Thêm",
+      "editA11y": "Sửa nhãn",
+      "addA11y": "Thêm nhãn",
+      "a11y": "Nhãn: {{names}}"
+    },
+    "editA11y": "Sửa công việc"
   },
   "members": {
     "title": "Thành viên",

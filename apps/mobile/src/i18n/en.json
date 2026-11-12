@@ -298,7 +298,44 @@
       "teal": "Teal",
       "blue": "Blue",
       "purple": "Purple"
-    }
+    },
+    "checklists": {
+      "heading": "Checklist",
+      "summary": "{{done}}/{{total}} items done",
+      "addLink": "＋ Add",
+      "addLinkA11y": "Add a checklist",
+      "limitReached": "A task can have at most 10 checklists.",
+      "emptyBody": "Break the work into steps to track progress.",
+      "emptyAdd": "＋ Add checklist",
+      "newName": "Checklist name",
+      "newHint": "Up to 60 characters · up to 10 checklists per task",
+      "optionsA11y": "Options for checklist {{name}}",
+      "rename": "Rename",
+      "delete": "Delete checklist",
+      "renameA11y": "Checklist name",
+      "deleteTitle": "Delete checklist “{{name}}”?",
+      "deleteMessage": "Its {{count}} items are deleted too. This can’t be undone.",
+      "progressA11y": "{{name}}: {{done}} of {{total}} items done",
+      "itemDeleteA11y": "Delete item {{text}}",
+      "itemEditA11y": "Edit item {{text}}",
+      "addItem": "＋ Add item",
+      "addItemA11y": "Add an item to {{name}}",
+      "newItemPlaceholder": "Add item",
+      "newItemA11y": "New item for {{name}}",
+      "itemHint": "Return to add · up to 200 characters",
+      "itemEditHint": "Return to save",
+      "itemLimit": "A checklist can have at most 50 items."
+    },
+    "labelsField": {
+      "label": "Labels",
+      "none": "No labels yet",
+      "edit": "Edit",
+      "add": "Add",
+      "editA11y": "Edit labels",
+      "addA11y": "Add labels",
+      "a11y": "Labels: {{names}}"
+    },
+    "editA11y": "Edit task"
   },
   "members": {
     "title": "Members",
