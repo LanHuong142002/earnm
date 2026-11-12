@@ -58,7 +58,14 @@
     "forbidden": "Only the project owner can do that.",
     "not_found": "That project no longer exists.",
     "id_conflict": "That project could not be created. Please try again.",
-    "create_failed": "The project could not be created. Please try again."
+    "create_failed": "The project could not be created. Please try again.",
+    "invalid_invite": "That code isn't valid. Check it or ask for a new one.",
+    "already_member": "You're already in this project.",
+    "project_full": "This project is full.",
+    "too_many_invites": "This project has too many pending invites. Revoke one first.",
+    "last_owner": "Make someone else an Owner first.",
+    "last_owner_only_member": "You're the only member. Delete the project instead.",
+    "not_found_member": "This member or project no longer exists."
   },
   "projects": {
     "title": "Projects",
@@ -107,5 +114,44 @@
   "tabs": {
     "home": "Home",
     "account": "Account"
+  },
+  "members": {
+    "title": "Members",
+    "you": "(You)",
+    "rowLabel": "Members, {{count}} in this project. Open the member list",
+    "owner": "Owner",
+    "member": "Member",
+    "makeOwner": "Make Owner",
+    "makeMember": "Make Member",
+    "remove": "Remove",
+    "removeConfirmTitle": "Remove {{name}}?",
+    "removeConfirmMessage": "{{name}} will lose access to this project.",
+    "leave": "Leave project",
+    "leaveConfirmTitle": "Leave this project?",
+    "leaveConfirmMessage": "You will lose access to it. Someone will need to invite you again.",
+    "loadError": "Couldn't load members.",
+    "retry": "Try again",
+    "more": "More actions for {{name}}"
+  },
+  "invites": {
+    "invite": "Invite with code",
+    "shareMessage": "{{inviter}} invited you to the project {{project}} on earnm. Code: {{code}}. See how to join: {{link}}",
+    "pending": "Pending invites ({{count}})",
+    "createdBy": "Created by {{name}}",
+    "expires": "Expires {{date}}",
+    "unknownCreator": "a former member",
+    "revoke": "Revoke",
+    "revokeConfirmTitle": "Revoke this invite?",
+    "revokeConfirmMessage": "The code will stop working right away."
+  },
+  "join": {
+    "entry": "Join with code",
+    "title": "Join with code",
+    "codeLabel": "Invite code",
+    "placeholder": "K7QM-R4XP",
+    "submit": "Join"
+  },
+  "profile": {
+    "title": "Your profile"
   }
 }

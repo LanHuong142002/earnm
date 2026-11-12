@@ -1,0 +1,370 @@
+{
+  "ticket": "5",
+  "tier": "feature",
+  "tierReason": "Joining by invite changes who can access a project and adds invite schema and new public endpoints",
+  "sensitiveAreas": [
+    "auth",
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "planApproval": "b9011a4768a2a8a1094e2ff7f7cf526c136658e3d7e1f6c2ced2afa896899d49",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    },
+    "8": {
+      "status": "done"
+    },
+    "9": {
+      "status": "done"
+    },
+    "10": {
+      "status": "done"
+    },
+    "11": {
+      "status": "done"
+    },
+    "12": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "apps/api/src/invites/routes.ts join (~L467-487): invite looked up by codeHash only; inside the tx already_member and project_full are checked before the pending check, so a used/revoked/expired code returns 409 already_member or project_full instead of 404 invalid_invite, revealing the code once existed (breaks R15). Fix: after lockProject re-read the invite and throw invalid_invite unless pending, then the other checks; add tests (used/revoked code by existing member; used code on a full project).",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "apps/mobile/src/members/useMembers.ts + projects/[id]/members.tsx: on a 404 not_found useMembers sets members null with status ready, and the screen shows an endless ActivityIndicator for a removed person (no no-permission state; R33). Fix: on not_found refresh the projects so the existing leave-redirect sends them to the list, or show a 'no longer in this project' state with a way back.",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "blocking",
+        "text": "apps/api/src/invites/schema.test.ts (~L92-106): no test checks AC26. The test inserts an invite after all migrations; it never applies the invites migration to a database that already has projects and members. Fix: apply migrations up to 20261111032020_projects, seed, apply 20261112023324_invites, compare rows; otherwise record AC26 as verified by inspection in the Test Handoff.",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts create/list/revoke: requireOwner runs before lockProject, so an Owner demoted at the same moment can still create one invite. Re-check the caller's role inside the tx after lockProject, as members change() does.",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts create (~L383): a codeHash collision (about 1 in 31^8) hits the unique constraint and returns 500; retry with a fresh code on a unique violation.",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/mobile/.../projects/[id]/members.tsx (~L329-346): the action sheet opens from a per-row '…' button, while the R29 navigation map says 'tapping a member'. Confirm in QA or make the whole row pressable.",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "apps/api/src/members/routes.ts (~L667-669): removing yourself returns 400 validation_failed without the field details the ZodError path adds; a dedicated code such as use_leave would be clearer for clients.",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/members/MembersAvatarRow.tsx (OVERLAP -11, GAP 6, minHeight 44) and src/ui/Avatar.tsx (34, 2) hard-code sizes; DESIGN.md says to use tokens. minHeight 44 could use layout.controlHeight.",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "blocking",
+        "text": "apps/mobile/src/projects/syncCycle.ts (~L79-84): refresh() drops queued project writes after listProjects resolves without re-checking the generation; if A signs out and B signs in while A's slow listProjects is pending, B's queued offline edits for projects not in A's list are silently dropped. Fix: return if gen changed right after listProjects resolves (and optionally confirm queue owner), with a syncCycle test that changes the generation while listProjects is pending.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/projects/syncCycle.ts (~L79): projectsToDrop uses the server list after .filter(isProject), so one malformed item would drop that project's queued writes as if access were lost. Build the id set from the raw response (any item with a string id).",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/page-routes.ts and invites/routes.ts: page and join limits are per IP, and until TRUST_PROXY is set behind Render every request shares the proxy IP, so one scanner could block everyone. Add invites to the existing TRUST_PROXY note in docs/deploy.md.",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/app/(app)/(home)/projects/join.tsx (~L40-43): after a successful join the screen relies on refresh() to bring the project in; if that refresh fails (network drops right after), projectView returns leave and the person lands on the Project list with no project and no message, and retrying gives already_member. Fix: commit the joined project (GET /projects shape) into the local list before navigating, or show a notice.",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/app/(app)/(home)/projects/[id]/members.tsx (~L200-201): after a successful leave, refreshProjects().catch(()=>{}) then goToList(); if the refresh fails the left project stays in the list (R29 says it is gone) and tapping it gives 404s. Fix: remove the project from the local list and cache right after the 204.",
+        "resolved": true
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "apps/api/src/projects/routes.ts PATCH (~L147) and DELETE (~L168): requireOwner runs once without the project lock; now that roles can change, an Owner demoted at the same moment can still delete or edit the project. Re-check the Owner under lockProject as invite create/revoke now do.",
+        "resolved": true
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts create/revoke: the 20 cap counts only pending invites and old rows are never cleaned, so an Owner (or a script with their session) can loop create/revoke and grow the table without bound; the pending count scans every row. Add a per-account/per-project create limit or a cleanup later.",
+        "resolved": true
+      },
+      {
+        "id": 16,
+        "severity": "non-blocking",
+        "text": "apps/api/src/app.ts (~L39): the invite hash key derives from INTERNAL_SECRET, so rotating it after a leak voids pending invites, and a leaked secret plus a DB dump allows offline guessing of the 39-bit code space. Stated trade-off in docs/deploy.md; optional separate INVITE_CODE_KEY.",
+        "resolved": true
+      },
+      {
+        "id": 17,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/profile-store.ts and members/memberCache.ts: email and display name are now stored unencrypted in AsyncStorage (cleared on sign-out, owner-checked). Not verified that members.cache.v1 is pruned when a refresh drops a project the person was removed from; old co-member names may stay until sign-out.",
+        "resolved": true
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "apps/api/src/members/routes.ts (~L102-105): GET members has no take/orderBy in the query (sorted in memory); the 50 cap is enforced only on join, so a project with members added directly in the DB could return an unbounded list. Add take: MAX_MEMBERS with orderBy, or record that the cap bounds it.",
+        "resolved": false
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts (~L80-85): the 50-invites-per-24h rule (from finding 15) isn't in the spec, and returns 429 too_many_attempts, which the phone shows as a sign-in-style lockout message. Add it to the spec and optionally give it its own code/message.",
+        "resolved": false
+      },
+      {
+        "id": 20,
+        "severity": "non-blocking",
+        "text": "docs/deploy.md (~L19) and apps/api/src/invites/code.ts (~L31) still say codes are always keyed from INTERNAL_SECRET; since INVITE_CODE_KEY they are keyed from it when set, and setting it for the first time also voids pending invites. Update both notes.",
+        "resolved": false
+      },
+      {
+        "id": 21,
+        "severity": "non-blocking",
+        "text": "apps/mobile/.../projects/join.tsx (~L39-43): if addJoinedProject throws after a 200 (e.g. a storage write fails), the screen shows a generic error though the person joined, and retrying gives already_member. Navigate anyway once joinProject resolved, or treat already_member on retry as success.",
+        "resolved": false
+      },
+      {
+        "id": 22,
+        "severity": "blocking",
+        "text": "apps/api/src/invites/routes.ts join (~L159-200) with members/routes.ts remove (~L149-170): a removed Owner can rejoin as Member with invites they created before removal (they saw the plain codes; R7 keeps invites valid after the creator is removed; join never compares the joiner with createdById; remove leaves their pending invites). So removal (R26) doesn't hold. Fix: refuse join with invalid_invite when createdById === userId (test), and, as a spec decision, revoke the removed person's pending invites in the same locked transaction.",
+        "resolved": true
+      },
+      {
+        "id": 23,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/page-routes.ts (/i/:code): the code is a 7-day bearer secret in the URL path, visible to Render edge/access logs and chat link previews (which also spend the page rate limit). Follows from R8; note it in docs/deploy.md or accept explicitly.",
+        "resolved": false
+      },
+      {
+        "id": 24,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts join: an unknown code returns after one indexed lookup, while a dead code opens a transaction and takes the project lock, so timing could show a code once existed. Negligible (dead codes are unusable, attempts limited); optionally look up with the pending filters outside the tx as the page does.",
+        "resolved": false
+      },
+      {
+        "id": 25,
+        "severity": "non-blocking",
+        "text": "Migrations 20261112023324_invites and 20261112050321_invite_created_index have no down migration (Prisma); rolling back code is safe, removing the table needs a manual DROP TABLE \"Invite\". Mention in the PR.",
+        "resolved": false
+      },
+      {
+        "id": 26,
+        "severity": "non-blocking",
+        "text": "apps/api/src/members/routes.ts leave (~L180): an Owner who leaves keeps working invites (R7 by the user's choice); they know the plain codes and could rejoin within 7 days from a second account (the self-join check is per account, and is skipped if their account was deleted). Revoke the leaver's pending invites too if that's not wanted.",
+        "resolved": false
+      },
+      {
+        "id": 27,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/projects/outcomes.ts (~L67) and syncCycle.ts (~L96): dropping queued writes assumes GET /projects returns every membership; it's unpaged today, but adding paging later would silently drop queued edits for projects beyond the first page. Pin it with a comment or an API test.",
+        "resolved": false
+      },
+      {
+        "id": 28,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx (~L79): the profile email is stored in plain AsyncStorage and survives a 401/session expiry until the next sign-in overwrites it (reads are keyed by user id). Accept, or store only the display name.",
+        "resolved": false
+      }
+    ],
+    "reviewed": "39a2687ebd7ffe9da17779860690f1306d51df13cb66fb076a52b03f515e520a"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API tests on the _test DB: owner creates an invite expiring in 7 days (201); member 403, non-member and bad id 404.",
+        "criterion": "**AC1 (reqs 1, 25):** an Owner creates an invite and gets 201 with a code and an expiry 7 days out. A Member gets 403, and a non-member gets 404."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "Tests: generated codes use only the 31-character alphabet and 8 characters; joining accepts lowercase, spaces and dashes.",
+        "criterion": "**AC2 (req 2):** generated codes use only the allowed alphabet. Joining with lowercase, spaces or dashes succeeds."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "Test: one identical invalid_invite body for unknown, malformed, used, expired and revoked codes; used and expired cases also covered separately.",
+        "criterion": "**AC3 (reqs 3, 15):** an invite with an expiry in the past gives `invalid_invite`. A used one gives `invalid_invite` to a second person."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "Test: refuses a 21st pending invite with 409 too_many_invites and allows one after a revoke.",
+        "criterion": "**AC4 (req 4):** with 20 pending invites, a 21st gets 409 `too_many_invites`. After revoking one, creating succeeds."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "Test: stores only an HMAC of the code; listing pending invites returns no code.",
+        "criterion": "**AC5 (req 5):** the stored invite row doesn't contain the plain code. Listing pending invites returns no code."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "Tests: revoked invite gives invalid_invite on join, revoking again succeeds; members and non-members can't list or revoke.",
+        "criterion": "**AC6 (req 6):** an Owner lists pending invites and revokes one, after which joining with it gives `invalid_invite`. Revoking it again gives success. A Member can't list or revoke."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "Tests: demoted creator's invite still works; project delete removes invites; removing the creating Owner revokes their pending invites while others' stay pending; an Owner who left gets invalid_invite with their own invite.",
+        "criterion": "**AC7 (req 7):** the creating Owner is demoted, and the invite still works. Deleting the project removes its invites. When the creating Owner is removed, their pending invites are revoked (another person's join gives `invalid_invite`) while invites created by others stay pending. A person joining with an invite they created, after leaving, gets `invalid_invite`."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "Tests: pending invite page renders escaped project and inviter names with the required headers; unknown, malformed, used, revoked and expired give one identical 404 body without the project name.",
+        "criterion": "**AC8 (reqs 9, 12):** the valid-code page returns 200 HTML with the project name, inviter name, formatted code and install steps, and the listed headers. A project name containing `<script>` appears escaped. The unknown, used, revoked and expired cases each return the same 404 body with no project name."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "Test: en-US,en;q=0.9 gives English; no header or vi gives Vietnamese.",
+        "criterion": "**AC9 (req 10):** `Accept-Language: en-US,en;q=0.9` gives English. No header, or `vi`, gives Vietnamese."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "Tests: install link only when INVITE_INSTALL_URL is set, ask-the-inviter step otherwise; config.test.ts rejects http, ftp, javascript: and non-URL values without echoing them.",
+        "criterion": "**AC10 (req 11):** with `INVITE_INSTALL_URL` set, the page links to it. Unset, the step says to ask the inviter. A non-https value makes config loading fail (unit test)."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "Tests: the 61st page lookup in the window is 429 with the generic page then recovers; 429 too_many_attempts after 10 failed joins; parallel attempts never exceed the account limit.",
+        "criterion": "**AC11 (reqs 13, 19):** repeated page lookups or join attempts past the limit get 429. Parallel join attempts can't exceed the limit."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "Test: joining adds the person as member and their GET /projects includes the project with role member.",
+        "criterion": "**AC12 (reqs 14, 27):** after joining, the person's `GET /projects` includes the project with role `member`."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "Test: an existing member gets 409 already_member and the invite stays usable for someone else.",
+        "criterion": "**AC13 (req 16):** an existing member using a code gets 409 `already_member`, and the invite still works for someone else."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "Test: at 50 members joining gets 409 project_full and the invite stays pending.",
+        "criterion": "**AC14 (req 17):** with 50 members, joining gets 409 `project_full` and the invite stays pending."
+      },
+      "15": {
+        "result": "pass",
+        "evidence": "Tests: two concurrent joins with one code give exactly one member; joins racing at the cap never exceed 50.",
+        "criterion": "**AC15 (req 18):** two concurrent joins with one code produce exactly one new member and one `invalid_invite`."
+      },
+      "16": {
+        "result": "pass",
+        "evidence": "Tests: member list has owners first then join order, stable tie-break, no email field; non-member 404.",
+        "criterion": "**AC16 (req 20):** a Member lists members and gets names, roles and join times in the stated order, with no email field. A non-member gets 404."
+      },
+      "17": {
+        "result": "pass",
+        "evidence": "Tests: owner promotes a member, demotes another owner, demotes self with another owner present, removes a member and an owner; each change shows in the list.",
+        "criterion": "**AC17 (reqs 21, 22):** an Owner promotes a Member, demotes another Owner, demotes themselves while another Owner exists, and removes a Member and an Owner. Each change shows in the list."
+      },
+      "18": {
+        "result": "pass",
+        "evidence": "Tests: sole owner gets last_owner on self-demote and on leave; two owners demoting each other or leaving at once keep at least one owner.",
+        "criterion": "**AC18 (req 24):** the sole Owner gets 409 `last_owner` on demoting themselves and on leaving. Removing the only other Owner while the remover stays Owner is allowed. Two Owners demoting each other concurrently leave at least one Owner."
+      },
+      "19": {
+        "result": "pass",
+        "evidence": "Test: a removed person gets 404 on the project and its members, while their other project still works.",
+        "criterion": "**AC19 (req 26):** after being removed, the person gets 404 on `PATCH /projects/:id` and on the member list. Their other projects still work."
+      },
+      "20": {
+        "result": "pass",
+        "evidence": "Test: a member leaves and the project drops from their GET /projects.",
+        "criterion": "**AC20 (req 23):** a Member leaves, and the project disappears from their `GET /projects`."
+      },
+      "21": {
+        "result": "pass",
+        "evidence": "Mobile tests: a refresh no longer returning a project drops its queued update and removes it; member cache is pruned; routing leaves (never a spinner) when the project is gone.",
+        "criterion": "**AC21 (req 33, mobile unit test):** a refresh after the project is no longer returned drops it from the cache and drops its queued writes. The routing decision sends the person to the list."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API (npm run dev:phone): reported \"ok rồi đó\". Calls take about 1-2s against the dev database in us-east-2 (measured 226ms per query), expected to be fast in production in Singapore.",
+        "criterion": "**AC22 (req 29, QA by hand on iPhone):** each move in the navigation map opens the stated screen, and back and swipe-back return as stated."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API (npm run dev:phone): reported \"ok rồi đó\". Calls take about 1-2s against the dev database in us-east-2 (measured 226ms per query), expected to be fast in production in Singapore.",
+        "criterion": "**AC23 (reqs 30–32, 34, QA by hand on iPhone):** the Invite button opens the share sheet with the message in the app language. The code entered in Join opens the project. Each error message appears for its case. Pending invites start collapsed. Members see no manage actions."
+      },
+      "24": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API (npm run dev:phone): reported \"ok rồi đó\". Calls take about 1-2s against the dev database in us-east-2 (measured 226ms per query), expected to be fast in production in Singapore.",
+        "criterion": "**AC24 (req 28, QA by hand):** with the phone offline, Invite, Join and member actions show the offline message, and nothing is queued."
+      },
+      "25": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API: reported \"ok rồi đó\". Unit part passes: avatarRow.test.ts covers 1/3/4/50 members, +N and the Vietnamese initial.",
+        "criterion": "**AC28 (req 29a, a mobile unit test plus QA by hand on iPhone):** a pure function gives the row's contents: 1, 3, 4 and 50 members produce 1, 3, 3 and 3 avatars, no `+N`, no `+N`, `+1` and `+47`, and always a final `+`. The initial is the uppercase first letter of the name. On the phone, the avatars overlap with a visible ring, all share one colour, and tapping any part of the row opens the Members screen. A Member sees the same row."
+      },
+      "26": {
+        "result": "pass",
+        "evidence": "i18n/parity.test.ts checks en.json and vi.json have the same keys both ways.",
+        "criterion": "**AC25 (req 35):** a test checks that `en.json` and `vi.json` have the same keys."
+      },
+      "27": {
+        "result": "pass",
+        "evidence": "Test applies migrations up to projects in a fresh schema, seeds a project and members, applies the invites migration, and finds the rows unchanged and an empty Invite table.",
+        "criterion": "**AC26 (req 38):** the migration applies to a database that already has projects and members, and they are unchanged."
+      },
+      "28": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone: the Account tab shows name and email correctly (\"info ok rồi\"). Unit tests cover the stored-profile owner check and the offline fallback.",
+        "criterion": "**AC27 (req 36, QA by hand on iPhone, plus a mobile unit test for the offline fallback):** the Account tab shows the signed-in person's display name and email above the language setting, with no edit control. After switching accounts it shows the new person's details. Offline, it shows the last known values."
+      }
+    },
+    "checked": "39a2687ebd7ffe9da17779860690f1306d51df13cb66fb076a52b03f515e520a"
+  },
+  "pr": "https://github.com/LanHuong142002/earnm/pull/29"
+}

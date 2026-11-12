@@ -340,4 +340,51 @@ describe("/projects", () => {
       for (const r of await Promise.all(calls(u.token))) expectError(r, 401, "not_signed_in");
     });
   });
+  describe("owner re-checked under the project lock", () => {
+    /** Holds the project lock, lets `send` queue on it, demotes `who` in the holding transaction, commits. */
+    async function demoteWhileQueued(projectId: string, who: User, send: () => request.Test) {
+      let locked!: () => void;
+      const hasLock = new Promise<void>((r) => (locked = r));
+      let go!: () => void;
+      const proceed = new Promise<void>((r) => (go = r));
+      const holder = prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
+          locked();
+          await proceed;
+          await tx.projectMember.update({
+            where: { projectId_userId: { projectId, userId: who.id } },
+            data: { role: "member" },
+          });
+        },
+        { timeout: 20_000 },
+      );
+      await hasLock;
+      const pending = Promise.resolve(send()); // supertest is lazy; this starts the request
+      await new Promise((r) => setTimeout(r, 400));
+      go();
+      await holder;
+      return pending;
+    }
+
+    it("refuses an edit from an owner demoted while it waited for the lock", async () => {
+      const a = await user();
+      const b = await user();
+      const id = await seed(a, [], "Before");
+      await prisma.projectMember.create({ data: { projectId: id, userId: b.id, role: "owner" } });
+      const res = await demoteWhileQueued(id, b, () => patch(b, id, { name: { value: "After", editedAt: iso(1000) } }));
+      expectError(res, 403, "forbidden");
+      expect((await prisma.project.findUniqueOrThrow({ where: { id } })).name).toBe("Before");
+    }, 30_000);
+
+    it("refuses a delete from an owner demoted while it waited for the lock", async () => {
+      const a = await user();
+      const b = await user();
+      const id = await seed(a);
+      await prisma.projectMember.create({ data: { projectId: id, userId: b.id, role: "owner" } });
+      const res = await demoteWhileQueued(id, b, () => del(b, id));
+      expectError(res, 403, "forbidden");
+      expect(await prisma.project.count({ where: { id } })).toBe(1);
+    }, 30_000);
+  });
 });

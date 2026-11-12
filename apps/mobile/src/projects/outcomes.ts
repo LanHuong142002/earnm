@@ -3,6 +3,7 @@ import type { Change, ChangeKind } from "../sync/queue";
 import type { Project } from "./api";
 import { withApplied } from "./optimistic";
 import { applyOverlay } from "./store";
+import { PROJECT_ENTITY } from "./sync";
 
 /** Why the server refused a change for good; the screen picks the wording. */
 export type RejectedReason = "forbidden" | "not_found" | "conflict" | "invalid";
@@ -42,9 +43,36 @@ export function onRejected(list: Project[], change: Change, error: ApiError, wai
   return { list, notice, needsRefresh: true };
 }
 
+/** The list with a project the person just joined: replaced in place if already there, else added at the end. */
+export function withJoined(list: Project[], project: Project): Project[] {
+  const index = list.findIndex((p) => p.id === project.id);
+  if (index < 0) return [...list, project];
+  return list.map((p, i) => (i === index ? project : p));
+}
+
+/** The list without the project (the person left it). */
+export function withoutProject(list: Project[], id: string): Project[] {
+  return list.filter((p) => p.id !== id);
+}
+
 /** The local list after a refresh: the server's projects with the waiting changes on top. */
 export function restoreFromServer(server: Project[], waiting: Change[]): Project[] {
   return applyOverlay(server, waiting);
+}
+
+/**
+ * Queued project ids absent from `serverIds` (every id the server listed, even for an item that failed validation), meaning the person lost the project, so their waiting
+ * changes can be dropped. An id with a queued create is kept: that project is not on the server yet.
+ */
+export function projectsToDrop(serverIds: string[], queued: Change[]): string[] {
+  const onServer = new Set(serverIds);
+  const projectChanges = queued.filter((c) => c.entity === PROJECT_ENTITY);
+  const pendingCreate = new Set(projectChanges.filter((c) => c.kind === "create").map((c) => c.entityId));
+  const out: string[] = [];
+  for (const c of projectChanges) {
+    if (!onServer.has(c.entityId) && !pendingCreate.has(c.entityId) && !out.includes(c.entityId)) out.push(c.entityId);
+  }
+  return out;
 }
 
 const REASON_KEY: Record<RejectedReason, string> = {

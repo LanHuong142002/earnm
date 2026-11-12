@@ -89,6 +89,8 @@ export const iconSize = { sm: 20, md: 22, lg: 24, xl: 30 } as const;
 
 export const projectCard = { coverHeight: 92 } as const;
 
+export const avatar = { size: 34, ring: 2, overlap: 11, gap: 6 } as const;
+
 export const radius = { pill: 999, field: 12, button: 12, tile: 14, card: 16, checkbox: 6 } as const;
 
 export const motion = {

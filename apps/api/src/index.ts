@@ -20,6 +20,8 @@ const app = createApp({
   now: () => new Date(),
   trustProxy: config.trustProxy,
   internalSecret: config.internalSecret,
+  inviteInstallUrl: config.inviteInstallUrl,
+  inviteCodeKey: config.inviteCodeKey,
 });
 
 app.listen(config.port, () => {
