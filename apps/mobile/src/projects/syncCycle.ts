@@ -77,14 +77,21 @@ export function createSyncCycle(deps: SyncCycleDeps) {
     if (!token || gen !== deps.getGeneration()) return;
     try {
       const ownerAtStart = await deps.getQueue().ownerId();
-      const server = (await deps.listProjects(token)).filter(isProject);
+      const raw: unknown[] = await deps.listProjects(token);
+      // Access is judged by the ids the server listed; a malformed item must not look like a lost project.
+      const serverIds = raw.flatMap((item) =>
+        typeof item === "object" && item !== null && typeof (item as { id?: unknown }).id === "string"
+          ? [(item as { id: string }).id]
+          : [],
+      );
+      const server = raw.filter(isProject);
       // A slow read that finishes after the session or the person changed must touch nothing.
       if (gen !== deps.getGeneration()) return;
       const queue = deps.getQueue();
       // Projects the server no longer lists: their waiting changes can never succeed (R26).
       // Only for the person this read was made for.
       if ((await queue.ownerId()) === ownerAtStart) {
-        for (const id of outcomes.projectsToDrop(server, await queue.waiting())) {
+        for (const id of outcomes.projectsToDrop(serverIds, await queue.waiting())) {
           await queue.dropEntity(PROJECT_ENTITY, id);
         }
       }

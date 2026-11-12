@@ -265,11 +265,9 @@ export default function MembersScreen() {
           <View style={{ gap: spacing[1] }}>
             {members.map((member) => {
               const row = rowModel(member, userId, role);
-              return (
-                <View
-                  key={member.userId}
-                  style={{ flexDirection: "row", alignItems: "center", gap: spacing[2], minHeight: layout.controlHeight }}
-                >
+              const rowStyle = { flexDirection: "row", alignItems: "center", gap: spacing[2], minHeight: layout.controlHeight } as const;
+              const content = (
+                <>
                   <Avatar letter={initialOf(member.displayName)} />
                   <View style={{ flex: 1 }}>
                     <Text style={[typography.bodyStrong, { color: colors.text }]}>
@@ -286,21 +284,25 @@ export default function MembersScreen() {
                     busy?.endsWith(`:${member.userId}`) ? (
                       <ActivityIndicator accessibilityLabel={t("common.loading")} color={colors.textSecondary} />
                     ) : (
-                      <PressableScale
-                        accessibilityRole="button"
-                        accessibilityLabel={t("members.more", { name: member.displayName })}
-                        onPress={() => openActions(member, row.toggleTo)}
-                        style={{
-                          width: layout.controlHeight,
-                          height: layout.controlHeight,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Ionicons name="ellipsis-horizontal" size={iconSize.md} color={colors.textSecondary} />
-                      </PressableScale>
+                      <Ionicons name="ellipsis-horizontal" size={iconSize.md} color={colors.textSecondary} />
                     )
                   ) : null}
+                </>
+              );
+              // An Owner taps another member's row to open the actions; the "..." is only a hint.
+              return row.canManage ? (
+                <PressableScale
+                  key={member.userId}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("members.more", { name: member.displayName })}
+                  onPress={() => openActions(member, row.toggleTo)}
+                  style={rowStyle}
+                >
+                  {content}
+                </PressableScale>
+              ) : (
+                <View key={member.userId} style={rowStyle}>
+                  {content}
                 </View>
               );
             })}

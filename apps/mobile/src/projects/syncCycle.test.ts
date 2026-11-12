@@ -238,6 +238,14 @@ describe("sync cycle: a project the person lost (AC21)", () => {
     expect(h.patchProject).not.toHaveBeenCalled();
   });
 
+  it("a malformed server item still listed by id does not drop that project's queued changes", async () => {
+    const bad = { id: "a", name: 5 } as unknown as Project;
+    const h = setup({ patch: async () => ({}), list: [bad, B] }, [A, B]);
+    await editName(h, "Edited offline");
+    await h.cycle.refresh();
+    expect(await h.queue.count()).toBe(1);
+  });
+
   it("keeps a project created offline that the server does not have yet", async () => {
     const created = { ...A, id: "new", name: "Offline" };
     const h = setup({ patch: async () => ({}), list: [B] }, [created, B]);

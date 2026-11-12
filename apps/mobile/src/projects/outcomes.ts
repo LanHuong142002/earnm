@@ -49,11 +49,11 @@ export function restoreFromServer(server: Project[], waiting: Change[]): Project
 }
 
 /**
- * Queued project ids the server no longer lists (the person lost the project), so their waiting
+ * Queued project ids absent from `serverIds` (every id the server listed, even for an item that failed validation), meaning the person lost the project, so their waiting
  * changes can be dropped. An id with a queued create is kept: that project is not on the server yet.
  */
-export function projectsToDrop(server: Project[], queued: Change[]): string[] {
-  const onServer = new Set(server.map((p) => p.id));
+export function projectsToDrop(serverIds: string[], queued: Change[]): string[] {
+  const onServer = new Set(serverIds);
   const projectChanges = queued.filter((c) => c.entity === PROJECT_ENTITY);
   const pendingCreate = new Set(projectChanges.filter((c) => c.kind === "create").map((c) => c.entityId));
   const out: string[] = [];

@@ -2,22 +2,19 @@ import { Text, View } from "react-native";
 
 import { useTheme } from "../theme/useTheme";
 
-export const AVATAR_SIZE = 34;
-export const AVATAR_RING = 2;
-
 /** Round, single-tone avatar: `field` fill, one letter, a ring in the `background` token. */
 export function Avatar({ letter, muted = false }: { letter: string; muted?: boolean }) {
-  const { colors, typography } = useTheme();
+  const { colors, typography, avatar } = useTheme();
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={{
-        width: AVATAR_SIZE,
-        height: AVATAR_SIZE,
-        borderRadius: AVATAR_SIZE / 2,
+        width: avatar.size,
+        height: avatar.size,
+        borderRadius: avatar.size / 2,
         backgroundColor: colors.field,
-        borderWidth: AVATAR_RING,
+        borderWidth: avatar.ring,
         borderColor: colors.background,
         alignItems: "center",
         justifyContent: "center",

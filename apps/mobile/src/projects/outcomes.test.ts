@@ -92,11 +92,11 @@ describe("noticeKeys", () => {
 
 describe("projectsToDrop", () => {
   it("returns queued project ids the server no longer lists", () => {
-    expect(projectsToDrop([A], [change("update", "a"), change("update", "b")])).toEqual(["b"]);
+    expect(projectsToDrop(["a"], [change("update", "a"), change("update", "b")])).toEqual(["b"]);
   });
 
   it("keeps a project that is only queued as a create (not on the server yet)", () => {
-    expect(projectsToDrop([A], [change("create", "new"), change("update", "gone")])).toEqual(["gone"]);
+    expect(projectsToDrop(["a"], [change("create", "new"), change("update", "gone")])).toEqual(["gone"]);
   });
 
   it("keeps an id with a create even when other ops for it are queued after the create", () => {
@@ -109,6 +109,6 @@ describe("projectsToDrop", () => {
   });
 
   it("returns nothing when everything queued is on the server", () => {
-    expect(projectsToDrop([A, B], [change("update", "a"), change("delete", "b")])).toEqual([]);
+    expect(projectsToDrop(["a", "b"], [change("update", "a"), change("delete", "b")])).toEqual([]);
   });
 });
