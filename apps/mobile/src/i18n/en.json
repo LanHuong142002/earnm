@@ -102,7 +102,9 @@
     "rejectedCreate": "Your new project {{name}} couldn't be created.",
     "rejectedCreateNoName": "Your new project couldn't be created.",
     "roleOwner": "Owner",
-    "cardLabel": "{{name}}, {{currency}}, {{role}}"
+    "cardLabel": "{{name}}, {{currency}}, {{role}}",
+    "areaProducts": "Products",
+    "areaFixedCosts": "Fixed costs"
   },
   "tabs": {
     "home": "Home",
@@ -152,6 +154,27 @@
       "dueTimeNeedsDate": "Pick a day before adding a time.",
       "assigneesTooMany": "A task can have at most 20 people.",
       "assigneesDuplicate": "Each person can be added only once."
-    }
+    },
+    "title": "Tasks",
+    "notDone": "{{count}} not done",
+    "newTask": "New task",
+    "statusAll": "All",
+    "filterStatusGroup": "Filter by status",
+    "filterAssignedToMe": "Assigned to me",
+    "filterOnlyMe": "Only me",
+    "filterDueSoon": "Due soon",
+    "doneSection": "Done ({{count}})",
+    "emptyTitle": "No tasks yet",
+    "emptyBody": "Add the first task for this project.",
+    "noMatchTitle": "No tasks match",
+    "noMatchBody": "Try different filters.",
+    "clearFilters": "Clear filters",
+    "moreAssignees": "+{{count}}",
+    "changeStatus": "Change status",
+    "statusPillLabel": "{{status}}. Change status",
+    "cardLabel": "{{title}}, {{status}}",
+    "dueOn": "Due {{date}}",
+    "overdueOn": "Overdue, was due {{date}}",
+    "assignedTo": "Assigned to {{names}}"
   }
 }

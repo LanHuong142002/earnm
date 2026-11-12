@@ -26,6 +26,7 @@ export default function HomeStackLayout() {
       <Stack.Screen name="projects/new" options={{ title: t("projects.newTitle") }} />
       <Stack.Screen name="projects/[id]/index" options={{ title: t("projects.projectTitle") }} />
       <Stack.Screen name="projects/[id]/edit" options={{ title: t("projects.editTitle") }} />
+      <Stack.Screen name="projects/[id]/tasks/index" options={{ title: t("tasks.title") }} />
     </Stack>
   );
 }

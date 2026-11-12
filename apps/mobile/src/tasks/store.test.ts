@@ -132,6 +132,17 @@ describe("task cache", () => {
     expect(await loadTaskCache(store, "u1")).toBeNull();
   });
 
+  it("filters saved before onlyMe existed load with onlyMe off", async () => {
+    const store = createMemoryStore();
+    await store.setJSON("tasks.cache.v1", {
+      ownerId: "u1",
+      byProject: {},
+      filters: { p1: { status: "doing", mine: true, dueSoon: true } },
+    });
+    const loaded = await loadTaskCache(store, "u1");
+    expect(loaded?.filters.p1).toEqual({ status: "doing", mine: true, onlyMe: false, dueSoon: true });
+  });
+
   it("clear removes it", async () => {
     const store = createMemoryStore();
     await saveTaskCache(store, emptyTaskCache("u1"));
@@ -145,6 +156,7 @@ describe("openTaskCache: the decision is acted on, not just returned", () => {
     setProjectFilters(setProjectTasks(emptyTaskCache("u1"), "p1", [makeTask()]), "p1", {
       status: "done",
       mine: true,
+      onlyMe: false,
       dueSoon: false,
     });
 
@@ -178,7 +190,7 @@ describe("cache helpers", () => {
   it("setProjectTasks and setProjectFilters do not change their input", () => {
     const base = emptyTaskCache("u1");
     setProjectTasks(base, "p1", [makeTask()]);
-    setProjectFilters(base, "p1", { status: "all", mine: false, dueSoon: true });
+    setProjectFilters(base, "p1", { status: "all", mine: false, onlyMe: false, dueSoon: true });
     expect(base).toEqual(emptyTaskCache("u1"));
   });
 
@@ -186,7 +198,7 @@ describe("cache helpers", () => {
     let cache = emptyTaskCache("u1");
     cache = setProjectTasks(cache, "p1", [makeTask()]);
     cache = setProjectTasks(cache, "p2", [makeTask({ id: "x", projectId: "p2" })]);
-    cache = setProjectFilters(cache, "p2", { status: "all", mine: true, dueSoon: false });
+    cache = setProjectFilters(cache, "p2", { status: "all", mine: true, onlyMe: false, dueSoon: false });
     const pruned = pruneTaskCache(cache, ["p1"]);
     expect(Object.keys(pruned.byProject)).toEqual(["p1"]);
     expect(pruned.filters).toEqual({});

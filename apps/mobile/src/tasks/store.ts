@@ -42,8 +42,14 @@ function isFilters(value: unknown): value is TaskFilters {
     isRecord(value) &&
     (value.status === "all" || (TASK_STATUSES as readonly unknown[]).includes(value.status)) &&
     typeof value.mine === "boolean" &&
+    // Copies saved before "only me" existed have no onlyMe; they load with it off.
+    (value.onlyMe === undefined || typeof value.onlyMe === "boolean") &&
     typeof value.dueSoon === "boolean"
   );
+}
+
+function withDefaults(filters: Record<string, Partial<TaskFilters>>): Record<string, TaskFilters> {
+  return Object.fromEntries(Object.entries(filters).map(([id, f]) => [id, { ...DEFAULT_FILTERS, ...f }]));
 }
 
 async function readTaskCache(store: KeyValueStore): Promise<TaskCache | null> {
@@ -59,7 +65,7 @@ async function readTaskCache(store: KeyValueStore): Promise<TaskCache | null> {
     if (!Array.isArray(list) || !list.every(isTask)) return null;
   }
   if (!Object.values(saved.filters).every(isFilters)) return null;
-  return { ownerId: saved.ownerId, byProject: saved.byProject as Record<string, Task[]>, filters: saved.filters as Record<string, TaskFilters> };
+  return { ownerId: saved.ownerId, byProject: saved.byProject as Record<string, Task[]>, filters: withDefaults(saved.filters as Record<string, Partial<TaskFilters>>) };
 }
 
 /** The stored copy, or null when there is none, it is unreadable, or it belongs to someone else. */

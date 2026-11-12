@@ -32,6 +32,12 @@ const tasks = [
 ];
 const ids = (list: Task[]) => list.map((t) => t.id);
 
+describe("DEFAULT_FILTERS", () => {
+  it("has every switch off", () => {
+    expect(DEFAULT_FILTERS).toEqual({ status: "all", mine: false, onlyMe: false, dueSoon: false });
+  });
+});
+
 describe("applyFilters", () => {
   it("default keeps everything", () => {
     expect(ids(applyFilters(tasks, DEFAULT_FILTERS, "me", now))).toEqual(["a", "b", "c", "d", "e"]);
@@ -44,13 +50,22 @@ describe("applyFilters", () => {
   it("my tasks alone", () => {
     expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, mine: true }, "me", now))).toEqual(["a", "c", "e"]);
   });
+  it("only me keeps tasks where I am the one and only assignee", () => {
+    expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, onlyMe: true }, "me", now))).toEqual(["a", "c"]);
+  });
+  it("only me with assigned to me is the same as only me", () => {
+    expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, mine: true, onlyMe: true }, "me", now))).toEqual(["a", "c"]);
+  });
+  it("only me never matches unassigned tasks or someone else", () => {
+    expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, onlyMe: true }, "o", now))).toEqual(["b"]);
+  });
   it("due soon alone excludes done and undated", () => {
     expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, dueSoon: true }, "me", now))).toEqual(["a", "b"]);
   });
   it("combines all conditions", () => {
-    expect(ids(applyFilters(tasks, { status: "todo", mine: true, dueSoon: true }, "me", now))).toEqual(["a"]);
-    expect(ids(applyFilters(tasks, { status: "doing", mine: true, dueSoon: false }, "me", now))).toEqual(["e"]);
-    expect(ids(applyFilters(tasks, { status: "done", mine: false, dueSoon: true }, "me", now))).toEqual([]);
+    expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, status: "todo", mine: true, dueSoon: true }, "me", now))).toEqual(["a"]);
+    expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, status: "doing", mine: true }, "me", now))).toEqual(["e"]);
+    expect(ids(applyFilters(tasks, { ...DEFAULT_FILTERS, status: "done", dueSoon: true }, "me", now))).toEqual([]);
   });
   it("does not mutate the input", () => {
     const copy = [...tasks];

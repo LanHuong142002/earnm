@@ -100,7 +100,9 @@
     "rejectedCreate": "Không tạo được dự án mới {{name}}.",
     "rejectedCreateNoName": "Không tạo được dự án mới của bạn.",
     "roleOwner": "Chủ dự án",
-    "cardLabel": "{{name}}, {{currency}}, {{role}}"
+    "cardLabel": "{{name}}, {{currency}}, {{role}}",
+    "areaProducts": "Sản phẩm",
+    "areaFixedCosts": "Chi phí cố định"
   },
   "tabs": {
     "home": "Trang chủ",
@@ -150,6 +152,27 @@
       "dueTimeNeedsDate": "Hãy chọn ngày trước khi thêm giờ.",
       "assigneesTooMany": "Một công việc có tối đa 20 người.",
       "assigneesDuplicate": "Mỗi người chỉ được thêm một lần."
-    }
+    },
+    "title": "Công việc",
+    "notDone": "{{count}} chưa xong",
+    "newTask": "Công việc mới",
+    "statusAll": "Tất cả",
+    "filterStatusGroup": "Lọc theo trạng thái",
+    "filterAssignedToMe": "Giao cho tôi",
+    "filterOnlyMe": "Chỉ mình tôi",
+    "filterDueSoon": "Sắp đến hạn",
+    "doneSection": "Xong ({{count}})",
+    "emptyTitle": "Chưa có công việc nào",
+    "emptyBody": "Thêm công việc đầu tiên cho dự án này.",
+    "noMatchTitle": "Không có công việc phù hợp",
+    "noMatchBody": "Thử đổi bộ lọc.",
+    "clearFilters": "Bỏ bộ lọc",
+    "moreAssignees": "+{{count}}",
+    "changeStatus": "Đổi trạng thái",
+    "statusPillLabel": "{{status}}. Đổi trạng thái",
+    "cardLabel": "{{title}}, {{status}}",
+    "dueOn": "Hạn {{date}}",
+    "overdueOn": "Quá hạn, hạn là {{date}}",
+    "assignedTo": "Giao cho {{names}}"
   }
 }
