@@ -216,6 +216,14 @@
     "noMatchTitle": "No tasks match",
     "noMatchBody": "Try different filters.",
     "clearFilters": "Clear filters",
+    "progressCount": "{{done}}/{{total}} items",
+    "progressA11y": "{{done}} of {{total}} items done",
+    "labels": {
+      "filterRow": "Labels",
+      "all": "All",
+      "filterRowA11y": "Filter by labels, {{value}}",
+      "cardA11y": "Labels: {{names}}"
+    },
     "moreAssignees": "+{{count}}",
     "changeStatus": "Change status",
     "statusPillLabel": "{{status}}. Change status",

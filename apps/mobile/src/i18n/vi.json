@@ -214,6 +214,14 @@
     "noMatchTitle": "Không có công việc phù hợp",
     "noMatchBody": "Thử đổi bộ lọc.",
     "clearFilters": "Bỏ bộ lọc",
+    "progressCount": "{{done}}/{{total}} mục",
+    "progressA11y": "Xong {{done}} trên {{total}} mục",
+    "labels": {
+      "filterRow": "Nhãn",
+      "all": "Tất cả",
+      "filterRowA11y": "Lọc theo nhãn, {{value}}",
+      "cardA11y": "Nhãn: {{names}}"
+    },
     "moreAssignees": "+{{count}}",
     "changeStatus": "Đổi trạng thái",
     "statusPillLabel": "{{status}}. Đổi trạng thái",
