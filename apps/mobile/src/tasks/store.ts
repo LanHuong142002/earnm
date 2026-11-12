@@ -10,10 +10,12 @@ export type TaskCache = {
   ownerId: string;
   byProject: Record<string, Task[]>;
   filters: Record<string, TaskFilters>;
+  /** Each project's people for the assignee picker, kept for offline use (R27). */
+  membersByProject: Record<string, TaskAssignee[]>;
 };
 
 export function emptyTaskCache(ownerId: string): TaskCache {
-  return { ownerId, byProject: {}, filters: {} };
+  return { ownerId, byProject: {}, filters: {}, membersByProject: {} };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -35,6 +37,18 @@ export function isTask(value: unknown): value is Task {
     (value.createdById === null || typeof value.createdById === "string") &&
     typeof value.createdAt === "string"
   );
+}
+
+function isAssignee(value: unknown): value is TaskAssignee {
+  return isRecord(value) && typeof value.id === "string" && typeof value.displayName === "string";
+}
+
+/** Copies saved before members were kept have none; a damaged list is dropped, not the whole copy. */
+function readMembers(value: unknown): Record<string, TaskAssignee[]> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(([, list]) => Array.isArray(list) && list.every(isAssignee)),
+  ) as Record<string, TaskAssignee[]>;
 }
 
 function isFilters(value: unknown): value is TaskFilters {
@@ -65,7 +79,9 @@ async function readTaskCache(store: KeyValueStore): Promise<TaskCache | null> {
     if (!Array.isArray(list) || !list.every(isTask)) return null;
   }
   if (!Object.values(saved.filters).every(isFilters)) return null;
-  return { ownerId: saved.ownerId, byProject: saved.byProject as Record<string, Task[]>, filters: withDefaults(saved.filters as Record<string, Partial<TaskFilters>>) };
+  return { ownerId: saved.ownerId, byProject: saved.byProject as Record<string, Task[]>, filters: withDefaults(saved.filters as Record<string, Partial<TaskFilters>>),
+    membersByProject: readMembers(saved.membersByProject),
+  };
 }
 
 /** The stored copy, or null when there is none, it is unreadable, or it belongs to someone else. */
@@ -98,6 +114,10 @@ export function setProjectTasks(cache: TaskCache, projectId: string, tasks: Task
   return { ...cache, byProject: { ...cache.byProject, [projectId]: tasks } };
 }
 
+export function setProjectMembers(cache: TaskCache, projectId: string, people: TaskAssignee[]): TaskCache {
+  return { ...cache, membersByProject: { ...cache.membersByProject, [projectId]: people } };
+}
+
 export function setProjectFilters(cache: TaskCache, projectId: string, filters: TaskFilters): TaskCache {
   return { ...cache, filters: { ...cache.filters, [projectId]: filters } };
 }
@@ -106,11 +126,16 @@ export function filtersFor(cache: TaskCache, projectId: string): TaskFilters {
   return cache.filters[projectId] ?? DEFAULT_FILTERS;
 }
 
-/** Drops the tasks and filter choices of projects that are no longer in `projectIds`. */
+/** Drops the tasks, members and filter choices of projects that are no longer in `projectIds`. */
 export function pruneTaskCache(cache: TaskCache, projectIds: string[]): TaskCache {
   const keep = new Set(projectIds);
   const only = <T>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([id]) => keep.has(id)));
-  return { ...cache, byProject: only(cache.byProject), filters: only(cache.filters) };
+  return {
+    ...cache,
+    byProject: only(cache.byProject),
+    filters: only(cache.filters),
+    membersByProject: only(cache.membersByProject),
+  };
 }
 
 function assigneesFor(ids: string[], names: Record<string, string>, existing: TaskAssignee[]): TaskAssignee[] {

@@ -75,8 +75,11 @@ describe("editFromForm", () => {
   it("clearing only the time sends only the time", () => {
     expect(editFromForm(opened, clearTime(opened))).toEqual({ dueTime: null });
   });
-  it("never sends assignees from the form", () => {
-    expect(editFromForm(opened, { ...opened, assigneeIds: ["x"] })).toEqual({});
+  it("sends assignees only when the set changed", () => {
+    expect(editFromForm(opened, { ...opened, assigneeIds: ["x"] })).toEqual({ assigneeIds: ["x"] });
+    const two = { ...opened, assigneeIds: ["a", "b"] };
+    expect(editFromForm(two, { ...two, assigneeIds: ["b", "a"] })).toEqual({});
+    expect(editFromForm(two, { ...two, assigneeIds: [] })).toEqual({ assigneeIds: [] });
   });
 });
 

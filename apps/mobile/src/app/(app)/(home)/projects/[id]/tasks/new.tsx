@@ -32,6 +32,7 @@ export default function NewTaskScreen() {
 
   return (
     <TaskForm
+      projectId={project.id}
       initial={emptyForm()}
       submitLabel={t("tasks.saveButton")}
       onSubmit={async (form) => {

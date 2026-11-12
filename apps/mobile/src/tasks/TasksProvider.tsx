@@ -14,7 +14,9 @@ import { getStoredUserId, getToken } from "../auth/token-store";
 import { newProjectId as newId } from "../projects/newProjectId";
 import { useProjects } from "../projects/ProjectsProvider";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
+import { listMembers } from "../lib/api";
 import { listTasks } from "./api";
+import { membersToAssignees } from "./assignees";
 import { DEFAULT_FILTERS, type TaskFilters } from "./filters";
 import { deriveMembers, showLocalChange } from "./localChange";
 import { planTaskCreate, planTaskDelete, planTaskUpdate, type TaskEdit } from "./optimistic";
@@ -26,6 +28,7 @@ import {
   pruneTaskCache,
   saveTaskCache,
   setProjectFilters,
+  setProjectMembers,
   setProjectTasks,
   type TaskCache,
 } from "./store";
@@ -53,8 +56,13 @@ type TasksContextValue = {
   filtersFor: (projectId: string) => TaskFilters;
   /** Remembered per project until sign-out (R24). */
   setFilters: (projectId: string, filters: TaskFilters) => Promise<void>;
-  /** People a task in this project can name: me, assignees on cached tasks, plus the `members` prop. */
+  /**
+   * People a task in this project can name: me, assignees on cached tasks, the project's members
+   * as last fetched (kept for offline use), plus the `members` prop. Changes when members arrive.
+   */
   membersFor: (projectId: string) => TaskAssignee[];
+  /** Fetches the project's members and keeps them. Does nothing when offline or not `ready`. */
+  refreshMembers: (projectId: string) => Promise<void>;
   create: (projectId: string, input: TaskInput) => Promise<TaskMutationResult<{ id: string }>>;
   update: (projectId: string, taskId: string, edit: TaskEdit) => Promise<TaskMutationResult>;
   setStatus: (projectId: string, taskId: string, status: TaskStatus) => Promise<TaskMutationResult>;
@@ -76,8 +84,8 @@ export function useTasks(): TasksContextValue {
 type Props = {
   children: ReactNode;
   /**
-   * Seam for the member list (task 10): the people of a project, from the server. Until it exists
-   * the provider derives members from the signed-in user and the assignees on cached tasks.
+   * Extra people per project, laid over the derived list (me and the assignees on cached tasks)
+   * and the members the provider keeps itself.
    */
   members?: (projectId: string) => TaskAssignee[];
 };
@@ -277,10 +285,32 @@ export function TasksProvider({ children, members }: Props) {
     [userId, displayName],
   );
 
+  // `cache` is a dependency only so the picker re-renders when members arrive.
   const membersFor = useCallback(
     (projectId: string) =>
-      deriveMembers(me, cacheRef.current.byProject[projectId] ?? [], membersRef.current?.(projectId) ?? []),
-    [me],
+      deriveMembers(me, cacheRef.current.byProject[projectId] ?? [], [
+        ...(cacheRef.current.membersByProject[projectId] ?? []),
+        ...(membersRef.current?.(projectId) ?? []),
+      ]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [me, cache],
+  );
+
+  const refreshMembers = useCallback<TasksContextValue["refreshMembers"]>(
+    async (projectId) => {
+      if (!readyRef.current) return;
+      const gen = genRef.current;
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const people = membersToAssignees(await listMembers(token, projectId));
+        if (gen !== genRef.current || wipedRef.current || !readyRef.current) return;
+        await publish(setProjectMembers(cacheRef.current, projectId, people));
+      } catch {
+        // Offline or refused: the saved list stays.
+      }
+    },
+    [publish],
   );
 
   const create = useCallback<TasksContextValue["create"]>(
@@ -374,6 +404,7 @@ export function TasksProvider({ children, members }: Props) {
       filtersFor,
       setFilters,
       membersFor,
+      refreshMembers,
       create,
       update,
       setStatus,
@@ -382,7 +413,7 @@ export function TasksProvider({ children, members }: Props) {
       rejectedNotice,
       dismissRejectedNotice,
     }),
-    [ready, tasksFor, filtersFor, setFilters, membersFor, create, update, setStatus, remove, refresh, rejectedNotice, dismissRejectedNotice],
+    [ready, tasksFor, filtersFor, setFilters, membersFor, refreshMembers, create, update, setStatus, remove, refresh, rejectedNotice, dismissRejectedNotice],
   );
 
   return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>;

@@ -2,10 +2,7 @@ import type { TaskEdit } from "./optimistic";
 import type { Task } from "./types";
 import type { TaskInput } from "./validate";
 
-/**
- * What the task form holds. `assigneeIds` is carried, not edited, until the assignee picker
- * (task 10) exists: new tasks have none and an edit never sends them.
- */
+/** What the task form holds. */
 export type TaskForm = {
   title: string;
   description: string;
@@ -34,6 +31,10 @@ export function inputFromForm(form: TaskForm): TaskInput {
   return { ...form, assigneeIds: [...form.assigneeIds] };
 }
 
+function sameIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id));
+}
+
 /** Only the fields that differ from what the form opened with, so a refresh in between isn't reverted. */
 export function editFromForm(opened: TaskForm, form: TaskForm): TaskEdit {
   const edit: TaskEdit = {};
@@ -46,7 +47,7 @@ export function editFromForm(opened: TaskForm, form: TaskForm): TaskEdit {
     if (form.dueDate === null) edit.dueTime = null;
   }
   if (form.dueTime !== opened.dueTime) edit.dueTime = form.dueTime;
-  // assigneeIds: added with the assignee picker (task 10).
+  if (!sameIds(opened.assigneeIds, form.assigneeIds)) edit.assigneeIds = [...form.assigneeIds];
   return edit;
 }
 

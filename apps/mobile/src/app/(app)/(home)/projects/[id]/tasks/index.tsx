@@ -34,7 +34,7 @@ export default function TaskListScreen() {
   const { user } = useAuth();
   const { status, projects } = useProjects();
   const tasks = useTasks();
-  const { ready, refresh, tasksFor, filtersFor, setFilters, setStatus } = tasks;
+  const { ready, refresh, refreshMembers, tasksFor, filtersFor, setFilters, setStatus } = tasks;
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
 
@@ -52,10 +52,11 @@ export default function TaskListScreen() {
     useCallback(() => {
       setNow(new Date());
       if (!ready || !id) return;
+      void refreshMembers(id);
       void refresh(id)
         .catch(() => undefined)
         .then(() => setSettled(true));
-    }, [ready, refresh, id]),
+    }, [ready, refresh, refreshMembers, id]),
   );
 
   if (!project) {

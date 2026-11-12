@@ -1,5 +1,5 @@
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useRef, useState, type ComponentRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
 import { Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -11,19 +11,24 @@ import { Enter } from "../ui/Enter";
 import { ErrorText } from "../ui/ErrorText";
 import { Screen } from "../ui/Screen";
 import { TextField } from "../ui/TextField";
+import { AssigneeField } from "./AssigneeField";
+import { toggleAssignee } from "./assignees";
 import { DueField } from "./DueField";
 import { clearDay, inputFromForm, setDay, setTime, clearTime, type TaskForm as TaskFormValues } from "./formState";
-import type { TaskMutationResult } from "./TasksProvider";
+import { useTasks, type TaskMutationResult } from "./TasksProvider";
 import { TASK_STATUSES } from "./types";
 import { validateTaskInput, type TaskInputErrors } from "./validate";
 
 /** Shared by New task and Edit task. `onSubmit` returns the provider's result. */
 export function TaskForm({
+  projectId,
   initial,
   submitLabel,
   onSubmit,
   extra,
 }: {
+  /** The project whose members can be chosen. */
+  projectId: string;
   initial: TaskFormValues;
   submitLabel: string;
   /** `opened` is what the form started with, so callers can send only what the person changed. */
@@ -35,6 +40,7 @@ export function TaskForm({
   const { colors, typography, spacing } = useTheme();
   // The Home stack header sits above this screen; the keyboard overlap must account for it.
   const headerHeight = useHeaderHeight();
+  const { membersFor, refreshMembers, ready } = useTasks();
   const opened = useRef(initial).current;
   const [form, setForm] = useState<TaskFormValues>(initial);
   const [errors, setErrors] = useState<TaskInputErrors>({});
@@ -42,6 +48,17 @@ export function TaskForm({
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const descriptionRef = useRef<ComponentRef<typeof TextInput>>(null);
+
+  // Fetch the members when the form opens; the saved list shows meanwhile and when offline.
+  useEffect(() => {
+    if (ready) void refreshMembers(projectId);
+  }, [ready, refreshMembers, projectId]);
+
+  function toggle(id: string) {
+    const next = toggleAssignee(form.assigneeIds, id);
+    setForm((f) => ({ ...f, assigneeIds: next.ids }));
+    setErrors((e) => ({ ...e, assignees: next.tooMany ? "tasks.errors.assigneesTooMany" : undefined }));
+  }
 
   const message = (key?: TaskInputErrors[keyof TaskInputErrors]) => (key ? t(key) : null);
 
@@ -130,7 +147,13 @@ export function TaskForm({
             timeError={message(errors.dueTime)}
             disabled={busy}
           />
-          {/* Task 10: the assignee field goes here (errors.assignees, form.assigneeIds). */}
+          <AssigneeField
+            people={membersFor(projectId)}
+            selectedIds={form.assigneeIds}
+            onToggle={toggle}
+            error={message(errors.assignees)}
+            disabled={busy}
+          />
           {formError ? <ErrorText message={formError} /> : null}
         </View>
       </Enter>
