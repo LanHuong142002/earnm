@@ -9,6 +9,7 @@ import { useProjects } from "../../../../../../projects/ProjectsProvider";
 import { useGoToProjectList, useTapOnce } from "../../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../../projects/routing";
 import { visibleTasks } from "../../../../../../tasks/counts";
+import { nextLoadState, taskListState, type LoadState } from "../../../../../../tasks/listState";
 import { DEFAULT_FILTERS } from "../../../../../../tasks/filters";
 import { FilterBar } from "../../../../../../tasks/FilterBar";
 import { showStatusPicker } from "../../../../../../tasks/StatusPicker";
@@ -40,22 +41,27 @@ export default function TaskListScreen() {
 
   // Bumped on focus so "overdue" and "due soon" are judged against the time you came back.
   const [now, setNow] = useState(() => new Date());
-  // True once a refresh has answered at least once, so the first load shows blocks, not "no tasks".
-  const [settled, setSettled] = useState(false);
+  // "loaded" only after a refresh answered "ok"; "failed" after a network or server error.
+  // The first load shows blocks, a failed first load shows an error, never "no tasks".
+  const [load, setLoad] = useState<LoadState>({ loaded: false, failed: false });
 
   useEffect(() => {
     if (view === "leave" && focused) goToList();
   }, [view, focused, goToList]);
 
+  const fetchTasks = useCallback(() => {
+    if (!ready || !id) return;
+    void refresh(id)
+      .catch(() => "offline" as const)
+      .then((result) => setLoad((prev) => nextLoadState(prev, result)));
+  }, [ready, refresh, id]);
+
   // Show the cached list at once and fetch the server's version each time the screen comes back (R14).
   useFocusEffect(
     useCallback(() => {
       setNow(new Date());
-      if (!ready || !id) return;
-      void refresh(id)
-        .catch(() => undefined)
-        .then(() => setSettled(true));
-    }, [ready, refresh, id]),
+      fetchTasks();
+    }, [fetchTasks]),
   );
 
   if (!project) {
@@ -75,7 +81,7 @@ export default function TaskListScreen() {
   const all = tasksFor(project.id);
   const filters = ready ? filtersFor(project.id) : DEFAULT_FILTERS;
   const shown = visibleTasks(all, filters, user?.id ?? "", now);
-  const loading = !ready || (all.length === 0 && !settled);
+  const listState = taskListState({ ready, cachedCount: all.length, loaded: load.loaded, failed: load.failed });
   const filtered = filters.status !== "all" || filters.mine || filters.onlyMe || filters.dueSoon;
 
   const open = (task: Task) =>
@@ -115,7 +121,16 @@ export default function TaskListScreen() {
         <FilterBar filters={filters} onChange={(next) => void setFilters(project.id, next)} />
       </Enter>
       <Enter index={3}>
-        {loading ? (
+        {listState === "error" ? (
+          <View
+            accessibilityRole="alert"
+            style={{ gap: spacing[0], padding: spacing[2], borderRadius: radius.card, backgroundColor: colors.dangerBg }}
+          >
+            <Text style={[typography.bodyStrong, { color: colors.danger }]}>{t("tasks.loadError")}</Text>
+            <Text style={[typography.label, { color: colors.danger }]}>{t("home.offline")}</Text>
+            <Button label={t("tasks.loadRetry")} variant="secondary" onPress={() => fetchTasks} />
+          </View>
+        ) : listState === "loading" ? (
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ gap: spacing[2] }}>
             {[0, 1].map((n) => (
               <View

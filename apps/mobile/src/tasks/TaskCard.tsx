@@ -51,7 +51,16 @@ export function TaskCard({
     .join(". ");
 
   return (
-    <PressableScale accessibilityRole="button" accessibilityLabel={label} onPress={onOpen}>
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onOpen}
+      // The pill is nested in this pressable, so screen readers reach it as an action instead.
+      accessibilityActions={[{ name: "changeStatus", label: t("tasks.changeStatus") }]}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === "changeStatus") onChangeStatus();
+      }}
+    >
       <Card>
         <View style={{ gap: spacing[0] }}>
           <Text

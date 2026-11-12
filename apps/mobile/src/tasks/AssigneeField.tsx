@@ -74,6 +74,7 @@ export function AssigneeField({
                 caption={person.former ? t("tasks.formerMember") : undefined}
                 disabled={person.former && !selectedIds.includes(person.id)}
                 divider={i > 0}
+                role="checkbox"
                 onPress={() => onToggle(person.id)}
               />
             ))}

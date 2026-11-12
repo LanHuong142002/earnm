@@ -137,7 +137,11 @@ export function DueField({
         placeholder: t("tasks.dueNone"),
         label: dayText !== null ? t("tasks.dueDayLabel", { date: dayText }) : t("tasks.dueDayPick"),
         invalid: !!dateError,
-        onPress: () => setPicking(picking === "day" ? null : "day"),
+        onPress: () => {
+          // iOS only reports a change, so opening the calendar with no day sets today; Done then saves it.
+          if (ios && picking !== "day" && dueDate === null) onChangeDay(dateToDay(new Date()));
+          setPicking(picking === "day" ? null : "day");
+        },
         onClear:
           dueDate !== null
             ? () => {

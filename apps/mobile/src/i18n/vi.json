@@ -168,6 +168,8 @@
     "filterAssignedToMe": "Giao cho tôi",
     "filterOnlyMe": "Chỉ mình tôi",
     "filterDueSoon": "Sắp đến hạn",
+    "loadError": "Không tải được công việc.",
+    "loadRetry": "Thử lại",
     "doneSection": "Xong ({{count}})",
     "emptyTitle": "Chưa có công việc nào",
     "emptyBody": "Thêm công việc đầu tiên cho dự án này.",

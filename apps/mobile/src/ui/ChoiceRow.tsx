@@ -12,6 +12,7 @@ export function ChoiceRow({
   divider = false,
   caption,
   disabled = false,
+  role = "radio",
 }: {
   label: string;
   selected: boolean;
@@ -21,11 +22,13 @@ export function ChoiceRow({
   /** Small line under the label. */
   caption?: string;
   disabled?: boolean;
+  /** "radio" for pick-one lists; "checkbox" when several rows can be chosen. */
+  role?: "radio" | "checkbox";
 }) {
   const { colors, typography, layout, iconSize } = useTheme();
   return (
     <PressableScale
-      accessibilityRole="radio"
+      accessibilityRole={role}
       accessibilityLabel={label}
       accessibilityState={{ selected, checked: selected, disabled }}
       accessibilityHint={caption}

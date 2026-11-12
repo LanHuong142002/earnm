@@ -170,6 +170,8 @@
     "filterAssignedToMe": "Assigned to me",
     "filterOnlyMe": "Only me",
     "filterDueSoon": "Due soon",
+    "loadError": "Couldn't load tasks.",
+    "loadRetry": "Try again",
     "doneSection": "Done ({{count}})",
     "emptyTitle": "No tasks yet",
     "emptyBody": "Add the first task for this project.",
