@@ -92,5 +92,5 @@ model Invite {
   usedAt      DateTime?
   revokedAt   DateTime?
 
-  @@index([projectId])
+  @@index([projectId, createdAt])
 }

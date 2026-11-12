@@ -5,7 +5,7 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
-import { findForMember, requireOwner } from "./access.js";
+import { findForMember, lockProject, requireOwner } from "./access.js";
 
 const nameSchema = z.string().trim().min(1).max(80);
 const descriptionSchema = z.string().trim().max(500);
@@ -148,11 +148,14 @@ export function createProjectsRouter(deps: {
 
       // Last write wins per field, all in one transaction. The column names come from the
       // field names, so TypeScript can't check them here; the route tests do.
-      await prisma.$transaction((tx) =>
-        applyLastWriteWins(fields, now(), (where, data) =>
+      await prisma.$transaction(async (tx) => {
+        if (!(await lockProject(tx, id))) throw notFound();
+        // The caller may have been demoted or removed since the check above.
+        await requireOwner(tx, id, userId);
+        await applyLastWriteWins(fields, now(), (where, data) =>
           tx.project.updateMany({ where: { id, ...where }, data } as Prisma.ProjectUpdateManyArgs),
-        ),
-      );
+        );
+      });
 
       // Always answer with the current state, even when every change lost.
       const current = await findForMember(prisma, id, userId);
@@ -165,10 +168,15 @@ export function createProjectsRouter(deps: {
 
   router.delete("/:id", async (req, res, next) => {
     try {
-      const id = await requireOwner(prisma, req.params["id"], getAuth(res.locals).userId);
-      // Memberships are removed by the database cascade.
-      const { count } = await prisma.project.deleteMany({ where: { id } });
-      if (count === 0) throw notFound(); // someone else deleted it first
+      const userId = getAuth(res.locals).userId;
+      const id = await requireOwner(prisma, req.params["id"], userId);
+      await prisma.$transaction(async (tx) => {
+        if (!(await lockProject(tx, id))) throw notFound(); // someone else deleted it first
+        // The caller may have been demoted or removed since the check above.
+        await requireOwner(tx, id, userId);
+        // Memberships are removed by the database cascade.
+        await tx.project.deleteMany({ where: { id } });
+      });
       res.status(204).end();
     } catch (err) {
       next(err);

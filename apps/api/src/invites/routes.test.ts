@@ -131,6 +131,22 @@ describe("invites", () => {
       expect((await createInvite(owner, pid)).status).toBe(201);
     });
 
+    it("refuses the 51st invite created within 24 hours, even when each was revoked", async () => {
+      const owner = await user();
+      const pid = await seedProject(owner);
+      for (let i = 0; i < 50; i++) {
+        const res = await createInvite(owner, pid);
+        expect(res.status).toBe(201);
+        expect((await revoke(owner, pid, res.body.id as string)).status).toBe(204);
+      }
+      const blocked = await createInvite(owner, pid);
+      expectError(blocked, 429, "too_many_attempts");
+      expect(blocked.body.error.message).toBe("Too many invites created today. Try again later.");
+      expect(await prisma.invite.count({ where: { projectId: pid } })).toBe(50);
+      clock.advanceMs(DAY + 1);
+      expect((await createInvite(owner, pid)).status).toBe(201);
+    }, 60_000);
+
     it("does not count expired invites toward the cap", async () => {
       const owner = await user();
       const pid = await seedProject(owner);

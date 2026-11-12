@@ -12,6 +12,8 @@ export type Config = {
   port: number;
   /** Where an invitee installs the app; null when not configured. Always https. */
   inviteInstallUrl: string | null;
+  /** Optional separate key for invite codes; null means they use INTERNAL_SECRET. */
+  inviteCodeKey: string | null;
 };
 
 const MIN_SECRET_LENGTH = 32;
@@ -59,11 +61,24 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     inviteInstallUrl = inviteInstallRaw;
   }
 
+  const inviteCodeKeyRaw = env["INVITE_CODE_KEY"] ?? "";
+  let inviteCodeKey: string | null = null;
+  if (inviteCodeKeyRaw !== "") {
+    if (inviteCodeKeyRaw.length < MIN_SECRET_LENGTH) {
+      throw new ConfigError(`INVITE_CODE_KEY must be at least ${MIN_SECRET_LENGTH} characters.`);
+    }
+    if (/\s/.test(inviteCodeKeyRaw)) {
+      throw new ConfigError("INVITE_CODE_KEY must not contain spaces or line breaks.");
+    }
+    inviteCodeKey = inviteCodeKeyRaw;
+  }
+
   return {
     databaseUrl,
     trustProxy: Number(trustProxyRaw),
     internalSecret,
     port: Number(env["PORT"] ?? 3000),
     inviteInstallUrl,
+    inviteCodeKey,
   };
 }

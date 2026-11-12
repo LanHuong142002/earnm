@@ -5,6 +5,7 @@ import { createAuthRouter } from "./auth/routes.js";
 import { createInternalRouter } from "./internal/routes.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { deriveInviteKey } from "./invites/code.js";
+import { pickInviteKeySource } from "./invites/key-source.js";
 import { createInvitePageRouter } from "./invites/page-routes.js";
 import { createInvitesRouter } from "./invites/routes.js";
 import { createMembersRouter } from "./members/routes.js";
@@ -20,6 +21,8 @@ export interface AppDeps {
   internalSecret?: string;
   /** Link shown on the invite web page for installing the app. Null or absent: the page says to ask the inviter. */
   inviteInstallUrl?: string | null;
+  /** Optional key for hashing invite codes. When absent, INTERNAL_SECRET is used. */
+  inviteCodeKey?: string | null;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -34,9 +37,9 @@ export function createApp(deps: AppDeps): Express {
   app.use("/auth", createAuthRouter(deps));
   app.use("/me", createMeRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
-  // Without INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.
-  const inviteKey =
-    deps.internalSecret !== undefined ? deriveInviteKey(deps.internalSecret) : randomBytes(32);
+  // Without INVITE_CODE_KEY or INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.
+  const keySource = pickInviteKeySource(deps);
+  const inviteKey = keySource !== undefined ? deriveInviteKey(keySource) : randomBytes(32);
   app.use(createInvitesRouter({ prisma: deps.prisma, now: deps.now, inviteKey }));
   app.use(
     createInvitePageRouter({

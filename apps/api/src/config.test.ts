@@ -22,6 +22,7 @@ describe("loadConfig", () => {
       internalSecret: SECRET,
       port: 3000,
       inviteInstallUrl: null,
+      inviteCodeKey: null,
     });
   });
 
@@ -88,5 +89,24 @@ describe("loadConfig", () => {
 
   it("accepts a 32-character INTERNAL_SECRET", () => {
     expect(loadConfig(base).internalSecret).toBe(SECRET);
+  });
+  it.each([undefined, ""])("treats INVITE_CODE_KEY %j as unset", (value) => {
+    expect(loadConfig({ ...base, INVITE_CODE_KEY: value }).inviteCodeKey).toBeNull();
+  });
+
+  it("reads a 32-character INVITE_CODE_KEY", () => {
+    const key = "i".repeat(32);
+    expect(loadConfig({ ...base, INVITE_CODE_KEY: key }).inviteCodeKey).toBe(key);
+  });
+
+  it.each([
+    ["short", "k".repeat(31)],
+    ["inner space", `${"k".repeat(20)} ${"k".repeat(20)}`],
+    ["trailing newline", `${"k".repeat(40)}
+`],
+  ])("rejects an INVITE_CODE_KEY that is %s without echoing it", (_label, value) => {
+    const err = failure({ ...base, INVITE_CODE_KEY: value });
+    expect(err.message).toContain("INVITE_CODE_KEY");
+    expect(err.message).not.toContain("kkkk");
   });
 });

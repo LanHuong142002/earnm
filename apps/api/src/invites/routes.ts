@@ -12,6 +12,9 @@ import { formatCode, generateCode as realGenerateCode, hashCode, normalizeCode }
 export const INVITE_LIFETIME_MS = 7 * 24 * 3600 * 1000;
 export const MAX_PENDING_INVITES = 20;
 export const MAX_MEMBERS = 50;
+/** Invites a project may create in any 24 hours, however many were revoked. */
+export const MAX_INVITES_PER_DAY = 50;
+const DAY_MS = 24 * 3600 * 1000;
 /** Tries to find an unused code before giving up. */
 const CODE_ATTEMPTS = 3;
 /** Join attempts per account and per IP in a 15 minute window. */
@@ -73,6 +76,12 @@ export function createInvitesRouter(deps: {
             });
             if (pending >= MAX_PENDING_INVITES) {
               throw new AppError(409, "too_many_invites", "This project has too many pending invites.");
+            }
+            const today = await tx.invite.count({
+              where: { projectId, createdAt: { gte: new Date(at.getTime() - DAY_MS) } },
+            });
+            if (today >= MAX_INVITES_PER_DAY) {
+              throw new AppError(429, "too_many_attempts", "Too many invites created today. Try again later.");
             }
             return tx.invite.create({
               data: {
