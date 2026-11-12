@@ -12,7 +12,7 @@ import {
 import { useAuth } from "../auth/AuthProvider";
 import { getStoredUserId, getToken } from "../auth/token-store";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
-import { createQueue } from "../sync/queue";
+import { createQueue, type Queue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { listProjects, type Project } from "./api";
 import { cacheOwnerToSave, cacheStep, initialView, planUpdate } from "./optimistic";
@@ -51,6 +51,16 @@ type ProjectsContextValue = {
   waitingCount: number;
   rejectedNotice: RejectedNotice | null;
   dismissRejectedNotice: () => void;
+  /** For the tasks code, which shares this write queue. */
+  sync: {
+    queue: Queue;
+    /** Counts the waiting changes and starts a flush; call after enqueueing. */
+    afterEnqueue: () => Promise<void>;
+    /** Runs `listener` after every flush or full sync finishes. Returns an unsubscribe function. */
+    onFlushed: (listener: () => void) => () => void;
+    /** Runs `task` after the flush or refresh in progress, one at a time. */
+    runExclusive: <T>(task: () => Promise<T>) => Promise<T>;
+  };
 };
 
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
@@ -162,18 +172,29 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return result;
   }, []);
 
+  const flushListeners = useRef(new Set<() => void>());
+  const notifyFlushed = useCallback(() => flushListeners.current.forEach((listener) => listener()), []);
+  const onFlushed = useCallback((listener: () => void) => {
+    flushListeners.current.add(listener);
+    return () => void flushListeners.current.delete(listener);
+  }, []);
+
   const flush = useCallback(() => {
     const requested = genRef.current;
-    return runExclusive(() => cycle.flush(userId, requested));
-  }, [runExclusive, cycle, userId]);
+    const done = runExclusive(() => cycle.flush(userId, requested));
+    void done.then(notifyFlushed, notifyFlushed);
+    return done;
+  }, [runExclusive, cycle, userId, notifyFlushed]);
   const refresh = useCallback(() => runExclusive(() => cycle.refresh()), [runExclusive, cycle]);
   const syncNow = useCallback(async () => {
     // Without a known user nothing can be sent. Try to learn who it is first (offline launch);
     // once known, the ownership effect starts a full sync by itself.
     if (!userId && (await retryProfile())) return;
     const requested = genRef.current;
-    await runExclusive(() => cycle.sync(userId, requested));
-  }, [userId, retryProfile, runExclusive, cycle]);
+    const done = runExclusive(() => cycle.sync(userId, requested));
+    void done.then(notifyFlushed, notifyFlushed);
+    await done;
+  }, [userId, retryProfile, runExclusive, cycle, notifyFlushed]);
   const syncRef = useRef(syncNow);
   useEffect(() => {
     syncRef.current = syncNow;
@@ -400,6 +421,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       waitingCount,
       rejectedNotice,
       dismissRejectedNotice,
+      sync: { queue, afterEnqueue, onFlushed, runExclusive },
     }),
     [
       status,
@@ -414,6 +436,10 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       waitingCount,
       rejectedNotice,
       dismissRejectedNotice,
+      queue,
+      afterEnqueue,
+      onFlushed,
+      runExclusive,
     ],
   );
 
