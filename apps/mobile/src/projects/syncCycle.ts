@@ -5,7 +5,7 @@
  *
  * - `handlers` go to createQueue (onApplied / onRejected / onSignedOut).
  * - flush(userId): send the queue for that owner; if the server refused something, refresh after.
- * - refresh(): fetch the server's list and show it with the waiting changes replayed.
+ * - refresh(): fetch the server's list, drop waiting changes for projects it no longer lists, and show it with the waiting changes replayed.
  * - sync(userId): flush, then refresh.
  */
 import { ApiError } from "../lib/api";
@@ -13,6 +13,7 @@ import type { Change, Queue } from "../sync/queue";
 import type { Project } from "./api";
 import * as outcomes from "./outcomes";
 import { isProject } from "./store";
+import { PROJECT_ENTITY } from "./sync";
 import type { RejectedNotice } from "./outcomes";
 
 export type SyncStatus = "loading" | "ready" | "offline";
@@ -34,6 +35,8 @@ export type SyncCycleDeps = {
   /** Waits until no local change is being recorded, then returns the changes still waiting. */
   settleMutations: () => Promise<Change[]>;
   onNotSignedIn: () => void;
+  /** Called with the list a successful refresh just committed (to forget data of projects no longer in it). */
+  afterRefreshCommit?: (list: Project[]) => void | Promise<unknown>;
 };
 
 export function createSyncCycle(deps: SyncCycleDeps) {
@@ -75,10 +78,30 @@ export function createSyncCycle(deps: SyncCycleDeps) {
     const token = await deps.getToken();
     if (!token || gen !== deps.getGeneration()) return;
     try {
-      const server = (await deps.listProjects(token)).filter(isProject);
-      const waiting = await deps.settleMutations();
+      const ownerAtStart = await deps.getQueue().ownerId();
+      const raw: unknown[] = await deps.listProjects(token);
+      // Access is judged by the ids the server listed; a malformed item must not look like a lost project.
+      const serverIds = raw.flatMap((item) =>
+        typeof item === "object" && item !== null && typeof (item as { id?: unknown }).id === "string"
+          ? [(item as { id: string }).id]
+          : [],
+      );
+      const server = raw.filter(isProject);
+      // A slow read that finishes after the session or the person changed must touch nothing.
       if (gen !== deps.getGeneration()) return;
-      await deps.commit(outcomes.restoreFromServer(server, waiting));
+      const queue = deps.getQueue();
+      // Projects the server no longer lists: their waiting changes can never succeed (R26).
+      // Only for the person this read was made for.
+      if ((await queue.ownerId()) === ownerAtStart) {
+        for (const id of outcomes.projectsToDrop(serverIds, await queue.waiting())) {
+          await queue.dropEntity(PROJECT_ENTITY, id);
+        }
+      }
+      const waiting = await deps.settleMutations();
+      if (gen !== deps.getGeneration() || (await queue.ownerId()) !== ownerAtStart) return;
+      const committed = outcomes.restoreFromServer(server, waiting);
+      await deps.commit(committed);
+      await Promise.resolve(deps.afterRefreshCommit?.(committed)).catch(() => {});
       deps.setWaitingCount(waiting.length);
       deps.setStatus("ready");
     } catch (error) {

@@ -1,6 +1,7 @@
 import { useColorScheme } from "react-native";
 
 import {
+  avatar,
   colors,
   disabled,
   header,
@@ -30,6 +31,7 @@ export type Theme = {
   header: typeof header;
   onFixed: typeof onFixed;
   projectCard: typeof projectCard;
+  avatar: typeof avatar;
 };
 
 export function useTheme(): Theme {
@@ -48,5 +50,6 @@ export function useTheme(): Theme {
     header,
     onFixed,
     projectCard,
+    avatar,
   };
 }

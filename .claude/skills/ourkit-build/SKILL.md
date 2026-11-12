@@ -20,7 +20,7 @@ Turn the approved tasks into working, tested code. You coordinate and judge; sub
 1. Run `ourkit gate approval` and `ourkit gate artifact tasks`. If either blocks, go back to the Stage that owns it. Never start Build around a blocked Gate.
 2. Make sure the change is on its own branch, not the default branch. Create one if needed.
 3. Run `ourkit task list`. For each task in `ready`:
-   - Start the `ourkit-implementer` subagent with the task's text, the relevant spec requirements, and any rules that apply. It has no other context.
+   - Start the `ourkit-implementer` subagent with the task's text, the relevant spec requirements, and any rules that apply. It has no other context. If `ourkit mockup show` says the change has an approved mockup, give it the mockup's path for any task that builds what people see: the user agreed to that picture, so build to it.
    - Read the result and its diff yourself. Check it does the task and nothing more.
    - Run the task's `Verify:` check, using the `ourkit-runner` subagent for commands. If the check is the project's tests, lint or build, it runs `ourkit gate run <name>`, because a Hands-off session's permissions don't allow the command itself.
    - If it worked, commit it on the branch, then run `ourkit task done <id>`.

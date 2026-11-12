@@ -5,7 +5,7 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
-import { findForMember } from "../projects/routes.js";
+import { findForMember } from "../projects/access.js";
 
 const titleSchema = z.string().trim().min(1).max(120);
 const descriptionSchema = z.string().trim().max(2000);

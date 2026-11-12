@@ -34,17 +34,19 @@ enum TaskStatus {
 }
 
 model User {
-  id           String          @id @default(uuid())
-  email        String          @unique
-  passwordHash String
-  displayName  String
-  language     Language?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  sessions     Session[]
-  projects     ProjectMember[]
-  createdTasks Task[]          @relation("TaskCreator")
-  assignments  TaskAssignee[]
+  id             String          @id @default(uuid())
+  email          String          @unique
+  passwordHash   String
+  displayName    String
+  language       Language?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sessions       Session[]
+  projects       ProjectMember[]
+  invitesCreated Invite[]        @relation("InviteCreatedBy")
+  invitesUsed    Invite[]        @relation("InviteUsedBy")
+  createdTasks   Task[]          @relation("TaskCreator")
+  assignments    TaskAssignee[]
 }
 
 model ProjectMember {
@@ -71,6 +73,7 @@ model Project {
   updatedAt           DateTime        @updatedAt
   members             ProjectMember[]
   tasks               Task[]
+  invites             Invite[]
 }
 
 model Session {
@@ -115,4 +118,21 @@ model TaskAssignee {
 
   @@id([taskId, userId])
   @@index([userId])
+}
+
+model Invite {
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  codeHash    String    @unique
+  createdById String?
+  createdBy   User?     @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  usedById    String?
+  usedBy      User?     @relation("InviteUsedBy", fields: [usedById], references: [id], onDelete: SetNull)
+  usedAt      DateTime?
+  revokedAt   DateTime?
+
+  @@index([projectId, createdAt])
 }

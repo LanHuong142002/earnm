@@ -11,14 +11,16 @@ export function Button({
   onPress,
   variant = "primary",
   loading = false,
+  disabled = false,
 }: {
   label: string;
   onPress: () => void;
   variant?: Variant;
   loading?: boolean;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
-  const { colors, typography, layout, radius, spacing } = useTheme();
+  const { colors, typography, layout, radius, spacing, disabled: disabledStyle } = useTheme();
   const primary = variant === "primary";
   const textColor = primary ? colors.onAccent : variant === "danger" ? colors.danger : variant === "soft" ? colors.accentStrong : colors.text;
 
@@ -26,8 +28,8 @@ export function Button({
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: loading, busy: loading }}
-      disabled={loading}
+      accessibilityState={{ disabled: loading || disabled, busy: loading }}
+      disabled={loading || disabled}
       onPress={onPress}
       style={{
         minHeight: layout.controlHeight,
@@ -36,6 +38,7 @@ export function Button({
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: spacing[3],
+        opacity: disabled && !loading ? disabledStyle.opacity : 1,
       }}
     >
       {loading ? (

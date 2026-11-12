@@ -18,6 +18,8 @@
  *   rejected): the entity may be registered later.
  * - waiting() / count(): the changes still waiting (copies).
  * - setOwner(userId): resolves true if a different stored owner's changes were dropped.
+ * - dropEntity(entity, entityId): removes that item's changes and persists. Only an in-flight send for that
+ *   same item is fenced like clear(); other items' sends carry on untouched.
  * - clear({ owner? }): drops all changes, and the owner too when asked. A send already in flight
  *   when changes are dropped (clear, or setOwner dropping another person's) finishes without
  *   removing anything or calling onApplied / onRejected / onSignedOut.
@@ -128,6 +130,7 @@ export function createQueue(options: QueueOptions) {
   let state: Persisted | null = null;
   let loading: Promise<Persisted> | null = null;
   let sendingId: string | null = null;
+  let sendingEntity: { entity: string; entityId: string } | null = null;
   let running: Promise<void> | null = null;
   let rerun = false;
   let requestedOwner: string | null | undefined;
@@ -265,6 +268,7 @@ export function createQueue(options: QueueOptions) {
       if (!entitySenders) return false;
       const sendEpoch = epoch;
       sendingId = change.changeId;
+      sendingEntity = { entity: change.entity, entityId: change.entityId };
       change.attempts = (change.attempts ?? 0) + 1;
       let response: unknown;
       try {
@@ -367,7 +371,18 @@ export function createQueue(options: QueueOptions) {
     await persist();
   }
 
-  return { registerEntity, enqueue, flush, waiting, count, ownerId, setOwner, clear };
+  async function dropEntity(entity: string, entityId: string): Promise<void> {
+    const s = await load();
+    const matches = (c: { entity: string; entityId: string }) => c.entity === entity && c.entityId === entityId;
+    s.changes = s.changes.filter((c) => !matches(c));
+    if (sendingId !== null && sendingEntity !== null && matches(sendingEntity)) {
+      epoch++; // the in-flight send for this item must not apply or re-add anything
+      if (running) rerun = true; // the fenced run stops; run again so other items' changes still go out
+    }
+    await persist();
+  }
+
+  return { registerEntity, enqueue, flush, waiting, count, ownerId, setOwner, clear, dropEntity };
 }
 
 export type Queue = ReturnType<typeof createQueue>;

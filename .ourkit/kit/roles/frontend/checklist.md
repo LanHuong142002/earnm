@@ -9,6 +9,7 @@
 - [ ] No permission or validation rule is enforced only in the interface.
 - [ ] No sign-in token or secret is stored where page scripts can read it.
 - [ ] Visual changes follow `DESIGN.md` when the project has one.
+- [ ] Screens match the mockup the user approved, when the change has one (`ourkit mockup show`), and any difference is explained.
 - [ ] Existing components and design values are reused where they fit, with no one-off values.
 - [ ] Failed requests give the user a clear message and a way forward.
 - [ ] New images have dimensions, and no large dependency was added without a stated reason.

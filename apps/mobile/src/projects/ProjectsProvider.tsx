@@ -14,9 +14,10 @@ import { getStoredUserId, getToken } from "../auth/token-store";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { createQueue, type Queue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
+import { clearMemberCache, pruneProjectMembers, removeProjectMembers } from "../members/memberCache";
 import { listProjects, type Project } from "./api";
 import { cacheOwnerToSave, cacheStep, initialView, planUpdate } from "./optimistic";
-import type { RejectedNotice } from "./outcomes";
+import { withJoined, withoutProject, type RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
   clearProjectCache,
@@ -46,6 +47,10 @@ type ProjectsContextValue = {
   create: (input: ProjectInput) => Promise<MutationResult<{ id: string }>>;
   update: (id: string, fields: Partial<ProjectInput>) => Promise<MutationResult>;
   remove: (id: string) => Promise<void>;
+  /** The person just joined `project` (the server's item): show it, make it current, then refresh in the background. */
+  addJoinedProject: (project: Project) => Promise<void>;
+  /** The person left the project: gone from the list, cache, queue and member names right away. */
+  forgetProject: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
   /** Changes made on this phone that the server has not accepted yet. */
   waitingCount: number;
@@ -159,6 +164,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         }
       },
       onNotSignedIn: () => notSignedInRef.current(),
+      // A project the person lost keeps no co-member names on the phone (R33).
+      afterRefreshCommit: async (list) => {
+        const owner = userIdRef.current;
+        if (!owner || wipedRef.current) return;
+        await pruneProjectMembers(asyncStorageStore, owner, list.map((p) => p.id));
+      },
     });
     const q = createQueue({ store: asyncStorageStore, getToken, ...c.handlers });
     holder.queue = q;
@@ -281,6 +292,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       if (step.clear) {
         try {
           await clearProjectCache(asyncStorageStore);
+          await clearMemberCache(asyncStorageStore);
         } catch {
           // Overwritten by the next save.
         }
@@ -316,6 +328,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       genRef.current += 1;
       try {
         await clearProjectCache(asyncStorageStore);
+          await clearMemberCache(asyncStorageStore);
       } catch {
         // Best effort.
       }
@@ -400,6 +413,31 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const addJoinedProject = useCallback(
+    async (project: Project) => {
+      // Shown and saved at once, so a failed refresh right after cannot leave the person without it.
+      await commit(withJoined(projectsRef.current, project));
+      await setCurrentProject(project.id);
+      void refresh().catch(() => {});
+    },
+    [commit, setCurrentProject, refresh],
+  );
+
+  const forgetProject = useCallback(
+    async (id: string) => {
+      await track(async () => {
+        await queue.dropEntity(PROJECT_ENTITY, id).catch(() => {});
+      });
+      // commit also clears the remembered project when it was this one.
+      await commit(withoutProject(projectsRef.current, id));
+      setWaitingCount(await queue.count().catch(() => 0));
+      const owner = userIdRef.current;
+      if (owner) await removeProjectMembers(asyncStorageStore, owner, id).catch(() => {});
+      void refresh().catch(() => {});
+    },
+    [track, commit, queue, refresh],
+  );
+
   const dismissRejectedNotice = useCallback(() => setRejectedNotice(null), []);
 
   const currentProject = useMemo(
@@ -417,6 +455,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       create,
       update,
       remove,
+      addJoinedProject,
+      forgetProject,
       refresh,
       waitingCount,
       rejectedNotice,
@@ -432,6 +472,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       create,
       update,
       remove,
+      addJoinedProject,
+      forgetProject,
       refresh,
       waitingCount,
       rejectedNotice,

@@ -21,8 +21,30 @@ describe("loadConfig", () => {
       trustProxy: 0,
       internalSecret: SECRET,
       port: 3000,
+      inviteInstallUrl: null,
+      inviteCodeKey: null,
     });
   });
+
+  it.each([undefined, ""])("treats INVITE_INSTALL_URL %j as unset", (value) => {
+    expect(loadConfig({ ...base, INVITE_INSTALL_URL: value }).inviteInstallUrl).toBeNull();
+  });
+
+  it("reads an https INVITE_INSTALL_URL", () => {
+    expect(
+      loadConfig({ ...base, INVITE_INSTALL_URL: "https://testflight.apple.com/join/abc" })
+        .inviteInstallUrl,
+    ).toBe("https://testflight.apple.com/join/abc");
+  });
+
+  it.each(["http://example.com/x", "not a url", "javascript:alert(1)", "ftp://example.com"])(
+    "rejects a non-https INVITE_INSTALL_URL %j without echoing it",
+    (value) => {
+      const err = failure({ ...base, INVITE_INSTALL_URL: value });
+      expect(err.message).toContain("INVITE_INSTALL_URL");
+      expect(err.message).not.toContain(value);
+    },
+  );
 
   it("reads TRUST_PROXY and PORT when set", () => {
     const cfg = loadConfig({ ...base, TRUST_PROXY: "2", PORT: "8080" });
@@ -67,5 +89,24 @@ describe("loadConfig", () => {
 
   it("accepts a 32-character INTERNAL_SECRET", () => {
     expect(loadConfig(base).internalSecret).toBe(SECRET);
+  });
+  it.each([undefined, ""])("treats INVITE_CODE_KEY %j as unset", (value) => {
+    expect(loadConfig({ ...base, INVITE_CODE_KEY: value }).inviteCodeKey).toBeNull();
+  });
+
+  it("reads a 32-character INVITE_CODE_KEY", () => {
+    const key = "i".repeat(32);
+    expect(loadConfig({ ...base, INVITE_CODE_KEY: key }).inviteCodeKey).toBe(key);
+  });
+
+  it.each([
+    ["short", "k".repeat(31)],
+    ["inner space", `${"k".repeat(20)} ${"k".repeat(20)}`],
+    ["trailing newline", `${"k".repeat(40)}
+`],
+  ])("rejects an INVITE_CODE_KEY that is %s without echoing it", (_label, value) => {
+    const err = failure({ ...base, INVITE_CODE_KEY: value });
+    expect(err.message).toContain("INVITE_CODE_KEY");
+    expect(err.message).not.toContain("kkkk");
   });
 });

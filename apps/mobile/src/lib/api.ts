@@ -1,4 +1,5 @@
 import type { Language } from "../i18n";
+import type { Project as ApiProject } from "../projects/api";
 
 export type User = {
   id: string;
@@ -104,3 +105,62 @@ export const getMe = (token: string) => request<User>("/me", { token });
 
 export const updateLanguage = (token: string, language: Language) =>
   request<User>("/me", { method: "PATCH", body: { language }, token });
+
+export type MemberRole = "owner" | "member";
+
+export type Member = {
+  userId: string;
+  displayName: string;
+  role: MemberRole;
+  joinedAt: string;
+};
+
+export type CreatedInvite = { id: string; code: string; expiresAt: string };
+
+export type PendingInvite = {
+  id: string;
+  createdBy: { displayName: string } | null;
+  createdAt: string;
+  expiresAt: string;
+};
+
+const projectPath = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
+
+export const createInvite = (token: string, projectId: string) =>
+  request<CreatedInvite>(`${projectPath(projectId)}/invites`, { method: "POST", token });
+
+export const listInvites = (token: string, projectId: string) =>
+  request<PendingInvite[]>(`${projectPath(projectId)}/invites`, { token });
+
+export const revokeInvite = (token: string, projectId: string, inviteId: string) =>
+  request<void>(`${projectPath(projectId)}/invites/${encodeURIComponent(inviteId)}`, {
+    method: "DELETE",
+    token,
+  });
+
+export const joinProject = (token: string, code: string) =>
+  request<ApiProject>("/invites/join", { method: "POST", body: { code }, token });
+
+export const listMembers = (token: string, projectId: string) =>
+  request<Member[]>(`${projectPath(projectId)}/members`, { token });
+
+export const setMemberRole = (
+  token: string,
+  projectId: string,
+  userId: string,
+  role: MemberRole,
+) =>
+  request<Member>(`${projectPath(projectId)}/members/${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    body: { role },
+    token,
+  });
+
+export const removeMember = (token: string, projectId: string, userId: string) =>
+  request<void>(`${projectPath(projectId)}/members/${encodeURIComponent(userId)}`, {
+    method: "DELETE",
+    token,
+  });
+
+export const leaveProject = (token: string, projectId: string) =>
+  request<void>(`${projectPath(projectId)}/leave`, { method: "POST", token });

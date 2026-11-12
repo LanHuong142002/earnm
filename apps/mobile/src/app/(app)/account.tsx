@@ -15,7 +15,7 @@ const LANGUAGES: Language[] = ["vi", "en"];
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
-  const { setLanguage, signOut, languagePendingSync } = useAuth();
+  const { setLanguage, signOut, languagePendingSync, profile } = useAuth();
   const { colors, typography, spacing } = useTheme();
   const { waitingCount } = useProjects();
   const current: Language = i18n.language === "vi" ? "vi" : "en";
@@ -37,7 +37,23 @@ export default function SettingsScreen() {
 
   return (
     <Screen edges={[]}>
-      <Enter index={0}>
+      {profile ? (
+        <Enter index={0}>
+          <View style={{ gap: spacing[1] }}>
+            <Text
+              accessibilityRole="header"
+              style={[typography.sectionTitle, { color: colors.text }]}
+            >
+              {t("profile.title")}
+            </Text>
+            <Card>
+              <Text style={[typography.bodyStrong, { color: colors.text }]}>{profile.displayName}</Text>
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>{profile.email}</Text>
+            </Card>
+          </View>
+        </Enter>
+      ) : null}
+      <Enter index={1}>
         <View style={{ gap: spacing[1] }}>
           <Text
             accessibilityRole="header"
@@ -65,7 +81,7 @@ export default function SettingsScreen() {
           ) : null}
         </View>
       </Enter>
-      <Enter index={1}>
+      <Enter index={2}>
         <Button label={t("settings.signOut")} variant="danger" onPress={confirmSignOut} />
       </Enter>
     </Screen>

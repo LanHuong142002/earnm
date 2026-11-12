@@ -20,6 +20,7 @@ Meet the project's accessibility standard, and at least these:
 
 ## Design
 
+- A change that adds or changes something people see gets a mockup the user approves before Build (the Plan Stage makes it). Build to that mockup, and say so if you have to depart from it.
 - If the project has `DESIGN.md` at its root, follow it for every visual decision. It wins over the general advice below, but never over accessibility or security. If it doesn't exist and a change adds a new screen, suggest `/ourkit-design` in Pair; in Hands-off, follow the existing design and record that in the Decision Log.
 - Reuse existing components and design values, such as colours, spacing and type sizes, rather than creating near-duplicates or one-off values.
 - Keep components focused, and keep fetching data separate from showing it.

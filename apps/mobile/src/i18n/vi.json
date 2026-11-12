@@ -57,7 +57,14 @@
     "forbidden": "Chỉ chủ dự án mới làm được việc này.",
     "not_found": "Dự án này không còn tồn tại.",
     "id_conflict": "Không tạo được dự án này. Vui lòng thử lại.",
-    "create_failed": "Không tạo được dự án. Vui lòng thử lại."
+    "create_failed": "Không tạo được dự án. Vui lòng thử lại.",
+    "invalid_invite": "Mã này không hợp lệ. Kiểm tra lại hoặc xin mã mới.",
+    "already_member": "Bạn đã ở trong dự án này.",
+    "project_full": "Dự án này đã đủ người.",
+    "too_many_invites": "Dự án có quá nhiều lời mời đang chờ. Hãy thu hồi bớt một lời mời.",
+    "last_owner": "Hãy đặt người khác làm chủ dự án trước.",
+    "last_owner_only_member": "Bạn là thành viên duy nhất. Hãy xóa dự án thay vì rời.",
+    "not_found_member": "Thành viên hoặc dự án này không còn tồn tại."
   },
   "projects": {
     "title": "Dự án",
@@ -200,5 +207,44 @@
     "dueClearDay": "Xóa hạn chót",
     "dueClearTime": "Xóa giờ",
     "pickerDone": "Xong"
+  },
+  "members": {
+    "title": "Thành viên",
+    "you": "(Bạn)",
+    "rowLabel": "Thành viên, {{count}} người trong dự án. Mở danh sách thành viên",
+    "owner": "Chủ dự án",
+    "member": "Thành viên",
+    "makeOwner": "Đặt làm chủ dự án",
+    "makeMember": "Đặt làm thành viên",
+    "remove": "Xóa khỏi dự án",
+    "removeConfirmTitle": "Xóa {{name}} khỏi dự án?",
+    "removeConfirmMessage": "{{name}} sẽ không còn truy cập được dự án này.",
+    "leave": "Rời dự án",
+    "leaveConfirmTitle": "Rời dự án này?",
+    "leaveConfirmMessage": "Bạn sẽ không còn truy cập được dự án. Cần được mời lại để vào.",
+    "loadError": "Không tải được danh sách thành viên.",
+    "retry": "Thử lại",
+    "more": "Thêm thao tác cho {{name}}"
+  },
+  "invites": {
+    "invite": "Mời bằng mã",
+    "shareMessage": "{{inviter}} mời bạn vào dự án {{project}} trên earnm. Mã: {{code}}. Xem cách tham gia: {{link}}",
+    "pending": "Lời mời đang chờ ({{count}})",
+    "createdBy": "Tạo bởi {{name}}",
+    "expires": "Hết hạn {{date}}",
+    "unknownCreator": "một thành viên cũ",
+    "revoke": "Thu hồi",
+    "revokeConfirmTitle": "Thu hồi lời mời này?",
+    "revokeConfirmMessage": "Mã sẽ ngừng dùng được ngay."
+  },
+  "join": {
+    "entry": "Tham gia bằng mã",
+    "title": "Tham gia bằng mã",
+    "codeLabel": "Mã mời",
+    "placeholder": "K7QM-R4XP",
+    "submit": "Tham gia"
+  },
+  "profile": {
+    "title": "Hồ sơ của bạn"
   }
 }
