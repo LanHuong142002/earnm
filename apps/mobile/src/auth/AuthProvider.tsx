@@ -20,6 +20,7 @@ import {
   type AuthResult,
   type User,
 } from "../lib/api";
+import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { applyLanguage, resolveLanguage, type Language } from "../i18n";
 import {
   clearKeychainOnFreshInstall,
@@ -29,12 +30,14 @@ import {
   deleteToken,
   getLanguageChoice,
   getLanguagePendingSync,
+  getStoredUserId,
   getToken,
   saveLanguageChoice,
   saveLanguagePendingSync,
   saveStoredUserId,
   saveToken,
 } from "./token-store";
+import { clearProfile, readProfile, visibleProfile, writeProfile, type Profile } from "./profile-store";
 
 const MAX_FLUSH_ROUNDS = 3;
 
@@ -44,6 +47,8 @@ export type ProfileStatus = "loading" | "ready" | "offline";
 type AuthContextValue = {
   status: AuthStatus;
   user: User | null;
+  /** Name and email to show: the signed-in user, or the saved copy before the server answers. */
+  profile: Profile | null;
   /** State of the background profile fetch at launch. */
   profileStatus: ProfileStatus;
   signIn: (email: string, password: string) => Promise<void>;
@@ -71,6 +76,10 @@ export function useAuth(): AuthContextValue {
   return value;
 }
 
+function saveProfileCopy(me: User): Promise<void> {
+  return writeProfile(asyncStorageStore, { userId: me.id, email: me.email, displayName: me.displayName }).catch(() => {});
+}
+
 /** Applies the account's language (or the phone's when unset) and syncs the local choice. */
 async function syncLanguage(accountLanguage: Language | null): Promise<void> {
   if (accountLanguage === null) await deleteLanguageChoice();
@@ -81,6 +90,7 @@ async function syncLanguage(accountLanguage: Language | null): Promise<void> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<User | null>(null);
+  const [storedProfile, setStoredProfile] = useState<Profile | null>(null);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
   const [languagePendingSync, setPendingSync] = useState(false);
   const tokenRef = useRef<string | null>(null);
@@ -112,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenRef.current = null;
     rerunRef.current = false;
     setUser(null);
+    setStoredProfile(null);
     setProfileStatus("loading");
     setPendingSync(false);
     setStatus("signedOut");
@@ -121,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Keep whatever language is showing.
     }
-    for (const clear of [deleteToken, deleteStoredUserId, deleteLanguageChoice, deleteLanguagePendingSync]) {
+    for (const clear of [deleteToken, deleteStoredUserId, () => clearProfile(asyncStorageStore), deleteLanguageChoice, deleteLanguagePendingSync]) {
       try {
         await clear();
       } catch {
@@ -231,6 +242,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tokenRef.current = token;
       setStatus("signedIn");
       try {
+        const storedId = await getStoredUserId();
+        const saved = storedId ? await readProfile(asyncStorageStore, storedId) : null;
+        // Only while the server has not answered; a known user always wins.
+        if (!cancelled && tokenRef.current === token) setStoredProfile(saved);
+      } catch {
+        // No saved profile: the card stays hidden until getMe answers.
+      }
+      try {
         // Show the pending note even if the network call below fails.
         if (await getLanguagePendingSync()) setPendingSync(true);
       } catch {
@@ -243,6 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(me);
         setProfileStatus("ready");
         void saveStoredUserId(me.id).catch(() => {});
+        void saveProfileCopy(me);
         await reconcileLanguage(token, me.language);
       } catch (error) {
         if (cancelled || tokenRef.current !== token) return;
@@ -267,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(me);
         setProfileStatus("ready");
         void saveStoredUserId(me.id).catch(() => {});
+        void saveProfileCopy(me);
         await reconcileLanguage(token, me.language);
         return true;
       } catch (error) {
@@ -300,8 +321,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Without it an offline launch shows no saved projects until the profile loads.
     }
+    void saveProfileCopy(me);
     tokenRef.current = token;
     setUser(me);
+    setStoredProfile(null);
     setProfileStatus("ready");
     setStatus("signedIn");
     await reconcileLanguage(token, me.language);
@@ -362,10 +385,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [flushPendingLanguage],
   );
 
+  const profile = useMemo(() => visibleProfile(user, storedProfile), [user, storedProfile]);
+
   const value = useMemo(
     () => ({
       status,
       user,
+      profile,
       profileStatus,
       signIn,
       signUp,
@@ -379,6 +405,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       status,
       user,
+      profile,
       profileStatus,
       signIn,
       signUp,
