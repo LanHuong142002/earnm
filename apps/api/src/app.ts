@@ -1,8 +1,11 @@
+import { randomBytes } from "node:crypto";
 import express, { type Express } from "express";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { createAuthRouter } from "./auth/routes.js";
 import { createInternalRouter } from "./internal/routes.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
+import { deriveInviteKey } from "./invites/code.js";
+import { createInvitesRouter } from "./invites/routes.js";
 import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 
@@ -27,6 +30,10 @@ export function createApp(deps: AppDeps): Express {
   app.use("/auth", createAuthRouter(deps));
   app.use("/me", createMeRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
+  // Without INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.
+  const inviteKey =
+    deps.internalSecret !== undefined ? deriveInviteKey(deps.internalSecret) : randomBytes(32);
+  app.use(createInvitesRouter({ prisma: deps.prisma, now: deps.now, inviteKey }));
 
   app.use(
     "/internal",

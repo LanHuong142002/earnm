@@ -52,7 +52,7 @@ interface ProjectRow {
 }
 
 /** The exact shape the mobile app expects. */
-function toResponse(project: ProjectRow, role: Role) {
+export function toResponse(project: ProjectRow, role: Role) {
   return {
     id: project.id,
     name: project.name,
