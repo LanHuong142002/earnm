@@ -38,7 +38,17 @@ export function dueChangeError(
   return null;
 }
 
-/** The time a newly opened clock starts on: noon, or now when today's noon has passed. */
+/** A time can be added once the day is today or later: on a past day every time is refused. */
+export function canAddTime(day: string, now: Date): boolean {
+  return day >= dateToDay(now);
+}
+
+/**
+ * The time a newly opened clock starts on: noon, or the next whole hour (at most 23:59) when
+ * today's noon has passed, so keeping it and saving a minute later is never refused as past.
+ */
 export function defaultTimeFor(day: string, now: Date): string {
-  return dueIsInPast(day, "12:00", now) ? dateToTime(now) : "12:00";
+  if (!dueIsInPast(day, "12:00", now)) return "12:00";
+  const next = now.getHours() + 1;
+  return next > 23 ? "23:59" : `${String(next).padStart(2, "0")}:00`;
 }

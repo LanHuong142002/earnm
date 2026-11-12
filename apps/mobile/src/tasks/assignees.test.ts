@@ -110,17 +110,14 @@ describe("buildAssigneeOptions (R27)", () => {
     expect(options).toEqual([{ id: "me", displayName: "Me", former: false }]);
   });
 
-  it("puts the signed-in person first when the member list does not name them", () => {
+  it("leaves the signed-in person out when the loaded member list does not name them", () => {
     const options = buildAssigneeOptions({
       members: [member("u2", "Binh")],
       known,
       selectedIds: [],
       me: { id: "me", displayName: "Me" },
     });
-    expect(options).toEqual([
-      { id: "me", displayName: "Me", former: false },
-      { id: "u2", displayName: "Binh", former: false },
-    ]);
+    expect(options).toEqual([{ id: "u2", displayName: "Binh", former: false }]);
   });
 
   it("does not list the signed-in person twice", () => {
@@ -130,6 +127,24 @@ describe("buildAssigneeOptions (R27)", () => {
       selectedIds: [],
       me: { id: "me", displayName: "Me" },
     });
+    expect(options.map((o) => o.id)).toEqual(["u2", "me"]);
+  });
+
+  it("with a loaded list, lists me only when the list includes me, in the server's order", () => {
+    const me = { id: "me", displayName: "Me" };
+    const withoutMe = buildAssigneeOptions({ members: [member("u2", "Binh")], known, selectedIds: [], me });
+    expect(withoutMe.map((o) => o.id)).toEqual(["u2"]);
+    const withMe = buildAssigneeOptions({
+      members: [member("u2", "Binh"), member("me", "Me")],
+      known,
+      selectedIds: [],
+      me,
+    });
+    expect(withMe.map((o) => o.id)).toEqual(["u2", "me"]);
+  });
+  it("with no list ever loaded, still lists me first", () => {
+    const me = { id: "me", displayName: "Me" };
+    const options = buildAssigneeOptions({ members: null, known: [{ id: "u2", displayName: "Binh" }], selectedIds: [], me });
     expect(options.map((o) => o.id)).toEqual(["me", "u2"]);
   });
 });

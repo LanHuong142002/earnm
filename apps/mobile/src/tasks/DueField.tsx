@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/useTheme";
 import { ErrorText } from "../ui/ErrorText";
 import { PressableScale } from "../ui/PressableScale";
-import { defaultTimeFor, minimumDay, minimumTimeFor } from "./dueRules";
+import { canAddTime, defaultTimeFor, minimumDay, minimumTimeFor } from "./dueRules";
 import { formatDue, type DueLanguage } from "./dueDate";
 import { dateToDay, dateToTime, dayToDate, timeToDate } from "./formState";
 
@@ -173,8 +173,10 @@ export function DueField({
         label: dayText !== null ? t("tasks.dueDayLabel", { date: dayText }) : t("tasks.dueDayPick"),
         invalid: !!dateError,
         onPress: () => {
-          // iOS only reports a change, so opening the calendar with no day sets today; Done then saves it.
-          if (ios && picking !== "day" && dueDate === null) onChangeDay(dateToDay(new Date()));
+          // iOS only reports a change, so opening the calendar with no day, or a day already past
+          // (shown as today), sets today; Done then saves it and the person can still clear it.
+          const todayDay = dateToDay(new Date());
+          if (ios && picking !== "day" && (dueDate === null || dueDate < todayDay)) onChangeDay(todayDay);
           setPicking(picking === "day" ? null : "day");
         },
         onClear:
@@ -187,7 +189,7 @@ export function DueField({
         clearLabel: t("tasks.dueClearDay"),
       })}
       {dateError ? <ErrorText message={dateError} /> : null}
-      {dueDate !== null
+      {dueDate !== null && (dueTime !== null || canAddTime(dueDate, new Date()))
         ? field({
             kind: "time",
             icon: "time-outline",

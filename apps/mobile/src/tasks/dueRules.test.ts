@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultTimeFor, dueChangeError, dueIsInPast, minimumTimeFor } from "./dueRules";
+import { canAddTime, defaultTimeFor, dueChangeError, dueIsInPast, minimumTimeFor } from "./dueRules";
 
 // Local time: 2026-11-12 10:30.
 const NOW = new Date(2026, 10, 12, 10, 30, 0, 0);
@@ -68,7 +68,22 @@ describe("defaultTimeFor (the time a freshly opened clock starts on)", () => {
   it("is noon today while noon is still ahead", () => {
     expect(defaultTimeFor("2026-11-12", NOW)).toBe("12:00");
   });
-  it("is now today once noon has passed, so it is never in the past", () => {
-    expect(defaultTimeFor("2026-11-12", new Date(2026, 10, 12, 15, 45))).toBe("15:45");
+  it("is the next whole hour today once noon has passed, so saving a minute later is never past", () => {
+    expect(defaultTimeFor("2026-11-12", new Date(2026, 10, 12, 15, 45))).toBe("16:00");
+    expect(defaultTimeFor("2026-11-12", new Date(2026, 10, 12, 15, 0))).toBe("16:00");
+    expect(defaultTimeFor("2026-11-12", new Date(2026, 10, 12, 12, 1))).toBe("13:00");
+  });
+  it("is capped at 23:59 late in the day", () => {
+    expect(defaultTimeFor("2026-11-12", new Date(2026, 10, 12, 23, 10))).toBe("23:59");
+  });
+});
+
+describe("canAddTime", () => {
+  it("is false for a day before today", () => {
+    expect(canAddTime("2026-11-11", NOW)).toBe(false);
+  });
+  it("is true for today and later days", () => {
+    expect(canAddTime("2026-11-12", NOW)).toBe(true);
+    expect(canAddTime("2026-11-13", NOW)).toBe(true);
   });
 });

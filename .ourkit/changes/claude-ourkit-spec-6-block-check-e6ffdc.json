@@ -237,12 +237,42 @@
         "id": 29,
         "severity": "blocking",
         "text": "QA criterion 27 (user on iPhone): expected the assignee picker to list the project's members including me; saw it empty. Expected a delete control for the project Owner; saw none. Due date/time picking felt chaotic (picker rendered below the field).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 30,
         "severity": "blocking",
         "text": "QA criterion 15/28 (user on iPhone): expected no offline note while online; saw 'Đang ngoại tuyến' constantly. Dev DB lacks migration 20261112060000_tasks, so /tasks answers 500, which the list treats and words as offline.",
+        "resolved": true
+      },
+      {
+        "id": 31,
+        "severity": "non-blocking",
+        "text": "[sensitive qa] apps/mobile/src/tasks/assignees.ts:53-57: buildAssigneeOptions always lists me as a current member even when a loaded member list leaves me out (e.g. removed, stale cache); picking myself is then refused by the server (validation_failed) with a 'couldn't be saved' notice.",
+        "resolved": false
+      },
+      {
+        "id": 32,
+        "severity": "non-blocking",
+        "text": "[qa-fix] DueField.tsx:201 + dueRules defaultTimeFor: after noon the default time is the current minute, so keeping it and saving a minute later is refused as past.",
+        "resolved": false
+      },
+      {
+        "id": 33,
+        "severity": "non-blocking",
+        "text": "[qa-fix] DueField.tsx:72,177: on iOS an overdue task's calendar shows today but tapping today fires no change, so it can't be moved straight to today.",
+        "resolved": false
+      },
+      {
+        "id": 34,
+        "severity": "non-blocking",
+        "text": "[qa-fix] DueField.tsx:201 + dueChangeError: opening the time on an overdue day auto-sets a time that is always refused, blocking save until the time is cleared.",
+        "resolved": false
+      },
+      {
+        "id": 35,
+        "severity": "non-blocking",
+        "text": "[qa-fix] Android time picker may ignore minimumDate in time mode (unverified); past time only refused on save. Test Handoff.",
         "resolved": false
       }
     ],

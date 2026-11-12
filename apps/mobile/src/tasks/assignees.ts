@@ -48,13 +48,14 @@ export function buildAssigneeOptions({
   members: Member[] | null;
   known: TaskAssignee[];
   selectedIds: string[];
-  /** The signed-in person: always listed first, even before any member list or name is known. */
+  /** The signed-in person: listed first only while no member list is loaded; a loaded list shows me only if it includes me. */
   me?: TaskAssignee | null;
 }): AssigneeOption[] {
   const withMe = (people: TaskAssignee[]) =>
     me === null ? people : [{ ...me }, ...people.filter((p) => p.id !== me.id)];
   if (members === null) return withMe(known).map((p) => ({ ...p, former: false }));
-  const current = withMe(membersToAssignees(members));
+  // A loaded list is the truth: I appear only if it includes me, where the server put me.
+  const current = membersToAssignees(members);
   const currentIds = new Set(current.map((p) => p.id));
   const former = known.filter((p) => selectedIds.includes(p.id) && !currentIds.has(p.id));
   return [...current.map((p) => ({ ...p, former: false })), ...former.map((p) => ({ ...p, former: true }))];
