@@ -105,5 +105,47 @@
   "tabs": {
     "home": "Trang chủ",
     "account": "Tài khoản"
+  },
+  "tasks": {
+    "status": {
+      "todo": "Cần làm",
+      "doing": "Đang làm",
+      "done": "Xong"
+    },
+    "overdue": "Quá hạn",
+    "weekday": {
+      "0": "CN",
+      "1": "T2",
+      "2": "T3",
+      "3": "T4",
+      "4": "T5",
+      "5": "T6",
+      "6": "T7"
+    },
+    "month": {
+      "1": "Thg 1",
+      "2": "Thg 2",
+      "3": "Thg 3",
+      "4": "Thg 4",
+      "5": "Thg 5",
+      "6": "Thg 6",
+      "7": "Thg 7",
+      "8": "Thg 8",
+      "9": "Thg 9",
+      "10": "Thg 10",
+      "11": "Thg 11",
+      "12": "Thg 12"
+    },
+    "errors": {
+      "titleRequired": "Hãy nhập tiêu đề.",
+      "titleTooLong": "Tiêu đề tối đa 120 ký tự.",
+      "descriptionTooLong": "Mô tả tối đa 2000 ký tự.",
+      "statusInvalid": "Hãy chọn trạng thái.",
+      "dueDateInvalid": "Hãy chọn một ngày hợp lệ.",
+      "dueTimeInvalid": "Hãy chọn một giờ hợp lệ.",
+      "dueTimeNeedsDate": "Hãy chọn ngày trước khi thêm giờ.",
+      "assigneesTooMany": "Một công việc có tối đa 20 người.",
+      "assigneesDuplicate": "Mỗi người chỉ được thêm một lần."
+    }
   }
 }
