@@ -56,6 +56,11 @@
       "id": 3,
       "decision": "Task picker reads members through #5's member cache instead of a second copy",
       "why": "Review finding: two offline copies of members can drift; user chose to reuse #5's"
+    },
+    {
+      "id": 4,
+      "decision": "Cap a project at 1000 tasks by refusing the 1001st create (409 task_limit_reached) instead of paging the list",
+      "why": "Review asked for a bounded list; paging is out of scope and silently truncating the list would hide tasks"
     }
   ],
   "review": {
@@ -64,13 +69,13 @@
         "id": 1,
         "severity": "blocking",
         "text": "[sensitive] apps/api/src/tasks/routes.ts:257-263 + apps/api/src/members/routes.ts:166,186: removing/leaving a member keeps their TaskAssignee rows; a later PATCH sending the full assignee set (still containing the ex-member, who the picker can't untick) is refused 400 and rolls back the whole edit incl. title/status, so the task's assignees can never be changed again and queued edits are lost.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 2,
         "severity": "non-blocking",
         "text": "[sensitive] apps/api/src/tasks/routes.ts:168-171,229-232,282-286: membership/role checked outside the write transaction without lockProject; a member demoted/removed mid-request can still delete or assign (#5 fixed this race for projects).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 3,
@@ -88,36 +93,90 @@
         "id": 5,
         "severity": "non-blocking",
         "text": "[sensitive] apps/api/src/app.ts: tasks router mounted after /projects, so requireAuth runs twice per task request (two session lookups and lastUsedAt writes).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 6,
         "severity": "non-blocking",
         "text": "apps/mobile/src/tasks/StatusPicker.ts:23-31: on Android Alert keeps only 3 buttons, so Cancel is dropped and the alert can't be dismissed outside; use cancelable:true or a sheet.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 7,
         "severity": "non-blocking",
         "text": "apps/mobile/src/tasks/localChange.ts:9-19 (deriveMembers): former members still assigned on cached tasks are offered as pickable and start ticked in edit (formFromTask), leading to 400s on any assignee change.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 8,
         "severity": "non-blocking",
         "text": "apps/mobile/src/tasks/store.ts membersByProject + TasksProvider.refreshMembers: a second offline copy of members next to #5's members/memberCache.ts (members.cache.v1); copies can drift.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 9,
         "severity": "non-blocking",
         "text": "apps/api/src/tasks/routes.ts:110: task 404 message 'Not found.' differs from #5 members route 'Project not found.' (members/routes.ts:19); AC9 says task and member requests give the same body.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 10,
         "severity": "non-blocking",
         "text": "apps/mobile/src/tasks/TaskForm.tsx:274-286: description is multiline but Return submits (returnKeyType done, blurAndSubmit), so no line breaks in a 2000-char description.",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] apps/api/src/tasks/routes.ts:19-28: realDate accepts year 0000, which PostgreSQL DATE rejects, likely giving 500 instead of 400 (unverified); limit the year range.",
+        "resolved": false
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] apps/api/src/tasks/routes.ts:172-176: GET tasks list is unbounded (paging out of scope per spec); add a generous cap or note the exception in the change report.",
+        "resolved": false
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] routes.ts:279-283 + phone queue: a merged offline change with a newly added ex-member is refused whole (400), dropping title/status edits or an offline-created task; matches R3/R17 but is a data-loss tradeoff.",
+        "resolved": false
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] routes.ts:194-203: a retried create after the task was deleted elsewhere re-creates it (no tombstones, accepted by spec); note in Test Handoff.",
+        "resolved": false
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] rollout: db:deploy must run before the new API (member removal uses taskAssignee); undoing needs code revert before dropping tables; note in release notes.",
+        "resolved": false
+      },
+      {
+        "id": 16,
+        "severity": "blocking",
+        "text": "[r2] apps/mobile/src/app/(app)/(home)/projects/[id]/tasks/index.tsx:51-58,78: refresh result is ignored; a failed first fetch (network/500) on an empty cache shows 'No tasks yet' with no error or retry (frontend checklist: error state, way forward).",
+        "resolved": false
+      },
+      {
+        "id": 17,
+        "severity": "blocking",
+        "text": "[r2] apps/mobile/src/tasks/TaskCard.tsx:236-267: status pill is a pressable nested inside the accessible card pressable, so VoiceOver can't reach it; R23 status change from the card is impossible with a screen reader.",
+        "resolved": false
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "[r2] apps/mobile/src/tasks/DueField.tsx:114,140: on iOS the day picker opens on today but dueDate stays null until a change fires, so picking today then Done may save no date; set today when opening, as line 161 does for time.",
+        "resolved": false
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "[r2] apps/mobile/src/tasks/AssigneeField.tsx:334-343: multi-select rows reuse ChoiceRow with accessibilityRole radio; use checkbox.",
         "resolved": false
       }
     ]

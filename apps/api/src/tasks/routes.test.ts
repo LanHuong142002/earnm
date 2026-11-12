@@ -198,6 +198,24 @@ describe("/projects/:projectId/tasks", () => {
       }
     });
 
+    it("accepts years 1900 and 9999 and refuses years outside them, on create and patch", async () => {
+      const u = await user();
+      const p = await seed(u);
+      for (const dueDate of ["1900-01-01", "9999-12-31"]) {
+        const res = await create(u, p, { dueDate });
+        expect(res.status).toBe(201);
+        expect(res.body.dueDate).toBe(dueDate);
+      }
+      for (const dueDate of ["0000-01-01", "1899-12-31", "0001-06-15"]) {
+        expectError(await create(u, p, { dueDate }), 400, "validation_failed");
+      }
+      const t = (await create(u, p)).body;
+      for (const date of ["0000-01-01", "1899-12-31"]) {
+        expectError(await patch(u, p, t.id, { due: change({ date }) }), 400, "validation_failed");
+      }
+      expect(await prisma.task.count()).toBe(3);
+    });
+
     it("sets, changes and clears the due field through a patch", async () => {
       const u = await user();
       const p = await seed(u);
@@ -224,6 +242,64 @@ describe("/projects/:projectId/tasks", () => {
       for (const value of [{ time: "09:30" }, { date: null, time: "09:30" }, { date: "2026-02-30" }]) {
         expectError(await patch(u, p, t, { due: change(value) }), 400, "validation_failed");
       }
+    });
+  });
+
+  describe("task limit (R7)", () => {
+    async function fill(projectId: string, n: number, ownerId: string) {
+      const t = clock.now();
+      await prisma.task.createMany({
+        data: Array.from({ length: n }, (_, i) => ({
+          id: randomUUID(),
+          projectId,
+          title: `T${i}`,
+          titleEditedAt: t,
+          descriptionEditedAt: t,
+          statusEditedAt: t,
+          dueEditedAt: t,
+          assigneesEditedAt: t,
+          createdById: ownerId,
+        })),
+      });
+    }
+
+    it("allows the 1000th task, refuses the 1001st with 409 task_limit_reached, and frees a slot on delete", async () => {
+      const u = await user();
+      const p = await seed(u);
+      await fill(p, 999, u.id);
+      const last = await create(u, p);
+      expect(last.status).toBe(201);
+      expectError(await create(u, p), 409, "task_limit_reached");
+      expect(await prisma.task.count({ where: { projectId: p } })).toBe(1000);
+      expect((await del(u, p, last.body.id)).status).toBe(204);
+      expect((await create(u, p)).status).toBe(201);
+    });
+
+    it("still answers 200 to a repeat of an existing task's create at the limit", async () => {
+      const u = await user();
+      const p = await seed(u);
+      await fill(p, 999, u.id);
+      const id = randomUUID();
+      expect((await create(u, p, { id })).status).toBe(201);
+      expect((await create(u, p, { id })).status).toBe(200);
+    });
+
+    it("counts per project", async () => {
+      const u = await user();
+      const full = await seed(u);
+      const other = await seed(u);
+      await fill(full, 1000, u.id);
+      expectError(await create(u, full), 409, "task_limit_reached");
+      expect((await create(u, other)).status).toBe(201);
+    });
+
+    it("never exceeds 1000 when creates race", async () => {
+      const u = await user();
+      const p = await seed(u);
+      await fill(p, 998, u.id);
+      const results = await Promise.all([create(u, p), create(u, p), create(u, p)]);
+      expect(results.map((r) => r.status).sort()).toEqual([201, 201, 409]);
+      expect(await prisma.task.count({ where: { projectId: p } })).toBe(1000);
     });
   });
 

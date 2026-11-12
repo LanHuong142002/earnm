@@ -7,6 +7,9 @@ import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { findForMember, lockProject } from "../projects/access.js";
 
+/** A project holds at most this many tasks. */
+export const MAX_TASKS_PER_PROJECT = 1000;
+
 const titleSchema = z.string().trim().min(1).max(120);
 const descriptionSchema = z.string().trim().max(2000);
 const statusSchema = z.enum(["todo", "doing", "done"]);
@@ -25,6 +28,8 @@ const realDate = z
     // An impossible month or day gives an Invalid Date, which toISOString would throw on.
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
   })
+  // The column is a PostgreSQL date, and the product accepts years 1900 to 9999 only.
+  .refine((s) => Number(s.slice(0, 4)) >= 1900)
   .transform((s) => new Date(`${s}T00:00:00.000Z`));
 
 const assigneeIdsSchema = z
@@ -200,6 +205,14 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
               throw new AppError(409, "id_conflict", "That task id is already taken.");
             }
             return { status: 200, task: existing };
+          }
+          // Counted under the project lock, so concurrent creates can't pass the limit together.
+          if ((await tx.task.count({ where: { projectId } })) >= MAX_TASKS_PER_PROJECT) {
+            throw new AppError(
+              409,
+              "task_limit_reached",
+              `A project can hold at most ${MAX_TASKS_PER_PROJECT} tasks.`,
+            );
           }
           await assertAssigneesAreMembers(tx, projectId, body.assigneeIds);
           const task = await tx.task.create({
