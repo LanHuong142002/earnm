@@ -65,6 +65,7 @@ describe("members", () => {
         statusEditedAt: t,
         dueEditedAt: t,
         assigneesEditedAt: t,
+        labelsEditedAt: t,
         assignees: { create: who.map((u) => ({ userId: u.id })) },
       },
     });

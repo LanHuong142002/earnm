@@ -277,6 +277,7 @@ describe("/projects/:projectId/tasks", () => {
           statusEditedAt: t,
           dueEditedAt: t,
           assigneesEditedAt: t,
+          labelsEditedAt: t,
           createdById: ownerId,
         })),
       });
@@ -536,6 +537,7 @@ describe("/projects/:projectId/tasks", () => {
         "descriptionEditedAt",
         "statusEditedAt",
         "dueEditedAt",
+        "labelsEditedAt",
         "assigneesEditedAt",
       ] as const) {
         expect(row[k].toISOString()).toBe(iso());

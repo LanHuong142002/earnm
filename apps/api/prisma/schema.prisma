@@ -33,6 +33,17 @@ enum TaskStatus {
   done
 }
 
+enum LabelColour {
+  gray
+  red
+  orange
+  yellow
+  green
+  teal
+  blue
+  purple
+}
+
 model User {
   id             String          @id @default(uuid())
   email          String          @unique
@@ -74,6 +85,7 @@ model Project {
   members             ProjectMember[]
   tasks               Task[]
   invites             Invite[]
+  labels              Label[]
 }
 
 model Session {
@@ -101,11 +113,14 @@ model Task {
   statusEditedAt      DateTime
   dueEditedAt         DateTime
   assigneesEditedAt   DateTime
+  labelsEditedAt      DateTime
   createdById         String?
   createdBy           User?          @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   assignees           TaskAssignee[]
+  checklists          Checklist[]
+  labels              TaskLabel[]
 
   @@index([projectId])
 }
@@ -135,4 +150,54 @@ model Invite {
   revokedAt   DateTime?
 
   @@index([projectId, createdAt])
+}
+
+model Checklist {
+  id           String          @id
+  taskId       String
+  task         Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  name         String
+  nameEditedAt DateTime
+  createdAt    DateTime        @default(now())
+  items        ChecklistItem[]
+
+  @@index([taskId, createdAt])
+}
+
+model ChecklistItem {
+  id           String    @id
+  checklistId  String
+  checklist    Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  text         String
+  textEditedAt DateTime
+  done         Boolean   @default(false)
+  doneEditedAt DateTime
+  createdAt    DateTime  @default(now())
+
+  @@index([checklistId, createdAt])
+}
+
+model Label {
+  id             String      @id
+  projectId      String
+  project        Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  nameKey        String
+  colour         LabelColour
+  nameEditedAt   DateTime
+  colourEditedAt DateTime
+  createdAt      DateTime    @default(now())
+  tasks          TaskLabel[]
+
+  @@unique([projectId, nameKey])
+}
+
+model TaskLabel {
+  taskId  String
+  labelId String
+  task    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+  @@index([labelId])
 }

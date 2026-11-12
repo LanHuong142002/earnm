@@ -230,6 +230,7 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
               statusEditedAt: editedAt,
               dueEditedAt: editedAt,
               assigneesEditedAt: editedAt,
+              labelsEditedAt: editedAt,
               createdById: userId,
               assignees: { create: body.assigneeIds.map((id) => ({ userId: id })) },
             },
