@@ -192,6 +192,8 @@
     "statusLabel": "Trạng thái",
     "assigneesLabel": "Giao cho",
     "assigneesNone": "Chưa có ai",
+    "formerMember": "Đã rời dự án",
+    "statusCurrent": "Hiện tại: {{status}}",
     "saveButton": "Lưu",
     "editButton": "Sửa",
     "deleteButton": "Xóa công việc",

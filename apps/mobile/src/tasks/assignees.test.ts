@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assigneeSummary, membersToAssignees, toggleAssignee } from "./assignees";
+import { assigneeSummary, buildAssigneeOptions, membersToAssignees, toggleAssignee } from "./assignees";
 
 describe("membersToAssignees", () => {
   it("keeps the id and the display name only", () => {
@@ -41,5 +41,66 @@ describe("assigneeSummary", () => {
   });
   it("skips ids that are not in the list", () => {
     expect(assigneeSummary(["zzz", "b"], people)).toBe("Binh");
+  });
+});
+
+describe("toggleAssignee with someone who cannot be added (R27)", () => {
+  it("does not add a person marked not addable", () => {
+    expect(toggleAssignee(["a"], "gone", false)).toEqual({ ids: ["a"], tooMany: false });
+  });
+  it("still removes that person", () => {
+    expect(toggleAssignee(["a", "gone"], "gone", false)).toEqual({ ids: ["a"], tooMany: false });
+  });
+});
+
+describe("buildAssigneeOptions (R27)", () => {
+  const member = (userId: string, displayName: string) => ({
+    userId,
+    displayName,
+    role: "member" as const,
+    joinedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const known = [
+    { id: "me", displayName: "Me" },
+    { id: "old", displayName: "Old" },
+  ];
+
+  it("offers only the current members once the list is known", () => {
+    const options = buildAssigneeOptions({ members: [member("me", "Me"), member("u2", "Binh")], known, selectedIds: [] });
+    expect(options).toEqual([
+      { id: "me", displayName: "Me", former: false },
+      { id: "u2", displayName: "Binh", former: false },
+    ]);
+  });
+
+  it("keeps an assigned former member, marked, after the current ones", () => {
+    const options = buildAssigneeOptions({ members: [member("me", "Me")], known, selectedIds: ["old", "me"] });
+    expect(options).toEqual([
+      { id: "me", displayName: "Me", former: false },
+      { id: "old", displayName: "Old", former: true },
+    ]);
+  });
+
+  it("drops a former member once unticked", () => {
+    const options = buildAssigneeOptions({ members: [member("me", "Me")], known, selectedIds: [] });
+    expect(options.map((o) => o.id)).toEqual(["me"]);
+  });
+
+  it("skips an assigned former member whose name is unknown", () => {
+    const options = buildAssigneeOptions({ members: [member("me", "Me")], known, selectedIds: ["ghost"] });
+    expect(options.map((o) => o.id)).toEqual(["me"]);
+  });
+
+  it("uses the server's name for a current member", () => {
+    const options = buildAssigneeOptions({ members: [member("me", "Me Renamed")], known, selectedIds: [] });
+    expect(options[0].displayName).toBe("Me Renamed");
+  });
+
+  it("falls back to what the phone knows when no member list was ever fetched", () => {
+    const options = buildAssigneeOptions({ members: null, known, selectedIds: ["old"] });
+    expect(options).toEqual([
+      { id: "me", displayName: "Me", former: false },
+      { id: "old", displayName: "Old", former: false },
+    ]);
   });
 });

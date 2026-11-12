@@ -9,10 +9,11 @@ export function membersToAssignees(members: Member[]): TaskAssignee[] {
 
 /**
  * The chosen ids with `id` added or removed. A person past the limit is not added and `tooMany`
- * says so; taking someone off always works.
+ * says so; taking someone off always works. `addable` false (someone who left the project) never adds.
  */
-export function toggleAssignee(ids: string[], id: string): { ids: string[]; tooMany: boolean } {
+export function toggleAssignee(ids: string[], id: string, addable = true): { ids: string[]; tooMany: boolean } {
   if (ids.includes(id)) return { ids: ids.filter((x) => x !== id), tooMany: false };
+  if (!addable) return { ids, tooMany: false };
   if (ids.length >= ASSIGNEES_MAX) return { ids, tooMany: true };
   return { ids: [...ids, id], tooMany: false };
 }
@@ -28,4 +29,28 @@ export function assigneeSummary(ids: string[], people: TaskAssignee[]): string {
     .filter((p) => chosen.has(p.id))
     .map((p) => firstName(p.displayName))
     .join(", ");
+}
+
+/** A person the picker shows; `former` is someone already assigned who is no longer a member. */
+export type AssigneeOption = TaskAssignee & { former: boolean };
+
+/**
+ * The picker's rows (R27). With the server's member list (`members`) only current members are
+ * offered, plus assigned people missing from it (named from `known`), marked `former`: they can be
+ * taken off but not put back. With no list ever fetched (null) it is everyone `known`.
+ */
+export function buildAssigneeOptions({
+  members,
+  known,
+  selectedIds,
+}: {
+  members: Member[] | null;
+  known: TaskAssignee[];
+  selectedIds: string[];
+}): AssigneeOption[] {
+  if (members === null) return known.map((p) => ({ ...p, former: false }));
+  const current = membersToAssignees(members);
+  const currentIds = new Set(current.map((p) => p.id));
+  const former = known.filter((p) => selectedIds.includes(p.id) && !currentIds.has(p.id));
+  return [...current.map((p) => ({ ...p, former: false })), ...former.map((p) => ({ ...p, former: true }))];
 }

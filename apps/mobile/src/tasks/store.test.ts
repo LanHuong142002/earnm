@@ -12,7 +12,6 @@ import {
   pruneTaskCache,
   saveTaskCache,
   setProjectFilters,
-  setProjectMembers,
   setProjectTasks,
 } from "./store";
 
@@ -206,40 +205,25 @@ describe("cache helpers", () => {
   });
 });
 
-describe("members in the task cache (R27)", () => {
-  const people = [
-    { id: "u1", displayName: "An" },
-    { id: "u2", displayName: "Binh" },
-  ];
-
-  it("round-trips a project's members", async () => {
-    const store = createMemoryStore();
-    const cache = setProjectMembers(emptyTaskCache("u1"), "p1", people);
-    await saveTaskCache(store, cache);
-    expect((await loadTaskCache(store, "u1"))?.membersByProject).toEqual({ p1: people });
-  });
-
-  it("loads a copy saved before members existed, with none", async () => {
-    const store = createMemoryStore();
-    await store.setJSON("tasks.cache.v1", { ownerId: "u1", byProject: {}, filters: {} });
-    expect((await loadTaskCache(store, "u1"))?.membersByProject).toEqual({});
-  });
-
-  it("drops a malformed members list instead of the whole copy", async () => {
+describe("members are not kept in the task cache (R27)", () => {
+  it("loads an older copy that still has membersByProject, ignoring the field", async () => {
     const store = createMemoryStore();
     await store.setJSON("tasks.cache.v1", {
       ownerId: "u1",
       byProject: { p1: [makeTask()] },
       filters: {},
-      membersByProject: { p1: [{ id: 5 }], p2: people },
+      membersByProject: { p1: [{ id: "u1", displayName: "An" }] },
     });
     const loaded = await loadTaskCache(store, "u1");
     expect(loaded?.byProject.p1).toHaveLength(1);
-    expect(loaded?.membersByProject).toEqual({ p2: people });
+    expect(loaded).not.toHaveProperty("membersByProject");
   });
 
-  it("pruning forgets the members of removed projects", () => {
-    const cache = setProjectMembers(setProjectMembers(emptyTaskCache("u1"), "p1", people), "p2", people);
-    expect(Object.keys(pruneTaskCache(cache, ["p1"]).membersByProject)).toEqual(["p1"]);
+  it("does not write members back", async () => {
+    const store = createMemoryStore();
+    await store.setJSON("tasks.cache.v1", { ownerId: "u1", byProject: {}, filters: {}, membersByProject: { p1: [] } });
+    const loaded = await loadTaskCache(store, "u1");
+    await saveTaskCache(store, loaded!);
+    expect(await store.getJSON("tasks.cache.v1")).not.toHaveProperty("membersByProject");
   });
 });

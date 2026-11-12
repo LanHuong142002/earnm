@@ -14,7 +14,7 @@ import { getStoredUserId, getToken } from "../auth/token-store";
 import { newProjectId as newId } from "../projects/newProjectId";
 import { useProjects } from "../projects/ProjectsProvider";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
-import { listMembers } from "../lib/api";
+import { loadMembers } from "../members/memberCache";
 import { listTasks } from "./api";
 import { membersToAssignees } from "./assignees";
 import { DEFAULT_FILTERS, type TaskFilters } from "./filters";
@@ -28,7 +28,6 @@ import {
   pruneTaskCache,
   saveTaskCache,
   setProjectFilters,
-  setProjectMembers,
   setProjectTasks,
   type TaskCache,
 } from "./store";
@@ -56,13 +55,6 @@ type TasksContextValue = {
   filtersFor: (projectId: string) => TaskFilters;
   /** Remembered per project until sign-out (R24). */
   setFilters: (projectId: string, filters: TaskFilters) => Promise<void>;
-  /**
-   * People a task in this project can name: me, assignees on cached tasks, the project's members
-   * as last fetched (kept for offline use), plus the `members` prop. Changes when members arrive.
-   */
-  membersFor: (projectId: string) => TaskAssignee[];
-  /** Fetches the project's members and keeps them. Does nothing when offline or not `ready`. */
-  refreshMembers: (projectId: string) => Promise<void>;
   create: (projectId: string, input: TaskInput) => Promise<TaskMutationResult<{ id: string }>>;
   update: (projectId: string, taskId: string, edit: TaskEdit) => Promise<TaskMutationResult>;
   setStatus: (projectId: string, taskId: string, status: TaskStatus) => Promise<TaskMutationResult>;
@@ -85,7 +77,7 @@ type Props = {
   children: ReactNode;
   /**
    * Extra people per project, laid over the derived list (me and the assignees on cached tasks)
-   * and the members the provider keeps itself.
+   * and the members in the members cache.
    */
   members?: (projectId: string) => TaskAssignee[];
 };
@@ -285,41 +277,35 @@ export function TasksProvider({ children, members }: Props) {
     [userId, displayName],
   );
 
-  // `cache` is a dependency only so the picker re-renders when members arrive.
-  const membersFor = useCallback(
-    (projectId: string) =>
-      deriveMembers(me, cacheRef.current.byProject[projectId] ?? [], [
-        ...(cacheRef.current.membersByProject[projectId] ?? []),
-        ...(membersRef.current?.(projectId) ?? []),
-      ]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [me, cache],
-  );
-
-  const refreshMembers = useCallback<TasksContextValue["refreshMembers"]>(
-    async (projectId) => {
-      if (!readyRef.current) return;
-      const gen = genRef.current;
+  /**
+   * The people a change can name: me, assignees on cached tasks, the `members` prop, and the
+   * project's members from the members cache (#5's, refreshed by useMembers; never another
+   * person's). Read when a change is made, so it is as fresh as the last member refresh.
+   */
+  const peopleFor = useCallback(
+    async (projectId: string, owner: string): Promise<TaskAssignee[]> => {
+      let saved: TaskAssignee[] = [];
       try {
-        const token = await getToken();
-        if (!token) return;
-        const people = membersToAssignees(await listMembers(token, projectId));
-        if (gen !== genRef.current || wipedRef.current || !readyRef.current) return;
-        await publish(setProjectMembers(cacheRef.current, projectId, people));
+        saved = membersToAssignees((await loadMembers(asyncStorageStore, owner, projectId)) ?? []);
       } catch {
-        // Offline or refused: the saved list stays.
+        // Unreadable: names come from what the phone already knows.
       }
+      return deriveMembers(me, cacheRef.current.byProject[projectId] ?? [], [
+        ...saved,
+        ...(membersRef.current?.(projectId) ?? []),
+      ]);
     },
-    [publish],
+    [me],
   );
 
   const create = useCallback<TasksContextValue["create"]>(
     async (projectId, input) => {
       const owner = loadedOwnerRef.current;
       if (!readyRef.current || !owner) return { ok: false, errors: {} };
+      const people = await peopleFor(projectId, owner);
       const now = new Date();
       const id = newId();
-      const plan = planTaskCreate({ id, projectId, userId: owner, input, members: membersFor(projectId), now });
+      const plan = planTaskCreate({ id, projectId, userId: owner, input, members: people, now });
       if (!plan.ok) return plan;
       await track(async () => {
         await queue.enqueue(plan.change);
@@ -329,16 +315,18 @@ export function TasksProvider({ children, members }: Props) {
       await afterEnqueue();
       return { ok: true, id };
     },
-    [track, commit, queue, afterEnqueue, membersFor],
+    [track, commit, queue, afterEnqueue, peopleFor],
   );
 
   const update = useCallback<TasksContextValue["update"]>(
     async (projectId, taskId, edit) => {
-      if (!readyRef.current) return { ok: false, errors: {} };
+      const owner = loadedOwnerRef.current;
+      if (!readyRef.current || !owner) return { ok: false, errors: {} };
       const current = (cacheRef.current.byProject[projectId] ?? []).find((t) => t.id === taskId);
       if (!current) return { ok: true };
+      const people = await peopleFor(projectId, owner);
       const now = new Date();
-      const plan = planTaskUpdate(current, edit, membersFor(projectId), now);
+      const plan = planTaskUpdate(current, edit, people, now);
       if (!plan.ok) return plan;
       const change = plan.change;
       if (!change) return { ok: true };
@@ -350,7 +338,7 @@ export function TasksProvider({ children, members }: Props) {
       await afterEnqueue();
       return { ok: true };
     },
-    [track, commit, queue, afterEnqueue, membersFor],
+    [track, commit, queue, afterEnqueue, peopleFor],
   );
 
   const setStatus = useCallback<TasksContextValue["setStatus"]>(
@@ -403,8 +391,6 @@ export function TasksProvider({ children, members }: Props) {
       tasksFor,
       filtersFor,
       setFilters,
-      membersFor,
-      refreshMembers,
       create,
       update,
       setStatus,
@@ -413,7 +399,7 @@ export function TasksProvider({ children, members }: Props) {
       rejectedNotice,
       dismissRejectedNotice,
     }),
-    [ready, tasksFor, filtersFor, setFilters, membersFor, refreshMembers, create, update, setStatus, remove, refresh, rejectedNotice, dismissRejectedNotice],
+    [ready, tasksFor, filtersFor, setFilters, create, update, setStatus, remove, refresh, rejectedNotice, dismissRejectedNotice],
   );
 
   return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>;

@@ -194,6 +194,8 @@
     "statusLabel": "Status",
     "assigneesLabel": "Assigned to",
     "assigneesNone": "Nobody yet",
+    "formerMember": "No longer in project",
+    "statusCurrent": "Now: {{status}}",
     "saveButton": "Save",
     "editButton": "Edit",
     "deleteButton": "Delete task",

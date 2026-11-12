@@ -1,8 +1,10 @@
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
+import { useRef, useState, type ComponentRef, type ReactNode } from "react";
 import { Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "../auth/AuthProvider";
+import { useMembers } from "../members/useMembers";
 import { useTheme } from "../theme/useTheme";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -12,9 +14,10 @@ import { ErrorText } from "../ui/ErrorText";
 import { Screen } from "../ui/Screen";
 import { TextField } from "../ui/TextField";
 import { AssigneeField } from "./AssigneeField";
-import { toggleAssignee } from "./assignees";
+import { buildAssigneeOptions, toggleAssignee } from "./assignees";
 import { DueField } from "./DueField";
 import { clearDay, inputFromForm, setDay, setTime, clearTime, type TaskForm as TaskFormValues } from "./formState";
+import { deriveMembers } from "./localChange";
 import { useTasks, type TaskMutationResult } from "./TasksProvider";
 import { TASK_STATUSES } from "./types";
 import { validateTaskInput, type TaskInputErrors } from "./validate";
@@ -40,7 +43,10 @@ export function TaskForm({
   const { colors, typography, spacing } = useTheme();
   // The Home stack header sits above this screen; the keyboard overlap must account for it.
   const headerHeight = useHeaderHeight();
-  const { membersFor, refreshMembers, ready } = useTasks();
+  const { tasksFor } = useTasks();
+  const { user } = useAuth();
+  // The project's current members, from #5's cache and refreshed when the form opens (R27).
+  const { members } = useMembers(projectId);
   const opened = useRef(initial).current;
   const [form, setForm] = useState<TaskFormValues>(initial);
   const [errors, setErrors] = useState<TaskInputErrors>({});
@@ -49,13 +55,12 @@ export function TaskForm({
   const inFlight = useRef(false);
   const descriptionRef = useRef<ComponentRef<typeof TextInput>>(null);
 
-  // Fetch the members when the form opens; the saved list shows meanwhile and when offline.
-  useEffect(() => {
-    if (ready) void refreshMembers(projectId);
-  }, [ready, refreshMembers, projectId]);
+  const known = deriveMembers(user ? { id: user.id, displayName: user.displayName } : null, tasksFor(projectId), []);
+  const options = buildAssigneeOptions({ members, known, selectedIds: form.assigneeIds });
 
   function toggle(id: string) {
-    const next = toggleAssignee(form.assigneeIds, id);
+    const former = options.find((o) => o.id === id)?.former ?? false;
+    const next = toggleAssignee(form.assigneeIds, id, !former);
     setForm((f) => ({ ...f, assigneeIds: next.ids }));
     setErrors((e) => ({ ...e, assignees: next.tooMany ? "tasks.errors.assigneesTooMany" : undefined }));
   }
@@ -116,9 +121,8 @@ export function TaskForm({
             onChangeText={(description) => setForm((f) => ({ ...f, description }))}
             multiline
             inputRef={descriptionRef}
-            returnKeyType="done"
-            submitBehavior="blurAndSubmit"
-            onSubmitEditing={() => void submit()}
+            // Return adds a line; the Save button below submits.
+            submitBehavior="newline"
             editable={!busy}
           />
           <View style={{ gap: spacing[0] }}>
@@ -148,7 +152,7 @@ export function TaskForm({
             disabled={busy}
           />
           <AssigneeField
-            people={membersFor(projectId)}
+            people={options}
             selectedIds={form.assigneeIds}
             onToggle={toggle}
             error={message(errors.assignees)}

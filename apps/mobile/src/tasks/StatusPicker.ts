@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import { ActionSheetIOS, Alert, Platform } from "react-native";
 
+import { androidStatusChoices } from "./statusChoices";
 import { TASK_STATUSES, type TaskStatus } from "./types";
 
 /** One tap on a status pill opens this: an action sheet on iOS, Alert buttons elsewhere (spec R23). */
@@ -20,13 +21,18 @@ export function showStatusPicker(t: TFunction, current: TaskStatus, onPick: (sta
     );
     return;
   }
-  Alert.alert(t("tasks.changeStatus"), undefined, [
-    ...TASK_STATUSES.map((status) => ({
-      text: label(status),
-      onPress: () => {
-        if (status !== current) onPick(status);
-      },
-    })),
-    { text: t("common.cancel"), style: "cancel" as const },
-  ]);
+  // Android shows at most three buttons: the other two statuses and Cancel. Tapping outside or
+  // Back dismisses it too.
+  Alert.alert(
+    t("tasks.changeStatus"),
+    t("tasks.statusCurrent", { status: t(`tasks.status.${current}`) }),
+    [
+      ...androidStatusChoices(current).map((status) => ({
+        text: t(`tasks.status.${status}`),
+        onPress: () => onPick(status),
+      })),
+      { text: t("common.cancel"), style: "cancel" as const },
+    ],
+    { cancelable: true },
+  );
 }

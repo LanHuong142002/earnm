@@ -8,8 +8,7 @@ import { Card } from "../ui/Card";
 import { ChoiceRow } from "../ui/ChoiceRow";
 import { ErrorText } from "../ui/ErrorText";
 import { PressableScale } from "../ui/PressableScale";
-import { assigneeSummary } from "./assignees";
-import type { TaskAssignee } from "./types";
+import { assigneeSummary, type AssigneeOption } from "./assignees";
 
 /**
  * Who the task is for: a field showing the chosen first names that opens the project's members
@@ -22,7 +21,7 @@ export function AssigneeField({
   error,
   disabled = false,
 }: {
-  people: TaskAssignee[];
+  people: AssigneeOption[];
   selectedIds: string[];
   onToggle: (id: string) => void;
   error?: string | null;
@@ -72,6 +71,8 @@ export function AssigneeField({
                 key={person.id}
                 label={person.displayName}
                 selected={selectedIds.includes(person.id)}
+                caption={person.former ? t("tasks.formerMember") : undefined}
+                disabled={person.former && !selectedIds.includes(person.id)}
                 divider={i > 0}
                 onPress={() => onToggle(person.id)}
               />
