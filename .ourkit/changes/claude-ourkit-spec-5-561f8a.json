@@ -180,7 +180,7 @@
         "id": 22,
         "severity": "blocking",
         "text": "apps/api/src/invites/routes.ts join (~L159-200) with members/routes.ts remove (~L149-170): a removed Owner can rejoin as Member with invites they created before removal (they saw the plain codes; R7 keeps invites valid after the creator is removed; join never compares the joiner with createdById; remove leaves their pending invites). So removal (R26) doesn't hold. Fix: refuse join with invalid_invite when createdById === userId (test), and, as a spec decision, revoke the removed person's pending invites in the same locked transaction.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 23,
@@ -199,7 +199,26 @@
         "severity": "non-blocking",
         "text": "Migrations 20261112023324_invites and 20261112050321_invite_created_index have no down migration (Prisma); rolling back code is safe, removing the table needs a manual DROP TABLE \"Invite\". Mention in the PR.",
         "resolved": false
+      },
+      {
+        "id": 26,
+        "severity": "non-blocking",
+        "text": "apps/api/src/members/routes.ts leave (~L180): an Owner who leaves keeps working invites (R7 by the user's choice); they know the plain codes and could rejoin within 7 days from a second account (the self-join check is per account, and is skipped if their account was deleted). Revoke the leaver's pending invites too if that's not wanted.",
+        "resolved": false
+      },
+      {
+        "id": 27,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/projects/outcomes.ts (~L67) and syncCycle.ts (~L96): dropping queued writes assumes GET /projects returns every membership; it's unpaged today, but adding paging later would silently drop queued edits for projects beyond the first page. Pin it with a comment or an API test.",
+        "resolved": false
+      },
+      {
+        "id": 28,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx (~L79): the profile email is stored in plain AsyncStorage and survives a 401/session expiry until the next sign-in overwrites it (reads are keyed by user id). Accept, or store only the display name.",
+        "resolved": false
       }
-    ]
+    ],
+    "reviewed": "39a2687ebd7ffe9da17779860690f1306d51df13cb66fb076a52b03f515e520a"
   }
 }
