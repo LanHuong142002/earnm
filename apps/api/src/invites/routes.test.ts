@@ -415,6 +415,107 @@ describe("invites", () => {
     });
   });
 
+  describe("owner re-checked under the project lock", () => {
+    /**
+     * Holds the project lock, lets `send` pass its outer owner check and queue on the lock,
+     * demotes `who` in the holding transaction, then commits.
+     */
+    async function demoteWhileQueued(projectId: string, who: User, send: () => Promise<{ status: number; body: unknown }>) {
+      let locked!: () => void;
+      const hasLock = new Promise<void>((r) => (locked = r));
+      let go!: () => void;
+      const proceed = new Promise<void>((r) => (go = r));
+      const holder = prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
+          locked();
+          await proceed;
+          await tx.projectMember.update({
+            where: { projectId_userId: { projectId, userId: who.id } },
+            data: { role: "member" },
+          });
+        },
+        { timeout: 20_000 },
+      );
+      await hasLock;
+      const pending = Promise.resolve(send()); // supertest is lazy; this starts the request
+      await new Promise((r) => setTimeout(r, 400));
+      go();
+      await holder;
+      return pending;
+    }
+
+    it("refuses create from an owner demoted while it waited for the lock", async () => {
+      const a = await user();
+      const b = await user();
+      const pid = await seedProject(a);
+      await prisma.projectMember.create({ data: { projectId: pid, userId: b.id, role: "owner" } });
+      const res = await demoteWhileQueued(pid, b, () => createInvite(b, pid));
+      expectError(res as never, 403, "forbidden");
+      expect(await prisma.invite.count({ where: { projectId: pid } })).toBe(0);
+    }, 30_000);
+
+    it("refuses revoke from an owner demoted while it waited for the lock", async () => {
+      const a = await user();
+      const b = await user();
+      const pid = await seedProject(a);
+      await prisma.projectMember.create({ data: { projectId: pid, userId: b.id, role: "owner" } });
+      const made = await createInvite(a, pid);
+      const res = await demoteWhileQueued(pid, b, () => revoke(b, pid, made.body.id));
+      expectError(res as never, 403, "forbidden");
+      const row = await prisma.invite.findUniqueOrThrow({ where: { id: made.body.id } });
+      expect(row.revokedAt).toBeNull();
+    }, 30_000);
+  });
+
+  describe("code collision", () => {
+    it("retries with a fresh code when the first one collides", async () => {
+      const owner = await user();
+      const pid = await seedProject(owner);
+      const first = await createInvite(owner, pid);
+      expect(first.status).toBe(201);
+      const taken = normalizeCode(first.body.code)!;
+      const codes = [taken, "ABCDEFGH"];
+      const a = express();
+      a.use(express.json());
+      a.use(
+        createInvitesRouter({ prisma, now: clock.now, inviteKey, generateCode: () => codes.shift() ?? "ZZZZZZZZ" }),
+      );
+      a.use(notFoundHandler);
+      a.use(errorHandler);
+      const res = await createInvite(owner, pid, a);
+      expect(res.status).toBe(201);
+      expect(res.body.code).toBe("ABCD-EFGH");
+      expect(await prisma.invite.count({ where: { projectId: pid } })).toBe(2);
+    });
+
+    it("gives the normal 500 after three colliding attempts", async () => {
+      const owner = await user();
+      const pid = await seedProject(owner);
+      const first = await createInvite(owner, pid);
+      const taken = normalizeCode(first.body.code)!;
+      let calls = 0;
+      const a = express();
+      a.use(express.json());
+      a.use(
+        createInvitesRouter({
+          prisma,
+          now: clock.now,
+          inviteKey,
+          generateCode: () => {
+            calls++;
+            return taken;
+          },
+        }),
+      );
+      a.use(notFoundHandler);
+      a.use(errorHandler);
+      const res = await createInvite(owner, pid, a);
+      expect(res.status).toBe(500);
+      expect(calls).toBe(3);
+    });
+  });
+
   describe("join rate limit (AC11)", () => {
     it("answers 429 too_many_attempts after 10 failures for one account", async () => {
       const a = makeApp();

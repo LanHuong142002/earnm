@@ -4,13 +4,16 @@ import type { PrismaClient } from "../../generated/prisma/client.js";
 import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { createSignInLimiter, type AttemptHandle } from "../auth/rate-limit.js";
 import { AppError } from "../http/errors.js";
+import { isUniqueViolation } from "../http/prisma-errors.js";
 import { lockProject, requireOwner } from "../projects/access.js";
 import { toResponse } from "../projects/routes.js";
-import { formatCode, generateCode, hashCode, normalizeCode } from "./code.js";
+import { formatCode, generateCode as realGenerateCode, hashCode, normalizeCode } from "./code.js";
 
 export const INVITE_LIFETIME_MS = 7 * 24 * 3600 * 1000;
 export const MAX_PENDING_INVITES = 20;
 export const MAX_MEMBERS = 50;
+/** Tries to find an unused code before giving up. */
+const CODE_ATTEMPTS = 3;
 /** Join attempts per account and per IP in a 15 minute window. */
 const JOIN_ACCOUNT_LIMIT = 10;
 const JOIN_IP_LIMIT = 30;
@@ -36,8 +39,10 @@ export function createInvitesRouter(deps: {
   prisma: PrismaClient;
   now: () => Date;
   inviteKey: Buffer;
+  generateCode?: () => string;
 }): Router {
   const { prisma, now, inviteKey } = deps;
+  const generateCode = deps.generateCode ?? realGenerateCode;
   const router = Router();
   const authenticate = requireAuth(deps);
   // The account id goes in the "email" slot; the pair dimension is not used.
@@ -53,26 +58,38 @@ export function createInvitesRouter(deps: {
       const userId = getAuth(res.locals).userId;
       const projectId = await requireOwner(prisma, param(req.params["id"]), userId);
       createSchema.parse(req.body ?? {});
-      const code = generateCode();
-      const invite = await prisma.$transaction(async (tx) => {
-        if (!(await lockProject(tx, projectId))) throw notFound();
-        const at = now();
-        const pending = await tx.invite.count({
-          where: { projectId, usedAt: null, revokedAt: null, expiresAt: { gt: at } },
-        });
-        if (pending >= MAX_PENDING_INVITES) {
-          throw new AppError(409, "too_many_invites", "This project has too many pending invites.");
+      let code = "";
+      let invite;
+      for (let attempt = 1; ; attempt++) {
+        code = generateCode();
+        try {
+          invite = await prisma.$transaction(async (tx) => {
+            if (!(await lockProject(tx, projectId))) throw notFound();
+            // The caller may have been demoted or removed since the check above.
+            await requireOwner(tx, projectId, userId);
+            const at = now();
+            const pending = await tx.invite.count({
+              where: { projectId, usedAt: null, revokedAt: null, expiresAt: { gt: at } },
+            });
+            if (pending >= MAX_PENDING_INVITES) {
+              throw new AppError(409, "too_many_invites", "This project has too many pending invites.");
+            }
+            return tx.invite.create({
+              data: {
+                projectId,
+                codeHash: hashCode(code, inviteKey),
+                createdById: userId,
+                createdAt: at,
+                expiresAt: new Date(at.getTime() + INVITE_LIFETIME_MS),
+              },
+            });
+          });
+          break;
+        } catch (err) {
+          // A taken code hash: draw a fresh code, a few times at most.
+          if (!isUniqueViolation(err) || attempt >= CODE_ATTEMPTS) throw err;
         }
-        return tx.invite.create({
-          data: {
-            projectId,
-            codeHash: hashCode(code, inviteKey),
-            createdById: userId,
-            createdAt: at,
-            expiresAt: new Date(at.getTime() + INVITE_LIFETIME_MS),
-          },
-        });
-      });
+      }
       res.status(201).json({
         id: invite.id,
         code: formatCode(code),
@@ -107,16 +124,22 @@ export function createInvitesRouter(deps: {
 
   router.delete("/projects/:id/invites/:inviteId", authenticate, async (req, res, next) => {
     try {
-      const projectId = await requireOwner(prisma, param(req.params["id"]), getAuth(res.locals).userId);
+      const userId = getAuth(res.locals).userId;
+      const projectId = await requireOwner(prisma, param(req.params["id"]), userId);
       const inviteId = idSchema.safeParse(param(req.params["inviteId"]));
       if (!inviteId.success) throw notFound();
-      const invite = await prisma.invite.findUnique({ where: { id: inviteId.data } });
-      if (!invite || invite.projectId !== projectId) throw notFound();
-      // Only a pending invite changes; a used, revoked or expired one stays as it is.
-      const at = now();
-      await prisma.invite.updateMany({
-        where: { id: invite.id, usedAt: null, revokedAt: null, expiresAt: { gt: at } },
-        data: { revokedAt: at },
+      await prisma.$transaction(async (tx) => {
+        if (!(await lockProject(tx, projectId))) throw notFound();
+        // The caller may have been demoted or removed since the check above.
+        await requireOwner(tx, projectId, userId);
+        const invite = await tx.invite.findUnique({ where: { id: inviteId.data } });
+        if (!invite || invite.projectId !== projectId) throw notFound();
+        // Only a pending invite changes; a used, revoked or expired one stays as it is.
+        const at = now();
+        await tx.invite.updateMany({
+          where: { id: invite.id, usedAt: null, revokedAt: null, expiresAt: { gt: at } },
+          data: { revokedAt: at },
+        });
       });
       res.status(204).end();
     } catch (err) {
