@@ -1,0 +1,12 @@
+{
+  "tier": "feature",
+  "tierReason": "New tasks table, endpoints and member-based permissions; fits one cycle",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "ticket": "6",
+  "planApproval": "cf1f8f73a89557eab5dac0b934cf4b49508afafdb15000f02f387f6bb3dc5085"
+}
