@@ -58,6 +58,26 @@ export async function removeProjectMembers(store: KeyValueStore, userId: string,
   await store.setJSON(CACHE_KEY, { userId, byProject: rest });
 }
 
+/**
+ * The cache with only `keepIds` left, or null when there is nothing to change: no cache, another
+ * person's cache (never touched), or every entry is kept.
+ */
+export function pruneMemberCache(cache: MemberCache | null, userId: string, keepIds: string[]): MemberCache | null {
+  if (!cache || cache.userId !== userId) return null;
+  const keep = new Set(keepIds);
+  const ids = Object.keys(cache.byProject);
+  if (ids.every((id) => keep.has(id))) return null;
+  const byProject: Record<string, Member[]> = {};
+  for (const id of ids) if (keep.has(id)) byProject[id] = cache.byProject[id];
+  return { userId: cache.userId, byProject };
+}
+
+/** Forgets the member names of every project not in `keepIds` (the person lost access to it). */
+export async function pruneProjectMembers(store: KeyValueStore, userId: string, keepIds: string[]): Promise<void> {
+  const next = pruneMemberCache(await read(store), userId, keepIds);
+  if (next) await store.setJSON(CACHE_KEY, next);
+}
+
 export function clearMemberCache(store: KeyValueStore): Promise<void> {
   return store.remove(CACHE_KEY);
 }

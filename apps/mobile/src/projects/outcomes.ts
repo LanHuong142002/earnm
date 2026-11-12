@@ -43,6 +43,18 @@ export function onRejected(list: Project[], change: Change, error: ApiError, wai
   return { list, notice, needsRefresh: true };
 }
 
+/** The list with a project the person just joined: replaced in place if already there, else added at the end. */
+export function withJoined(list: Project[], project: Project): Project[] {
+  const index = list.findIndex((p) => p.id === project.id);
+  if (index < 0) return [...list, project];
+  return list.map((p, i) => (i === index ? project : p));
+}
+
+/** The list without the project (the person left it). */
+export function withoutProject(list: Project[], id: string): Project[] {
+  return list.filter((p) => p.id !== id);
+}
+
 /** The local list after a refresh: the server's projects with the waiting changes on top. */
 export function restoreFromServer(server: Project[], waiting: Change[]): Project[] {
   return applyOverlay(server, waiting);

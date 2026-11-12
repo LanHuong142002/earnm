@@ -21,7 +21,7 @@ export default function JoinScreen() {
   const { spacing } = useTheme();
   // The Home stack header sits above this screen; the keyboard overlap must account for it.
   const headerHeight = useHeaderHeight();
-  const { refresh, setCurrentProject } = useProjects();
+  const { addJoinedProject } = useProjects();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,8 +37,7 @@ export default function JoinScreen() {
       const token = await getToken();
       if (!token) throw new Error("no token");
       const project = await joinProject(token, normalized);
-      await refresh();
-      await setCurrentProject(project.id);
+      await addJoinedProject(project);
       // Replace this screen: Join was pushed from the Project list, so back from the project reaches the list.
       router.replace({ pathname: "/projects/[id]", params: { id: project.id } });
     } catch (e) {

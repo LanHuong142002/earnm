@@ -40,7 +40,7 @@ export default function MembersScreen() {
   const { colors, typography, spacing, layout, iconSize, radius } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
-  const { status, projects, refresh: refreshProjects } = useProjects();
+  const { status, projects, refresh: refreshProjects, forgetProject } = useProjects();
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
   const { members, status: membersStatus, refresh } = useMembers(id, focused);
@@ -197,7 +197,7 @@ export default function MembersScreen() {
                 setLeaving(false);
                 throw error;
               }
-              await refreshProjects().catch(() => {});
+              await forgetProject(id);
               goToList();
             },
             members?.length,

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "../lib/api";
 import type { Change } from "../sync/queue";
 import type { Project } from "./api";
-import { noticeKeys, onApplied, onRejected, projectsToDrop } from "./outcomes";
+import { noticeKeys, onApplied, onRejected, projectsToDrop, withJoined, withoutProject } from "./outcomes";
 
 const T = "2026-01-01T00:00:00.000Z";
 const A: Project = { id: "a", name: "Alpha", description: "", currency: "VND", role: "owner" };
@@ -110,5 +110,24 @@ describe("projectsToDrop", () => {
 
   it("returns nothing when everything queued is on the server", () => {
     expect(projectsToDrop(["a", "b"], [change("update", "a"), change("delete", "b")])).toEqual([]);
+  });
+});
+
+describe("withJoined", () => {
+  it("appends a project that is not in the list, keeping the order", () => {
+    expect(withJoined([A], B).map((p) => p.id)).toEqual(["a", "b"]);
+  });
+  it("replaces a project already in the list at its place (no duplicate)", () => {
+    const out = withJoined([A, B], { ...A, name: "Server" });
+    expect(out.map((p) => p.name)).toEqual(["Server", "Beta"]);
+  });
+});
+
+describe("withoutProject", () => {
+  it("removes the project by id and keeps the rest in order", () => {
+    expect(withoutProject([A, B], "a")).toEqual([B]);
+  });
+  it("leaves the list alone for an unknown id", () => {
+    expect(withoutProject([A, B], "zzz")).toEqual([A, B]);
   });
 });

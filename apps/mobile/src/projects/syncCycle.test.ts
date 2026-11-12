@@ -21,6 +21,7 @@ function setup(server: Server, initial: Project[]) {
   let waiting = -1;
   let token: string | null = "tok";
   let generation = 0;
+  const committed: Project[][] = [];
   const onNotSignedIn = vi.fn();
   const patchProject = vi.fn(() => server.patch());
   let queue!: Queue;
@@ -49,6 +50,9 @@ function setup(server: Server, initial: Project[]) {
     isWiped: () => false,
     settleMutations: async () => queue.waiting(),
     onNotSignedIn,
+    afterRefreshCommit: (l) => {
+      committed.push(l);
+    },
   });
   queue = createQueue({ store: createMemoryStore(), getToken: async () => token, ...cycle.handlers });
   registerProjectEntity(queue, {
@@ -61,6 +65,7 @@ function setup(server: Server, initial: Project[]) {
     cycle,
     patchProject,
     onNotSignedIn,
+    committed,
     bumpGeneration: () => {
       generation += 1;
     },
@@ -296,5 +301,17 @@ describe("sync cycle: a project the person lost (AC21)", () => {
     release();
     await pending;
     expect(await h.queue.count()).toBe(1);
+  });
+
+  it("tells the owner of the cache which list a refresh committed (R33 prune)", async () => {
+    const h = setup({ patch: async () => ({}), list: [B] }, [A, B]);
+    await h.cycle.refresh();
+    expect(h.committed).toEqual([[B]]);
+  });
+
+  it("does not report a commit when the refresh failed", async () => {
+    const h = setup({ patch: async () => ({}), list: [B], listError: new ApiError("network", 0) }, [A, B]);
+    await h.cycle.refresh();
+    expect(h.committed).toEqual([]);
   });
 });

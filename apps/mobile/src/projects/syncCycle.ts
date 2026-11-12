@@ -35,6 +35,8 @@ export type SyncCycleDeps = {
   /** Waits until no local change is being recorded, then returns the changes still waiting. */
   settleMutations: () => Promise<Change[]>;
   onNotSignedIn: () => void;
+  /** Called with the list a successful refresh just committed (to forget data of projects no longer in it). */
+  afterRefreshCommit?: (list: Project[]) => void | Promise<unknown>;
 };
 
 export function createSyncCycle(deps: SyncCycleDeps) {
@@ -97,7 +99,9 @@ export function createSyncCycle(deps: SyncCycleDeps) {
       }
       const waiting = await deps.settleMutations();
       if (gen !== deps.getGeneration() || (await queue.ownerId()) !== ownerAtStart) return;
-      await deps.commit(outcomes.restoreFromServer(server, waiting));
+      const committed = outcomes.restoreFromServer(server, waiting);
+      await deps.commit(committed);
+      await Promise.resolve(deps.afterRefreshCommit?.(committed)).catch(() => {});
       deps.setWaitingCount(waiting.length);
       deps.setStatus("ready");
     } catch (error) {
