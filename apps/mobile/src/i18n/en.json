@@ -115,6 +115,10 @@
       "done": "Done"
     },
     "overdue": "Overdue",
+    "rejected": "Your change to {{title}} couldn't be saved.",
+    "rejectedNoTitle": "Your change to a task couldn't be saved.",
+    "rejectedCreate": "Your new task {{title}} couldn't be created.",
+    "rejectedCreateNoTitle": "Your new task couldn't be created.",
     "weekday": {
       "0": "Sun",
       "1": "Mon",

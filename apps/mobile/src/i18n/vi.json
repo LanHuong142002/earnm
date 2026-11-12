@@ -113,6 +113,10 @@
       "done": "Xong"
     },
     "overdue": "Quá hạn",
+    "rejected": "Không lưu được thay đổi của bạn với công việc {{title}}.",
+    "rejectedNoTitle": "Không lưu được thay đổi của bạn với một công việc.",
+    "rejectedCreate": "Không tạo được công việc mới {{title}}.",
+    "rejectedCreateNoTitle": "Không tạo được công việc mới của bạn.",
     "weekday": {
       "0": "CN",
       "1": "T2",
