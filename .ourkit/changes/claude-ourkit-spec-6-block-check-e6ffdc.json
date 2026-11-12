@@ -213,26 +213,27 @@
         "id": 25,
         "severity": "blocking",
         "text": "[r4] apps/mobile/src/tasks/TasksProvider.tsx:228-229 still loops pendingRefreshes()+refresh, so the re-mark-on-offline fix in syncCycle.refreshPending (finding 23) never runs in the app; refused edits stay on screen after a failed refresh (R17).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 26,
         "severity": "non-blocking",
         "text": "[r4] apps/mobile/src/tasks/outcomes.ts:59-74: a create refused with 404 (project gone) says the task 'no longer exists'; needs create+not_found wording.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 27,
         "severity": "non-blocking",
         "text": "[r4] apps/api/src/http/text.ts:4-7, apps/mobile/src/lib/text.ts:3-4: C1 control characters U+0080-U+009F are not covered by the control-character rule.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 28,
         "severity": "non-blocking",
         "text": "[r4] apps/api/src/projects/routes.test.ts:126: refused-name characters test omits \\r (task test has it).",
-        "resolved": false
+        "resolved": true
       }
-    ]
+    ],
+    "reviewed": "19a0914d2cc3d48338f77149afe239479595001f0b9be77d1d4380eb7021d530"
   }
 }
