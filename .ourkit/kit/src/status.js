@@ -63,7 +63,15 @@ function planApproved(projectDir, record, id) {
   if (record.mode === 'hands-off' && !stopRequired(record)) return true;
   if (!record.planApproval) return false;
   const { hashFile } = require('./install');
-  return record.planApproval === hashFile(path.join(projectDir, relativePathFor('plan', id)));
+  if (record.planApproval !== hashFile(path.join(projectDir, relativePathFor('plan', id)))) return false;
+  return !require('./mockup').mockupProblem(projectDir, record, id);
+}
+
+// What the user still has to do about the mockup, or null.
+function mockupWaiting(projectDir, record, id) {
+  const mockup = require('./mockup').state(projectDir, record, id);
+  if (!mockup.needed || !mockup.exists || mockup.approved) return null;
+  return { kind: 'approval', text: `look at the mockup (${mockup.path}) and approve it or ask for changes` };
 }
 
 function reviewPassed(projectDir, record, change) {
@@ -111,7 +119,7 @@ function otherBranches(projectDir, current) {
   return out.split('\n').filter((name) => name && name !== current && !['main', 'master'].includes(name)).slice(0, 3);
 }
 
-function nextStep({ current, waiting, record, planWritten, tasks, findings }) {
+function nextStep({ current, waiting, record, planWritten, mockupPending, tasks, findings }) {
   const questions = waiting.filter((item) => item.kind === 'question').length;
   const before = questions > 0 ? `answer ${questions} open question${questions > 1 ? 's' : ''}, then ` : '';
   if (!current) {
@@ -120,6 +128,7 @@ function nextStep({ current, waiting, record, planWritten, tasks, findings }) {
     if (record.tier === 'epic') return { skill: '/ourkit-spec', text: 'start each Feature on its own branch', waitsForYou: true };
     return { skill: '/ourkit-ship', text: 'open the PR', waitsForYou: false };
   }
+  if (current === 'Plan' && mockupPending) return { skill: '/ourkit-plan', text: `${before}approve the mockup, then plan`, waitsForYou: true };
   if (current === 'Plan' && planWritten) return { skill: '/ourkit-tasks', text: `${before}approve the plan, then tasks`, waitsForYou: true };
   if (current === 'Build' && tasks && tasks.blocked.length > 0) {
     return { skill: '/ourkit-build', text: `${before}unblock task ${tasks.blocked.map((t) => t.id).join(', ')}, then build`, waitsForYou: true };
@@ -163,6 +172,7 @@ function computeStatus(projectDir) {
     change: change.id,
     tier: record.tier || null,
     mode: record.mode || 'pair',
+    mockup: record.mockup ? (record.mockup.needed ? require('./mockup').state(projectDir, record, change.id).path : 'not needed') : null,
     flow: record.flow || 'standard',
     sensitiveAreas: record.sensitiveAreas || [],
     ticket: record.ticket || null,
@@ -174,9 +184,11 @@ function computeStatus(projectDir) {
   const { stages, current, tasks } = stageStates(projectDir, record, change);
   const findings = ((record.review || {}).findings || []).filter((f) => f.severity === 'blocking' && !f.resolved);
   const planWritten = artifactDone(projectDir, 'plan', change.id);
+  const mockupPending = current === 'Plan' ? mockupWaiting(projectDir, record, change.id) : null;
   const waiting = [
     ...(record.questions || []).filter((q) => q.answer === null).map((q) => ({ kind: 'question', text: q.question })),
-    ...(current === 'Plan' && planWritten ? [{ kind: 'approval', text: 'approve the plan' }] : []),
+    ...(mockupPending ? [mockupPending] : []),
+    ...(current === 'Plan' && planWritten && !mockupPending ? [{ kind: 'approval', text: 'approve the plan' }] : []),
     ...(tasks ? tasks.blocked.map((t) => ({ kind: 'blocked', text: `task ${t.id} is blocked: ${t.reason}` })) : []),
     ...(record.serviceActions || []).map((text) => ({ kind: 'service', text })),
     ...(record.pr && !current ? [{ kind: 'merge', text: `review and merge ${record.pr}` }] : []),
@@ -188,7 +200,7 @@ function computeStatus(projectDir) {
     tasks: tasks ? { done: tasks.done, total: tasks.total } : null,
     blockingFindings: findings.length,
     waiting,
-    next: nextStep({ current, waiting, record, planWritten, tasks, findings: findings.length }),
+    next: nextStep({ current, waiting, record, planWritten, mockupPending: Boolean(mockupPending), tasks, findings: findings.length }),
   };
 }
 

@@ -106,6 +106,8 @@ function approvalGate(projectDir, record, id) {
   if (!fs.existsSync(file)) reason = "the plan doesn't exist yet";
   else if (!record.planApproval) reason = 'the user has not approved the plan yet';
   else if (record.planApproval !== hashFile(file)) reason = 'the plan changed after the user approved it, so it needs approving again';
+  // The mockup is agreed before the plan, so a mockup that changed since sends the user back to it.
+  if (!reason) reason = require('./mockup').mockupProblem(projectDir, record, id);
   if (!reason) return pass;
   return { status: 'fail', reason, severity: 'block', action: handsOff ? 'stop-for-user' : ACTIONS.block.pair };
 }
@@ -113,6 +115,8 @@ function approvalGate(projectDir, record, id) {
 function approvePlan(projectDir, id) {
   const problems = checkArtifact(projectDir, 'plan', id);
   if (problems.length > 0) return fail(`the plan can't be approved yet: ${problems.join('; ')}`, 1);
+  const mockup = require('./mockup').mockupProblem(projectDir, readChange(projectDir, id), id);
+  if (mockup) return fail(`the plan can't be approved yet: ${mockup}`, 1);
   updateChange(projectDir, id, { planApproval: hashFile(planFile(projectDir, id)) });
   console.log('ourkit: recorded the user\'s approval of this version of the plan');
   return 0;

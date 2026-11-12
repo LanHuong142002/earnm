@@ -18,6 +18,7 @@ const subcommands = {
   lessons: () => require('../src/lessons').main(args),
   log: () => require('../src/report').main(args),
   loop: () => require('../src/loop').main(args),
+  mockup: () => require('../src/mockup').main(args),
   mode: () => require('../src/mode').modeMain(args),
   qa: () => require('../src/qa').main(args),
   question: () => require('../src/mode').questionMain(args),

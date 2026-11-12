@@ -25,7 +25,7 @@ Merging and deploying to production are the user's job, in every case (ADR 0010,
 
 **A change touching a Sensitive Area, or needing the user to act on a service, stops twice** (ADR 0012). If the work needs the user to do something on a service, such as creating a token or changing a setting, record it with `ourkit handsoff needs-service "<what>"`.
 
-1. **After Plan:** `ourkit gate approval` blocks. Commit and push the branch so the user can read the plan from anywhere, show the plan and what you've decided so far, then stop. So no tokens go in the wrong direction, write nothing until the user approves. Then run `ourkit gate approve-plan`.
+1. **After Plan:** `ourkit gate approval` blocks. Commit and push the branch so the user can read the plan from anywhere, show the mockup if there is one, the plan and what you've decided so far, then stop. So no tokens go in the wrong direction, write nothing until the user approves. Then run `ourkit mockup approve` if there's a mockup, and `ourkit gate approve-plan`.
 2. **Before Ship:** `ourkit gate ship` blocks. Show what was built, reviewed and checked in QA, then stop. After the user approves, run `ourkit gate approve-ship`.
 
 Run an approval command only after the user has said they approve, and never on their behalf. A later session may pick up here, so run `ourkit handsoff status` and `ourkit tier show` to see where things stand, and carry on from the Gate that's blocking.
@@ -44,4 +44,4 @@ Include only what you truly can't check. Handle everything else yourself.
 
 End with a report the user can act on without having been here: the PR's link, the Decision Log, the open Question Batch, non-blocking findings, the Test Handoff, and what's waiting for them. Report only results you actually observed, and say plainly what wasn't run.
 
-End the report with the Next line (`.ourkit/kit/core/next-step.md`): at the stop after Plan, the user reading and approving the plan; at the stop before Ship, the user approving what was built; once the PR is open, the user answering the Question Batch, following the Test Handoff, and reviewing and merging the PR.
+End the report with the Next line (`.ourkit/kit/core/next-step.md`): at the stop after Plan, the user looking at the mockup if there is one, then reading and approving the plan; at the stop before Ship, the user approving what was built; once the PR is open, the user answering the Question Batch, following the Test Handoff, and reviewing and merging the PR.

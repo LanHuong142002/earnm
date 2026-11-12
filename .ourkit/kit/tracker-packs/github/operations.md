@@ -32,9 +32,21 @@ If a command fails, or the person isn't found, leave that fact out of the file.
 
 GitHub Issues has only open and closed, so progress shows elsewhere. Run `ourkit tracker status` and read `progress`:
 
-- `labels`: use **With labels** below.
+- `labels`: use **With labels** below, after checking **Is the ticket on a board?**
 - `project`: use **On a Project board** below.
 - `both`: do both.
+
+### Is the ticket on a board?
+
+With `labels`, check this once per change, the first time you update its ticket, so a team that tracks work on a board isn't left with cards that never move:
+
+`gh issue view <number> --json projectItems --jq '[.projectItems[].title]'`
+
+If that lists a board, the team is watching the board, not the labels.
+- In Pair, tell the user the ticket is on that board, and ask to move cards there too. If they agree, run `ourkit tracker progress both`, then set the board up as below.
+- In Hands-off, run `ourkit pending add "Ticket #<number> is on the <board> Project board, but ourkit only updates labels; run ourkit tracker progress both so cards move"` and carry on with labels.
+
+If it fails because `gh` lacks the `project` scope, or lists nothing, carry on with labels.
 
 Never close an issue or move its card to Done yourself, because that would claim the work is merged when it isn't.
 
@@ -64,9 +76,14 @@ The card's place on the board comes from a single-select field, usually `Status`
 3. Match each status to a column, such as "In Progress", "In Review" and "Blocked". Leave a status out if the board has no column for it.
    - In Pair, show the user the project and the columns you matched, and ask them to confirm.
    - In Hands-off, don't guess. Run `ourkit pending add` asking the user to choose the board, use **With labels** for now, and carry on.
-4. Save it: `ourkit tracker board <owner> <number> --field "<field>" --in-progress "<column>" --in-review "<column>" --blocked "<column>"`, leaving out any status without a column. Commit `.ourkit/tracker.json` with the change's other records.
+4. Save it: `ourkit tracker board <owner> <number> --field "<field>" --in-progress "<column>" --in-review "<column>" --blocked "<column>"`, leaving out any status without a column. Commit `.ourkit/tracker.json` with the change's other records, so the setting reaches the default branch with this change's PR. If it only lives on a branch that's never merged, every later change starts again with labels.
+5. Check that Done will move by itself (see **Done** below).
+6. Bring the board up to date once, because cards for earlier work never moved. Follow **Catch up** below.
 
 **To move the card:**
+
+Move it every time you update the status, even if you think it's already there. Setting a card to the column it's in changes nothing, and a move that failed last time is put right.
+
 
 1. If `board.columns` has no column for this status, there's nothing to move.
 2. Add the issue to the board, which returns its card if it's already there:
@@ -80,7 +97,23 @@ The card's place on the board comes from a single-select field, usually `Status`
 
 If a column has been renamed or removed, say so, run `ourkit pending add` asking the user to update the board with `ourkit tracker board`, and carry on.
 
-**Done:** nothing to do. When the PR merges and closes the issue, the board's built-in "Item closed" workflow moves the card to Done, if that workflow is turned on.
+**Done:** nothing to move. When the PR merges and closes the issue, the board's built-in "Item closed" workflow moves the card to Done, if that workflow is turned on. Check that it is when you set the board up, and again at Ship:
+
+`gh api graphql -f query='query($id:ID!){node(id:$id){... on ProjectV2{workflows(first:20){nodes{name enabled}}}}}' -F id=<project-id>`
+
+If "Item closed" isn't listed as enabled, tell the user in Pair, or run `ourkit pending add "Turn on the Item closed workflow on the <board> Project board, so merged tickets move to Done"` in Hands-off. ourkit can't turn it on: GitHub only lets people do that in the board's settings.
+
+**Catch up:** when the board is first set up, or when the user asks, make the cards match what is already true. List the repository's issues on the board with their state and labels:
+
+`gh issue list --state all --limit 200 --json number,state,stateReason,labels,url`
+
+For each one whose card is in the wrong column:
+- An open issue with an `ourkit:` label goes to that status's column.
+- An open issue with an open PR that says `Closes #<number>` goes to the in review column.
+- A closed issue whose stateReason is `COMPLETED`, closed by a merged PR, goes to the board's Done column. This is the one time you set Done yourself, and only because the merge already happened.
+- Leave anything else where it is.
+
+In Pair, show the user the list of moves (ticket, from, to) and wait for their agreement before moving anything. In Hands-off, don't catch up; run `ourkit pending add` saying which cards look out of date.
 
 ## Comment
 
