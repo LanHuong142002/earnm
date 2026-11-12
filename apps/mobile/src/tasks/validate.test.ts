@@ -12,6 +12,18 @@ const base: TaskInput = {
 };
 
 describe("validateTaskInput", () => {
+  it("strips control characters, keeping newline, return and tab in the description", () => {
+    const r = validateTaskInput({ ...base, title: "Buy\u0000 fl\nour\u007f", description: " a\u0000b\nc\r\n\td\u0001 " });
+    expect(r).toEqual({
+      ok: true,
+      value: { ...base, title: "Buy flour", description: "ab\nc\r\n\td", status: "todo" },
+    });
+    expect(validateTaskInput({ ...base, title: "\u0000\u0001" })).toEqual({
+      ok: false,
+      errors: { title: "tasks.errors.titleRequired" },
+    });
+  });
+
   it("accepts a title only and trims text", () => {
     const r = validateTaskInput({ ...base, title: "  Buy flour  ", description: "  hi " });
     expect(r).toEqual({

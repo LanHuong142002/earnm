@@ -1,3 +1,4 @@
+import { cleanMultiLine, cleanSingleLine } from "../lib/text";
 import type { Currency } from "../lib/currency";
 import type { Change } from "../sync/queue";
 import type { KeyValueStore } from "../sync/storage";
@@ -51,8 +52,8 @@ export type ProjectValidation =
 
 /** Same limits as the server (spec R1): name 1-80, description 0-500, currency VND or USD. */
 export function validateProjectInput(input: ProjectInput): ProjectValidation {
-  const name = input.name.trim();
-  const description = input.description.trim();
+  const name = cleanSingleLine(input.name);
+  const description = cleanMultiLine(input.description);
   const errors: ProjectInputErrors = {};
   if (name.length === 0) errors.name = "required";
   else if (name.length > NAME_MAX) errors.name = "too_long";

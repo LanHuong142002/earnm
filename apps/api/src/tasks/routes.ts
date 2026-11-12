@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
+import { multiLineText, singleLineText } from "../http/text.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { findForMember, lockProject } from "../projects/access.js";
@@ -10,8 +11,8 @@ import { findForMember, lockProject } from "../projects/access.js";
 /** A project holds at most this many tasks. */
 export const MAX_TASKS_PER_PROJECT = 1000;
 
-const titleSchema = z.string().trim().min(1).max(120);
-const descriptionSchema = z.string().trim().max(2000);
+const titleSchema = singleLineText(120);
+const descriptionSchema = multiLineText(2000);
 const statusSchema = z.enum(["todo", "doing", "done"]);
 // Accepts "Z" and offsets such as "+07:00".
 const editedAtSchema = z.iso.datetime({ offset: true }).transform((s) => new Date(s));

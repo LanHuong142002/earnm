@@ -94,6 +94,25 @@ describe("/projects/:projectId/tasks", () => {
       expect(await prisma.task.count()).toBe(0);
     });
 
+    it("refuses control characters; descriptions may keep newline, return and tab", async () => {
+      const u = await user();
+      const p = await seed(u);
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f", "\n", "\r", "\t"]) {
+        expectError(await create(u, p, { title: `a${ch}b` }), 400, "validation_failed");
+      }
+      for (const ch of ["\u0000", "\u0001", "\u001f", "\u007f"]) {
+        expectError(await create(u, p, { description: `a${ch}b` }), 400, "validation_failed");
+      }
+      expect(await prisma.task.count()).toBe(0);
+      const ok = await create(u, p, { description: "line1\nline2\r\n\tx" });
+      expect(ok.status).toBe(201);
+      expect(ok.body.description).toBe("line1\nline2\r\n\tx");
+      const t = ok.body.id as string;
+      expectError(await patch(u, p, t, { title: change("a\u0000b") }), 400, "validation_failed");
+      expectError(await patch(u, p, t, { description: change("a\u0000b") }), 400, "validation_failed");
+      expect((await patch(u, p, t, { description: change("x\ny") })).status).toBe(200);
+    });
+
     it("accepts boundary values, every status and no due date", async () => {
       const u = await user();
       const p = await seed(u);

@@ -183,25 +183,25 @@
         "id": 20,
         "severity": "blocking",
         "text": "[r3] apps/mobile/src/app/(app)/(home)/projects/[id]/tasks/index.tsx:131: Retry onPress={() => fetchTasks} returns the function without calling it, so Try again sends no request.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 21,
         "severity": "blocking",
         "text": "[r3] apps/mobile/src/tasks/outcomes.ts REASON_KEY/noticeKeys reuse project wording (errors.not_found 'That project no longer exists', errors.forbidden owner-only, create_failed 'project could not be created'); task 404, creator-or-owner 403, task_limit_reached 409 and id_conflict give wrong or misleading notices (R7, R28).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 22,
         "severity": "blocking",
         "text": "[r3] apps/mobile/src/tasks/validate.ts isRealDay + DueField.tsx picker: no 1900-9999 year check or min/max date, so the phone accepts dates the server refuses and an offline create is later dropped whole (R2, R27).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 23,
         "severity": "non-blocking",
         "text": "[r3] apps/mobile/src/tasks/syncCycle.ts pendingRefreshes(): marks cleared before refresh runs; if it returns offline, a refused change stays visible until the next refresh; re-mark on non-ok.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 24,

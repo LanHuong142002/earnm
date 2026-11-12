@@ -3,12 +3,13 @@ import { z } from "zod";
 import type { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
+import { multiLineText, singleLineText } from "../http/text.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { findForMember, lockProject, requireOwner } from "./access.js";
 
-const nameSchema = z.string().trim().min(1).max(80);
-const descriptionSchema = z.string().trim().max(500);
+const nameSchema = singleLineText(80);
+const descriptionSchema = multiLineText(500);
 const currencySchema = z.enum(["VND", "USD"]);
 // Accepts "Z" and offsets such as "+07:00".
 const editedAtSchema = z.iso.datetime({ offset: true }).transform((s) => new Date(s));

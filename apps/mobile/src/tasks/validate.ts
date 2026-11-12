@@ -1,3 +1,4 @@
+import { cleanMultiLine, cleanSingleLine } from "../lib/text";
 import { TASK_STATUSES, type TaskStatus } from "./types";
 
 export const TITLE_MAX = 120;
@@ -48,8 +49,8 @@ function isRealDay(value: string): boolean {
 
 /** Same limits as the server (spec R1-R3). */
 export function validateTaskInput(input: TaskInput): TaskValidation {
-  const title = input.title.trim();
-  const description = input.description.trim();
+  const title = cleanSingleLine(input.title);
+  const description = cleanMultiLine(input.description);
   const errors: TaskInputErrors = {};
 
   if (title.length === 0) errors.title = "tasks.errors.titleRequired";
