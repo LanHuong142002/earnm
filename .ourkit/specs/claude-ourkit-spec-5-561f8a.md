@@ -16,7 +16,7 @@ An Owner can bring a partner into a project by sending a link through Zalo or Me
 4. A project can have several pending invites at once, up to 20. Creating a 21st is refused with 409 `too_many_invites`. Pending means not used, not revoked and not expired.
 5. The plain code is returned only in the response that creates the invite. The server keeps only a value it can match a code against, never the code itself. So an Owner can't see an old code again. To re-share, they create a new invite.
 6. Any Owner of the project can list its pending invites (who created each, when, and when it expires) and revoke any of them. A revoked invite can't be used. Revoking an invite that's already used, revoked or expired changes nothing and still succeeds.
-7. An invite belongs to its project, not to the Owner who created it. It stays valid if that Owner is later demoted, removed or leaves. Deleting the project deletes its invites.
+7. An invite belongs to its project, not to the Owner who created it. It stays valid if that Owner is later demoted or leaves. When an Owner removes a member, every pending invite that member created is revoked in the same change, so a removed person can't get back in with codes they saw. Nobody can join with an invite they created themselves (`invalid_invite`). Deleting the project deletes its invites.
 8. The invite link is `<API base URL>/i/<code>`. The app builds it from its configured API URL (`EXPO_PUBLIC_API_URL`), so the server needs no new base-URL setting.
 
 ### The invite web page
@@ -87,7 +87,7 @@ Each check is an API test against the real test database, unless it says otherwi
 - **AC4 (req 4):** with 20 pending invites, a 21st gets 409 `too_many_invites`. After revoking one, creating succeeds.
 - **AC5 (req 5):** the stored invite row doesn't contain the plain code. Listing pending invites returns no code.
 - **AC6 (req 6):** an Owner lists pending invites and revokes one, after which joining with it gives `invalid_invite`. Revoking it again gives success. A Member can't list or revoke.
-- **AC7 (req 7):** the creating Owner is demoted, and the invite still works. Deleting the project removes its invites.
+- **AC7 (req 7):** the creating Owner is demoted, and the invite still works. Deleting the project removes its invites. When the creating Owner is removed, their pending invites are revoked (another person's join gives `invalid_invite`) while invites created by others stay pending. A person joining with an invite they created, after leaving, gets `invalid_invite`.
 - **AC8 (reqs 9, 12):** the valid-code page returns 200 HTML with the project name, inviter name, formatted code and install steps, and the listed headers. A project name containing `<script>` appears escaped. The unknown, used, revoked and expired cases each return the same 404 body with no project name.
 - **AC9 (req 10):** `Accept-Language: en-US,en;q=0.9` gives English. No header, or `vi`, gives Vietnamese.
 - **AC10 (req 11):** with `INVITE_INSTALL_URL` set, the page links to it. Unset, the step says to ask the inviter. A non-https value makes config loading fail (unit test).

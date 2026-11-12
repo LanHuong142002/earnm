@@ -151,6 +151,54 @@
         "severity": "non-blocking",
         "text": "apps/mobile/src/auth/profile-store.ts and members/memberCache.ts: email and display name are now stored unencrypted in AsyncStorage (cleared on sign-out, owner-checked). Not verified that members.cache.v1 is pruned when a refresh drops a project the person was removed from; old co-member names may stay until sign-out.",
         "resolved": true
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "apps/api/src/members/routes.ts (~L102-105): GET members has no take/orderBy in the query (sorted in memory); the 50 cap is enforced only on join, so a project with members added directly in the DB could return an unbounded list. Add take: MAX_MEMBERS with orderBy, or record that the cap bounds it.",
+        "resolved": false
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts (~L80-85): the 50-invites-per-24h rule (from finding 15) isn't in the spec, and returns 429 too_many_attempts, which the phone shows as a sign-in-style lockout message. Add it to the spec and optionally give it its own code/message.",
+        "resolved": false
+      },
+      {
+        "id": 20,
+        "severity": "non-blocking",
+        "text": "docs/deploy.md (~L19) and apps/api/src/invites/code.ts (~L31) still say codes are always keyed from INTERNAL_SECRET; since INVITE_CODE_KEY they are keyed from it when set, and setting it for the first time also voids pending invites. Update both notes.",
+        "resolved": false
+      },
+      {
+        "id": 21,
+        "severity": "non-blocking",
+        "text": "apps/mobile/.../projects/join.tsx (~L39-43): if addJoinedProject throws after a 200 (e.g. a storage write fails), the screen shows a generic error though the person joined, and retrying gives already_member. Navigate anyway once joinProject resolved, or treat already_member on retry as success.",
+        "resolved": false
+      },
+      {
+        "id": 22,
+        "severity": "blocking",
+        "text": "apps/api/src/invites/routes.ts join (~L159-200) with members/routes.ts remove (~L149-170): a removed Owner can rejoin as Member with invites they created before removal (they saw the plain codes; R7 keeps invites valid after the creator is removed; join never compares the joiner with createdById; remove leaves their pending invites). So removal (R26) doesn't hold. Fix: refuse join with invalid_invite when createdById === userId (test), and, as a spec decision, revoke the removed person's pending invites in the same locked transaction.",
+        "resolved": false
+      },
+      {
+        "id": 23,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/page-routes.ts (/i/:code): the code is a 7-day bearer secret in the URL path, visible to Render edge/access logs and chat link previews (which also spend the page rate limit). Follows from R8; note it in docs/deploy.md or accept explicitly.",
+        "resolved": false
+      },
+      {
+        "id": 24,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts join: an unknown code returns after one indexed lookup, while a dead code opens a transaction and takes the project lock, so timing could show a code once existed. Negligible (dead codes are unusable, attempts limited); optionally look up with the pending filters outside the tx as the page does.",
+        "resolved": false
+      },
+      {
+        "id": 25,
+        "severity": "non-blocking",
+        "text": "Migrations 20261112023324_invites and 20261112050321_invite_created_index have no down migration (Prisma); rolling back code is safe, removing the table needs a manual DROP TABLE \"Invite\". Mention in the PR.",
+        "resolved": false
       }
     ]
   }

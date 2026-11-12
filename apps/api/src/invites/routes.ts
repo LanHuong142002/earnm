@@ -186,6 +186,8 @@ export function createInvitesRouter(deps: {
           ) {
             throw invalidInvite();
           }
+          // A creator can't redeem their own invite (a removed Owner saw the plain code).
+          if (current.createdById === userId) throw invalidInvite();
           const existing = await tx.projectMember.findUnique({
             where: { projectId_userId: { projectId: invite.projectId, userId } },
           });

@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import { errorHandler, notFoundHandler } from "../http/errors.js";
 import { createProjectsRouter } from "../projects/routes.js";
 import { createClock, createSignedInUser, expectError, prisma, useTestApp } from "../test/helpers.js";
+import { deriveInviteKey } from "../invites/code.js";
+import { createInvitesRouter } from "../invites/routes.js";
 import { createMembersRouter } from "./routes.js";
 
 describe("members", () => {
@@ -15,6 +17,7 @@ describe("members", () => {
   app.use(express.json());
   app.use("/projects", createProjectsRouter({ prisma, now: clock.now }));
   app.use(createMembersRouter({ prisma, now: clock.now }));
+  app.use(createInvitesRouter({ prisma, now: clock.now, inviteKey: deriveInviteKey("test-internal-secret") }));
   app.use(notFoundHandler);
   app.use(errorHandler);
 
@@ -318,6 +321,47 @@ describe("members", () => {
         const owners = await prisma.projectMember.count({ where: { projectId: pid, role: "owner" } });
         expect(owners).toBe(1);
       }
+    });
+  });
+
+  describe("removal and invites (AC7)", () => {
+    const invite = (u: User, pid: string) =>
+      request(app).post(`/projects/${pid}/invites`).set(...auth(u)).send({});
+    const join = (u: User, code: string) => request(app).post("/invites/join").set(...auth(u)).send({ code });
+
+    it("revokes the removed user's pending invites only", async () => {
+      const a = await user();
+      const b = await user();
+      const pid = await seedProject([a, b]);
+      const bPending = await invite(b, pid);
+      const bUsed = await invite(b, pid);
+      const aPending = await invite(a, pid);
+      const joiner = await user();
+      expect((await join(joiner, bUsed.body.code)).status).toBe(200);
+
+      expect((await remove(a, pid, b.id)).status).toBe(204);
+
+      const usedRow = await prisma.invite.findUniqueOrThrow({ where: { id: bUsed.body.id } });
+      expect(usedRow.usedAt).not.toBeNull();
+      expect(usedRow.revokedAt).toBeNull();
+      const revoked = await prisma.invite.findUniqueOrThrow({ where: { id: bPending.body.id } });
+      expect(revoked.revokedAt).not.toBeNull();
+      const aRow = await prisma.invite.findUniqueOrThrow({ where: { id: aPending.body.id } });
+      expect(aRow.revokedAt).toBeNull();
+
+      expectError(await join(await user(), bPending.body.code), 404, "invalid_invite");
+      expect((await join(await user(), aPending.body.code)).status).toBe(200);
+    });
+
+    it("leaves a demoted Owner's pending invites pending", async () => {
+      const a = await user();
+      const b = await user();
+      const pid = await seedProject([a, b]);
+      const made = await invite(b, pid);
+      expect((await setRole(a, pid, b.id, { role: "member" })).status).toBe(200);
+      const row = await prisma.invite.findUniqueOrThrow({ where: { id: made.body.id } });
+      expect(row.revokedAt).toBeNull();
+      expect((await join(await user(), made.body.code)).status).toBe(200);
     });
   });
 });

@@ -54,7 +54,7 @@ function toItem(m: { userId: string; role: Role; createdAt: Date; user: { displa
 type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
 export function createMembersRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
-  const { prisma } = deps;
+  const { prisma, now } = deps;
   const router = Router();
   const authenticate = requireAuth(deps);
 
@@ -164,6 +164,12 @@ export function createMembersRouter(deps: { prisma: PrismaClient; now: () => Dat
         }
         if (target.role === "owner" && owners - 1 === 0) throw lastOwner();
         await tx.projectMember.delete({ where: { projectId_userId: { projectId, userId: targetId } } });
+        // The removed user saw the plain codes of their invites; they must not outlive them.
+        const at = now();
+        await tx.invite.updateMany({
+          where: { projectId, createdById: targetId, usedAt: null, revokedAt: null, expiresAt: { gt: at } },
+          data: { revokedAt: at },
+        });
       });
       res.status(204).end();
     } catch (err) {

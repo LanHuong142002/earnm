@@ -340,7 +340,8 @@ describe("invites", () => {
       const pid = await seedProject(owner, [member]);
       const inv = await createInvite(owner, pid);
       expectError(await join(member, inv.body.code), 409, "already_member");
-      expectError(await join(owner, inv.body.code), 409, "already_member");
+      // The creator is refused before the membership check (AC7).
+      expectError(await join(owner, inv.body.code), 404, "invalid_invite");
       const row = await prisma.invite.findUniqueOrThrow({ where: { id: inv.body.id } });
       expect(row.usedAt).toBeNull();
       expect((await join(joiner, inv.body.code)).status).toBe(200);
@@ -555,10 +556,11 @@ describe("invites", () => {
     it("counts already_member as a failure", async () => {
       const a = makeApp();
       const owner = await user();
-      const pid = await seedProject(owner);
+      const member = await user();
+      const pid = await seedProject(owner, [member]);
       const inv = await createInvite(owner, pid, a);
-      for (let i = 0; i < 10; i++) expectError(await join(owner, inv.body.code, a), 409, "already_member");
-      expectError(await join(owner, inv.body.code, a), 429, "too_many_attempts");
+      for (let i = 0; i < 10; i++) expectError(await join(member, inv.body.code, a), 409, "already_member");
+      expectError(await join(member, inv.body.code, a), 429, "too_many_attempts");
     });
 
     it("counts project_full as a failure", async () => {
@@ -602,6 +604,24 @@ describe("invites", () => {
         expect(results.filter((r) => r.status === 404)).toHaveLength(10);
         expect(results.filter((r) => r.status === 429)).toHaveLength(15);
       }
+    });
+  });
+
+  describe("creator rejoining (AC7)", () => {
+    it("refuses an Owner who left from joining with an invite they created", async () => {
+      const keep = await user();
+      const leaver = await user();
+      const pid = await seedProject(keep);
+      await prisma.projectMember.create({ data: { projectId: pid, userId: leaver.id, role: "owner" } });
+      const made = await createInvite(leaver, pid);
+      expect(made.status).toBe(201);
+      await prisma.projectMember.delete({ where: { projectId_userId: { projectId: pid, userId: leaver.id } } });
+      expectError(await join(leaver, made.body.code), 404, "invalid_invite");
+      const row = await prisma.invite.findUniqueOrThrow({ where: { id: made.body.id } });
+      expect(row.usedAt).toBeNull();
+      expect(row.revokedAt).toBeNull();
+      const other = await user();
+      expect((await join(other, made.body.code)).status).toBe(200);
     });
   });
 });
