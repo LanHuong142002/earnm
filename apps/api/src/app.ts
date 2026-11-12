@@ -5,6 +5,7 @@ import { createInternalRouter } from "./internal/routes.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
+import { createTasksRouter } from "./tasks/routes.js";
 
 export interface AppDeps {
   prisma: PrismaClient;
@@ -27,6 +28,7 @@ export function createApp(deps: AppDeps): Express {
   app.use("/auth", createAuthRouter(deps));
   app.use("/me", createMeRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
+  app.use("/projects/:projectId/tasks", createTasksRouter(deps));
 
   app.use(
     "/internal",

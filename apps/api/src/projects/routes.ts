@@ -65,6 +65,19 @@ function notFound(): AppError {
   return new AppError(404, "not_found", "Project not found.");
 }
 
+/** The project plus the caller's role, or null when it doesn't exist or the caller isn't a member. */
+export async function findForMember(
+  db: Pick<PrismaClient, "projectMember">,
+  id: string,
+  userId: string,
+) {
+  const membership = await db.projectMember.findUnique({
+    where: { projectId_userId: { projectId: id, userId } },
+    include: { project: true },
+  });
+  return membership ? { project: membership.project, role: membership.role } : null;
+}
+
 export function createProjectsRouter(deps: {
   prisma: PrismaClient;
   now: () => Date;
@@ -72,15 +85,6 @@ export function createProjectsRouter(deps: {
   const { prisma, now } = deps;
   const router = Router();
   router.use(requireAuth(deps));
-
-  /** The project plus the caller's role, or null when it doesn't exist or the caller isn't a member. */
-  async function findForMember(db: Pick<PrismaClient, "projectMember">, id: string, userId: string) {
-    const membership = await db.projectMember.findUnique({
-      where: { projectId_userId: { projectId: id, userId } },
-      include: { project: true },
-    });
-    return membership ? { project: membership.project, role: membership.role } : null;
-  }
 
   /**
    * Resolves `:id` for an owner-only action. A missing project, a non-uuid id and a
