@@ -220,5 +220,150 @@
       }
     ],
     "reviewed": "39a2687ebd7ffe9da17779860690f1306d51df13cb66fb076a52b03f515e520a"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API tests on the _test DB: owner creates an invite expiring in 7 days (201); member 403, non-member and bad id 404.",
+        "criterion": "**AC1 (reqs 1, 25):** an Owner creates an invite and gets 201 with a code and an expiry 7 days out. A Member gets 403, and a non-member gets 404."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "Tests: generated codes use only the 31-character alphabet and 8 characters; joining accepts lowercase, spaces and dashes.",
+        "criterion": "**AC2 (req 2):** generated codes use only the allowed alphabet. Joining with lowercase, spaces or dashes succeeds."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "Test: one identical invalid_invite body for unknown, malformed, used, expired and revoked codes; used and expired cases also covered separately.",
+        "criterion": "**AC3 (reqs 3, 15):** an invite with an expiry in the past gives `invalid_invite`. A used one gives `invalid_invite` to a second person."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "Test: refuses a 21st pending invite with 409 too_many_invites and allows one after a revoke.",
+        "criterion": "**AC4 (req 4):** with 20 pending invites, a 21st gets 409 `too_many_invites`. After revoking one, creating succeeds."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "Test: stores only an HMAC of the code; listing pending invites returns no code.",
+        "criterion": "**AC5 (req 5):** the stored invite row doesn't contain the plain code. Listing pending invites returns no code."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "Tests: revoked invite gives invalid_invite on join, revoking again succeeds; members and non-members can't list or revoke.",
+        "criterion": "**AC6 (req 6):** an Owner lists pending invites and revokes one, after which joining with it gives `invalid_invite`. Revoking it again gives success. A Member can't list or revoke."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "Tests: demoted creator's invite still works; project delete removes invites; removing the creating Owner revokes their pending invites while others' stay pending; an Owner who left gets invalid_invite with their own invite.",
+        "criterion": "**AC7 (req 7):** the creating Owner is demoted, and the invite still works. Deleting the project removes its invites. When the creating Owner is removed, their pending invites are revoked (another person's join gives `invalid_invite`) while invites created by others stay pending. A person joining with an invite they created, after leaving, gets `invalid_invite`."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "Tests: pending invite page renders escaped project and inviter names with the required headers; unknown, malformed, used, revoked and expired give one identical 404 body without the project name.",
+        "criterion": "**AC8 (reqs 9, 12):** the valid-code page returns 200 HTML with the project name, inviter name, formatted code and install steps, and the listed headers. A project name containing `<script>` appears escaped. The unknown, used, revoked and expired cases each return the same 404 body with no project name."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "Test: en-US,en;q=0.9 gives English; no header or vi gives Vietnamese.",
+        "criterion": "**AC9 (req 10):** `Accept-Language: en-US,en;q=0.9` gives English. No header, or `vi`, gives Vietnamese."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "Tests: install link only when INVITE_INSTALL_URL is set, ask-the-inviter step otherwise; config.test.ts rejects http, ftp, javascript: and non-URL values without echoing them.",
+        "criterion": "**AC10 (req 11):** with `INVITE_INSTALL_URL` set, the page links to it. Unset, the step says to ask the inviter. A non-https value makes config loading fail (unit test)."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "Tests: the 61st page lookup in the window is 429 with the generic page then recovers; 429 too_many_attempts after 10 failed joins; parallel attempts never exceed the account limit.",
+        "criterion": "**AC11 (reqs 13, 19):** repeated page lookups or join attempts past the limit get 429. Parallel join attempts can't exceed the limit."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "Test: joining adds the person as member and their GET /projects includes the project with role member.",
+        "criterion": "**AC12 (reqs 14, 27):** after joining, the person's `GET /projects` includes the project with role `member`."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "Test: an existing member gets 409 already_member and the invite stays usable for someone else.",
+        "criterion": "**AC13 (req 16):** an existing member using a code gets 409 `already_member`, and the invite still works for someone else."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "Test: at 50 members joining gets 409 project_full and the invite stays pending.",
+        "criterion": "**AC14 (req 17):** with 50 members, joining gets 409 `project_full` and the invite stays pending."
+      },
+      "15": {
+        "result": "pass",
+        "evidence": "Tests: two concurrent joins with one code give exactly one member; joins racing at the cap never exceed 50.",
+        "criterion": "**AC15 (req 18):** two concurrent joins with one code produce exactly one new member and one `invalid_invite`."
+      },
+      "16": {
+        "result": "pass",
+        "evidence": "Tests: member list has owners first then join order, stable tie-break, no email field; non-member 404.",
+        "criterion": "**AC16 (req 20):** a Member lists members and gets names, roles and join times in the stated order, with no email field. A non-member gets 404."
+      },
+      "17": {
+        "result": "pass",
+        "evidence": "Tests: owner promotes a member, demotes another owner, demotes self with another owner present, removes a member and an owner; each change shows in the list.",
+        "criterion": "**AC17 (reqs 21, 22):** an Owner promotes a Member, demotes another Owner, demotes themselves while another Owner exists, and removes a Member and an Owner. Each change shows in the list."
+      },
+      "18": {
+        "result": "pass",
+        "evidence": "Tests: sole owner gets last_owner on self-demote and on leave; two owners demoting each other or leaving at once keep at least one owner.",
+        "criterion": "**AC18 (req 24):** the sole Owner gets 409 `last_owner` on demoting themselves and on leaving. Removing the only other Owner while the remover stays Owner is allowed. Two Owners demoting each other concurrently leave at least one Owner."
+      },
+      "19": {
+        "result": "pass",
+        "evidence": "Test: a removed person gets 404 on the project and its members, while their other project still works.",
+        "criterion": "**AC19 (req 26):** after being removed, the person gets 404 on `PATCH /projects/:id` and on the member list. Their other projects still work."
+      },
+      "20": {
+        "result": "pass",
+        "evidence": "Test: a member leaves and the project drops from their GET /projects.",
+        "criterion": "**AC20 (req 23):** a Member leaves, and the project disappears from their `GET /projects`."
+      },
+      "21": {
+        "result": "pass",
+        "evidence": "Mobile tests: a refresh no longer returning a project drops its queued update and removes it; member cache is pruned; routing leaves (never a spinner) when the project is gone.",
+        "criterion": "**AC21 (req 33, mobile unit test):** a refresh after the project is no longer returned drops it from the cache and drops its queued writes. The routing decision sends the person to the list."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API (npm run dev:phone): reported \"ok rồi đó\". Calls take about 1-2s against the dev database in us-east-2 (measured 226ms per query), expected to be fast in production in Singapore.",
+        "criterion": "**AC22 (req 29, QA by hand on iPhone):** each move in the navigation map opens the stated screen, and back and swipe-back return as stated."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API (npm run dev:phone): reported \"ok rồi đó\". Calls take about 1-2s against the dev database in us-east-2 (measured 226ms per query), expected to be fast in production in Singapore.",
+        "criterion": "**AC23 (reqs 30–32, 34, QA by hand on iPhone):** the Invite button opens the share sheet with the message in the app language. The code entered in Join opens the project. Each error message appears for its case. Pending invites start collapsed. Members see no manage actions."
+      },
+      "24": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API (npm run dev:phone): reported \"ok rồi đó\". Calls take about 1-2s against the dev database in us-east-2 (measured 226ms per query), expected to be fast in production in Singapore.",
+        "criterion": "**AC24 (req 28, QA by hand):** with the phone offline, Invite, Join and member actions show the offline message, and nothing is queued."
+      },
+      "25": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone with this branch's API: reported \"ok rồi đó\". Unit part passes: avatarRow.test.ts covers 1/3/4/50 members, +N and the Vietnamese initial.",
+        "criterion": "**AC28 (req 29a, a mobile unit test plus QA by hand on iPhone):** a pure function gives the row's contents: 1, 3, 4 and 50 members produce 1, 3, 3 and 3 avatars, no `+N`, no `+N`, `+1` and `+47`, and always a final `+`. The initial is the uppercase first letter of the name. On the phone, the avatars overlap with a visible ring, all share one colour, and tapping any part of the row opens the Members screen. A Member sees the same row."
+      },
+      "26": {
+        "result": "pass",
+        "evidence": "i18n/parity.test.ts checks en.json and vi.json have the same keys both ways.",
+        "criterion": "**AC25 (req 35):** a test checks that `en.json` and `vi.json` have the same keys."
+      },
+      "27": {
+        "result": "pass",
+        "evidence": "Test applies migrations up to projects in a fresh schema, seeds a project and members, applies the invites migration, and finds the rows unchanged and an empty Invite table.",
+        "criterion": "**AC26 (req 38):** the migration applies to a database that already has projects and members, and they are unchanged."
+      },
+      "28": {
+        "result": "manual",
+        "evidence": "Checked by the user on iPhone: the Account tab shows name and email correctly (\"info ok rồi\"). Unit tests cover the stored-profile owner check and the offline fallback.",
+        "criterion": "**AC27 (req 36, QA by hand on iPhone, plus a mobile unit test for the offline fallback):** the Account tab shows the signed-in person's display name and email above the language setting, with no edit control. After switching accounts it shows the new person's details. Offline, it shows the last known values."
+      }
+    },
+    "checked": "39a2687ebd7ffe9da17779860690f1306d51df13cb66fb076a52b03f515e520a"
   }
 }
