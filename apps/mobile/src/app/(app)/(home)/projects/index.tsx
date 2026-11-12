@@ -103,6 +103,13 @@ export default function ProjectsScreen() {
           onPress={() => once(() => router.push("/projects/new"))}
         />
       </Enter>
+      <Enter index={Math.min(projects.length, STAGGER_LIMIT) + 1}>
+        <Button
+          label={t("join.entry")}
+          variant="secondary"
+          onPress={() => once(() => router.push("/projects/join"))}
+        />
+      </Enter>
     </Screen>
   );
 }
