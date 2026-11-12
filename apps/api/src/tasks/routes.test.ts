@@ -468,12 +468,14 @@ describe("/projects/:projectId/tasks", () => {
       expect(Object.keys(res.body).sort()).toEqual(
         [
           "assignees",
+          "checklists",
           "createdAt",
           "createdById",
           "description",
           "dueDate",
           "dueTime",
           "id",
+          "labelIds",
           "projectId",
           "status",
           "title",
@@ -720,6 +722,8 @@ describe("/projects/:projectId/tasks", () => {
         dueDate: "2026-06-01",
         dueTime: "07:15",
         assignees: [{ id: member.id, displayName: "Linh" }],
+        labelIds: [],
+        checklists: [],
         createdById: owner.id,
         createdAt: a.body.createdAt,
       });
@@ -1027,6 +1031,147 @@ describe("/projects/:projectId/tasks", () => {
       });
       expect(res.status).toBe(200);
       expect(res.body).toEqual(created.body);
+    });
+  });
+  describe("labels and checklists on a task (R8, R9, R11)", () => {
+    async function makeLabel(projectId: string, name: string) {
+      const t = clock.now();
+      return prisma.label.create({
+        data: {
+          id: randomUUID(),
+          projectId,
+          name,
+          nameKey: name.toLowerCase(),
+          colour: "blue",
+          nameEditedAt: t,
+          colourEditedAt: t,
+        },
+      });
+    }
+    const labelIdsOf = async (u: User, p: string, t: string) =>
+      ((await list(u, p)).body.find((x: { id: string }) => x.id === t).labelIds as string[]);
+
+    it("sets the labels of a task and reads them back sorted by label id", async () => {
+      const u = await user();
+      const p = await seed(u);
+      const t = (await create(u, p)).body.id as string;
+      const a = await makeLabel(p, "a");
+      const b = await makeLabel(p, "b");
+      clock.advanceMs(1000);
+      const res = await patch(u, p, t, { labels: change([b.id, a.id]) });
+      expect(res.status).toBe(200);
+      expect(res.body.labelIds).toEqual([a.id, b.id].sort());
+      expect(await labelIdsOf(u, p, t)).toEqual([a.id, b.id].sort());
+    });
+
+    it("refuses a label of another project, an unknown id, a duplicate and 11 labels, changing nothing", async () => {
+      const u = await user();
+      const p = await seed(u);
+      const other = await seed(u);
+      const t = (await create(u, p)).body.id as string;
+      const mine = await makeLabel(p, "mine");
+      const foreign = await makeLabel(other, "foreign");
+      clock.advanceMs(1000);
+      expect((await patch(u, p, t, { labels: change([mine.id]) })).status).toBe(200);
+      const before = await prisma.task.findUniqueOrThrow({ where: { id: t } });
+      clock.advanceMs(1000);
+      const eleven = await Promise.all(
+        Array.from({ length: 11 }, (_, i) => makeLabel(p, `l${i}`)),
+      );
+      for (const ids of [
+        [mine.id, foreign.id],
+        [randomUUID()],
+        [mine.id, mine.id],
+        eleven.map((l) => l.id),
+      ]) {
+        expectError(await patch(u, p, t, { labels: change(ids) }), 400, "validation_failed");
+      }
+      const after = await prisma.task.findUniqueOrThrow({ where: { id: t } });
+      expect(after.labelsEditedAt.toISOString()).toBe(before.labelsEditedAt.toISOString());
+      expect(await labelIdsOf(u, p, t)).toEqual([mine.id]);
+    });
+
+    it("accepts exactly 10 labels and the newer set replaces the older as a whole", async () => {
+      const u = await user();
+      const p = await seed(u);
+      const t = (await create(u, p)).body.id as string;
+      const ten = await Promise.all(Array.from({ length: 10 }, (_, i) => makeLabel(p, `t${i}`)));
+      clock.advanceMs(1000);
+      const full = await patch(u, p, t, { labels: change(ten.map((l) => l.id)) });
+      expect(full.body.labelIds).toHaveLength(10);
+      clock.advanceMs(1000);
+      const one = await patch(u, p, t, { labels: change([ten[3]!.id]) });
+      expect(one.body.labelIds).toEqual([ten[3]!.id]);
+      clock.advanceMs(1000);
+      const none = await patch(u, p, t, { labels: change([]) });
+      expect(none.body.labelIds).toEqual([]);
+    });
+
+    it("ignores an older set with 200 and the current labels, without checking its ids", async () => {
+      const u = await user();
+      const p = await seed(u);
+      const t = (await create(u, p)).body.id as string;
+      const a = await makeLabel(p, "a");
+      clock.advanceMs(10_000);
+      await patch(u, p, t, { labels: change([a.id]) });
+      const res = await patch(u, p, t, { labels: change([randomUUID()], -5000) });
+      expect(res.status).toBe(200);
+      expect(res.body.labelIds).toEqual([a.id]);
+    });
+
+    it("returns checklists and items in creation order", async () => {
+      const u = await user();
+      const p = await seed(u);
+      const t = (await create(u, p)).body.id as string;
+      const at = (ms: number) => new Date(clock.now().getTime() + ms);
+      const mk = async (name: string, ms: number) => {
+        const c = await prisma.checklist.create({
+          data: { id: randomUUID(), taskId: t, name, nameEditedAt: at(0), createdAt: at(ms) },
+        });
+        return c.id;
+      };
+      const second = await mk("second", 2000);
+      const first = await mk("first", 1000);
+      const mkItem = (checklistId: string, text: string, ms: number, done = false) =>
+        prisma.checklistItem.create({
+          data: {
+            id: randomUUID(),
+            checklistId,
+            text,
+            done,
+            textEditedAt: at(0),
+            doneEditedAt: at(0),
+            createdAt: at(ms),
+          },
+        });
+      await mkItem(first, "b", 2000, true);
+      await mkItem(first, "a", 1000);
+      const res = await list(u, p);
+      const checklists = res.body[0].checklists;
+      expect(checklists.map((c: { name: string }) => c.name)).toEqual(["first", "second"]);
+      expect(checklists[0].id).toBe(first);
+      expect(checklists[1].id).toBe(second);
+      expect(checklists[1].items).toEqual([]);
+      expect(checklists[0].items.map((i: { text: string }) => i.text)).toEqual(["a", "b"]);
+      expect(Object.keys(checklists[0]).sort()).toEqual(["createdAt", "id", "items", "name"]);
+      expect(Object.keys(checklists[0].items[0]).sort()).toEqual(["createdAt", "done", "id", "text"]);
+      expect(checklists[0].items[1].done).toBe(true);
+      // PATCH answers with the same shape.
+      clock.advanceMs(1000);
+      const patched = await patch(u, p, t, { title: change("New") });
+      expect(patched.body.checklists).toEqual(checklists);
+    });
+
+    it("drops a label from a task's labelIds when an Owner deletes the label", async () => {
+      const u = await user();
+      const p = await seed(u);
+      const t = (await create(u, p)).body.id as string;
+      const a = await makeLabel(p, "a");
+      const b = await makeLabel(p, "b");
+      clock.advanceMs(1000);
+      await patch(u, p, t, { labels: change([a.id, b.id]) });
+      await prisma.label.delete({ where: { id: a.id } });
+      expect(await labelIdsOf(u, p, t)).toEqual([b.id]);
     });
   });
 });
