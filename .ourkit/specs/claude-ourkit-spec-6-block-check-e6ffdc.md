@@ -16,7 +16,7 @@ Today the API has users, sessions, projects and memberships, with per-field last
 
 1. A task belongs to exactly one project and has: a title (trimmed, 1 to 120 characters); a description (trimmed, may be empty, at most 2000 characters); a status, one of To do, Doing, Done, defaulting to To do; zero or more assignees; an optional due date; the person who created it; and when it was created.
 2. A due date is a calendar day, with an optional time of day (hours and minutes). It has no time zone: it means that day and time wherever the person reading it is (Decision 5 uses the device's time zone). A time can't be given without a day.
-3. Assignees are people who are members of the task's project at the moment the change is saved. A task has at most 20 assignees and lists each person at most once. A change naming someone who isn't a member of the project is refused as invalid.
+3. Anyone added as an assignee must be a member of the task's project at the moment the change is saved; a change that adds someone who isn't a member is refused as invalid. People already on the task are not re-checked, so a change can keep or remove them. A task has at most 20 assignees and lists each person at most once. When someone is removed from a project or leaves it, they are removed as an assignee from every task in that project at the same time. (Changed at Review.)
 4. A task's id is chosen by the phone (a UUID) when it is created, so a task created offline keeps its id once it reaches the server. Creating is idempotent like projects: sending the same create again returns the existing task; using an id that already belongs to a task in another project, or a project the caller isn't in, is refused.
 5. Any member of a project, Owner or Member, can create tasks in it, change any field of any task in it, and change any task's status.
 6. Only the person who created a task, or an Owner of its project, can delete it. Anyone else gets a "not allowed" error. Deleting is permanent (hard delete).
@@ -54,7 +54,7 @@ Today the API has users, sessions, projects and memberships, with per-field last
 24. **Filters.** Above the list: a status filter (All, To do, Doing, Done) and three switches: "Assigned to me" (tasks where I'm one of the assignees), "Only me" (tasks where I'm the only assignee) and "Due soon". (Only me added at the mockup review.) They combine (all chosen conditions must hold). With a status other than All, the Done section isn't used and matching tasks show as one list. The choices are remembered per project on the phone until sign-out.
 25. **Due soon** means the task isn't Done, has a due date, and its due moment is before the end of the day three days from today on the phone's clock (today plus the next three calendar days), including overdue tasks. A due date without a time counts as the end of that day. Overdue tasks are marked as overdue, in text as well as colour.
 26. **Empty states.** A project with no tasks shows an invitation to create the first one. Filters that match nothing say so and offer to clear the filters.
-27. **Forms.** New task and Edit task have title, description, status, assignees (picked from the project's members, from the local copy when offline) and due date (pick a day, optionally add a time, and clear either). They validate the same limits as the server before saving, with a message per field. The return key moves title → description and the submit button is never hidden by the keyboard. A new task can be created with only a title. Deleting asks for confirmation naming the task and says it can't be undone, and the delete control sits apart from the submit button.
+27. **Forms.** New task and Edit task have title, description, status, assignees (picked from the project's current members, from the local copy when offline; someone already assigned who is no longer a member is shown so they can be removed, but can't be added again) and due date (pick a day, optionally add a time, and clear either). They validate the same limits as the server before saving, with a message per field. The return key moves title → description and the submit button is never hidden by the keyboard. A new task can be created with only a title. Deleting asks for confirmation naming the task and says it can't be undone, and the delete control sits apart from the submit button.
 28. **Look and language.** Screens follow `DESIGN.md` and Decision 10 (compact vertical flow, no tables), dates are shown in the app's language, and all text is available in Vietnamese and English.
 
 ### Data
@@ -65,7 +65,7 @@ Today the API has users, sessions, projects and memberships, with per-field last
 
 1. API tests: a title of 0 and 121 characters after trimming, a description of 2001 characters, and an unknown status are refused with `validation_failed`; a title of 120 characters, an empty description, each status and no due date are accepted; a new task without a status is To do.
 2. API tests: a due date with a day and time, and with a day only, are stored and returned as given; a time without a day is refused with `validation_failed`.
-3. API tests: assigning a project member works; assigning a non-member, the same person twice, or 21 people is refused with `validation_failed`.
+3. API tests: assigning a project member works; adding a non-member, the same person twice, or 21 people is refused with `validation_failed`; a change that keeps an already-assigned former member, or removes them, is accepted; removing a member, and a member leaving, removes their assignments in that project only.
 4. API tests: a task created with a phone-chosen UUID is returned with that id; the same create sent twice leaves one task; a create reusing another project's task id is refused and doesn't change that task.
 5. API tests: a Member can create a task, edit every field of a task created by the Owner, and change its status.
 6. API tests: the creator and an Owner can delete a task; a Member who didn't create it gets `403`; a second delete gives `404`.
@@ -101,7 +101,6 @@ Today the API has users, sessions, projects and memberships, with per-field last
 - Paging, searching and sorting choices on the task list, and incremental sync: the phone fetches a project's whole task list, which is expected to stay in the low hundreds. Soft delete and undo.
 - Merging concurrent changes to assignees: the assignee set is one field, so two people changing it at once keep only the later set.
 - Real-time updates from the server: others' changes appear at the next refresh.
-- Removing assignments when a member leaves a project (#5 handles leaving).
 
 ## Open Questions
 

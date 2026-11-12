@@ -5,7 +5,7 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
-import { findForMember } from "../projects/access.js";
+import { findForMember, lockProject } from "../projects/access.js";
 
 const titleSchema = z.string().trim().min(1).max(120);
 const descriptionSchema = z.string().trim().max(2000);
@@ -107,8 +107,10 @@ function param(req: Request, name: string): string | undefined {
 
 /** One 404 for every "no such thing for you" case, so the body never reveals which it was (R9). */
 function notFound(): AppError {
-  return new AppError(404, "not_found", "Not found.");
+  return new AppError(404, "not_found", "Project not found.");
 }
+
+type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
 export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
   const { prisma, now } = deps;
@@ -134,6 +136,19 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
     });
     if (!task) throw notFound();
     return task;
+  }
+
+  /**
+   * Takes the project lock and re-checks the caller's membership under it, so a removal or
+   * demotion that committed meanwhile is seen. Gives the same 404 as every other "no".
+   */
+  async function lockedRole(tx: Tx, projectId: string, userId: string) {
+    if (!(await lockProject(tx, projectId))) throw notFound();
+    const member = await tx.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+    });
+    if (!member) throw notFound();
+    return member.role;
   }
 
   /** Throws 400 unless every id is a member of the project. Run inside the write's transaction. */
@@ -175,6 +190,7 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
 
       const createOnce = () =>
         prisma.$transaction(async (tx) => {
+          await lockedRole(tx, projectId, userId);
           const existing = await tx.task.findUnique({
             where: { id: body.id },
             include: taskInclude,
@@ -232,8 +248,9 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
 
       // Last write wins per field, all in one transaction. The column names come from the
       // field names, so TypeScript can't check them here; the route tests do.
-      await prisma.$transaction((tx) =>
-        applyLastWriteWins(fields, now(), async (where, data) => {
+      await prisma.$transaction(async (tx) => {
+        await lockedRole(tx, projectId, userId);
+        await applyLastWriteWins(fields, now(), async (where, data) => {
           const scope = { id: taskId, projectId, ...where };
           if ("due" in data) {
             // The day and the time are one field: both are written, or neither.
@@ -256,7 +273,14 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
             });
             if (claimed.count !== 1) return;
             const ids = data["assignees"] as string[];
-            await assertAssigneesAreMembers(tx, projectId, ids);
+            // Only people being added are checked; those already on the task can stay or go.
+            const current = await tx.taskAssignee.findMany({ where: { taskId } });
+            const already = new Set(current.map((a) => a.userId));
+            await assertAssigneesAreMembers(
+              tx,
+              projectId,
+              ids.filter((id) => !already.has(id)),
+            );
             await tx.taskAssignee.deleteMany({ where: { taskId } });
             await tx.taskAssignee.createMany({
               data: ids.map((id) => ({ taskId, userId: id })),
@@ -264,8 +288,8 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
             return;
           }
           await tx.task.updateMany({ where: scope, data } as Prisma.TaskUpdateManyArgs);
-        }),
-      );
+        });
+      });
 
       // Always answer with the current state, even when every change lost.
       const current = await prisma.task.findFirst({
@@ -282,15 +306,19 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
   router.delete("/:taskId", async (req, res, next) => {
     try {
       const userId = getAuth(res.locals).userId;
-      const { projectId, role } = await requireMember(param(req, "projectId"), userId);
+      const { projectId } = await requireMember(param(req, "projectId"), userId);
       const task = await requireTask(param(req, "taskId"), projectId);
-      // A task whose creator was removed (createdById null) can be deleted by an Owner only.
-      if (task.createdById !== userId && role !== "owner") {
-        throw new AppError(403, "forbidden", "Only the person who created this task or an owner can delete it.");
-      }
-      // Assignments are removed by the database cascade.
-      const { count } = await prisma.task.deleteMany({ where: { id: task.id, projectId } });
-      if (count === 0) throw notFound(); // someone else deleted it first
+      await prisma.$transaction(async (tx) => {
+        // The role is read again under the lock: a demotion that committed meanwhile counts.
+        const role = await lockedRole(tx, projectId, userId);
+        // A task whose creator was removed (createdById null) can be deleted by an Owner only.
+        if (task.createdById !== userId && role !== "owner") {
+          throw new AppError(403, "forbidden", "Only the person who created this task or an owner can delete it.");
+        }
+        // Assignments are removed by the database cascade.
+        const { count } = await tx.task.deleteMany({ where: { id: task.id, projectId } });
+        if (count === 0) throw notFound(); // someone else deleted it first
+      });
       res.status(204).end();
     } catch (err) {
       next(err);

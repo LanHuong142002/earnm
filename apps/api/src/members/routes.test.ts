@@ -52,6 +52,27 @@ describe("members", () => {
     return p.id;
   }
 
+  /** A task in `pid` with `who` assigned, inserted directly. */
+  async function seedTask(pid: string, who: User[]) {
+    const t = clock.now();
+    const task = await prisma.task.create({
+      data: {
+        id: randomUUID(),
+        projectId: pid,
+        title: "T",
+        titleEditedAt: t,
+        descriptionEditedAt: t,
+        statusEditedAt: t,
+        dueEditedAt: t,
+        assigneesEditedAt: t,
+        assignees: { create: who.map((u) => ({ userId: u.id })) },
+      },
+    });
+    return task.id;
+  }
+  const assigneesOf = async (taskId: string) =>
+    (await prisma.taskAssignee.findMany({ where: { taskId } })).map((a) => a.userId).sort();
+
   const list = (u: User, pid: string) => request(app).get(`/projects/${pid}/members`).set(...auth(u));
   const setRole = (u: User, pid: string, target: string, body: unknown) =>
     request(app).patch(`/projects/${pid}/members/${target}`).set(...auth(u)).send(body as object);
@@ -272,9 +293,33 @@ describe("members", () => {
       const mine = await request(app).get("/projects").set(...auth(m));
       expect(mine.body.map((p: { id: string }) => p.id)).toEqual([other]);
     });
+
+    it("clears the removed person's assignments in that project only", async () => {
+      const o = await user();
+      const m = await user();
+      const pid = await seedProject([o], [m], "First");
+      const other = await seedProject([o], [m], "Second");
+      const here = await seedTask(pid, [o, m]);
+      const there = await seedTask(other, [o, m]);
+      expect((await remove(o, pid, m.id)).status).toBe(204);
+      expect(await assigneesOf(here)).toEqual([o.id]);
+      expect(await assigneesOf(there)).toEqual([o.id, m.id].sort());
+    });
   });
 
   describe("leave (AC18, AC20)", () => {
+    it("clears the leaver's assignments in that project only", async () => {
+      const o = await user();
+      const m = await user();
+      const pid = await seedProject([o], [m], "First");
+      const other = await seedProject([o], [m], "Second");
+      const here = await seedTask(pid, [o, m]);
+      const there = await seedTask(other, [o, m]);
+      expect((await leave(m, pid)).status).toBe(204);
+      expect(await assigneesOf(here)).toEqual([o.id]);
+      expect(await assigneesOf(there)).toEqual([o.id, m.id].sort());
+    });
+
     it("lets a member leave and drops the project from their list", async () => {
       const o = await user();
       const m = await user();

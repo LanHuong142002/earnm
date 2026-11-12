@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SESSION_LIFETIME_MS } from "../auth/sessions.js";
 import { errorHandler, notFoundHandler } from "../http/errors.js";
 import {
@@ -12,6 +12,10 @@ import {
   prisma,
   useTestApp,
 } from "../test/helpers.js";
+import { createApp } from "../app.js";
+import { createMembersRouter } from "../members/routes.js";
+import { lockProject } from "../projects/access.js";
+import { createProjectsRouter } from "../projects/routes.js";
 import { createTasksRouter } from "./routes.js";
 
 describe("/projects/:projectId/tasks", () => {
@@ -20,6 +24,8 @@ describe("/projects/:projectId/tasks", () => {
   const app = express();
   app.use(express.json());
   app.use("/projects/:projectId/tasks", createTasksRouter({ prisma, now: clock.now }));
+  app.use("/projects", createProjectsRouter({ prisma, now: clock.now }));
+  app.use(createMembersRouter({ prisma, now: clock.now }));
   app.use(notFoundHandler);
   app.use(errorHandler);
 
@@ -287,6 +293,51 @@ describe("/projects/:projectId/tasks", () => {
       expect(row.assigneesEditedAt.toISOString()).toBe(iso(-1000));
     });
 
+    it("accepts a patch that keeps or removes an already-assigned former member", async () => {
+      const owner = await user();
+      const member = await user();
+      const former = await user();
+      const p = await seed(owner, [member]);
+      const t = (await create(owner, p, { assigneeIds: [member.id] })).body.id as string;
+      // Legacy data: a person who is no longer in the project is still on the task.
+      await prisma.taskAssignee.create({ data: { taskId: t, userId: former.id } });
+
+      clock.advanceMs(1000);
+      const kept = await patch(owner, p, t, { assignees: change([former.id, owner.id]) });
+      expect(kept.status).toBe(200);
+      expect((kept.body.assignees as { id: string }[]).map((a) => a.id).sort()).toEqual(
+        [former.id, owner.id].sort(),
+      );
+
+      clock.advanceMs(1000);
+      const removed = await patch(owner, p, t, { assignees: change([owner.id]) });
+      expect(removed.status).toBe(200);
+      expect((removed.body.assignees as { id: string }[]).map((a) => a.id)).toEqual([owner.id]);
+    });
+
+    it("still refuses adding a non-member, even while keeping a former member", async () => {
+      const owner = await user();
+      const former = await user();
+      const stranger = await user();
+      const p = await seed(owner);
+      const t = (await create(owner, p)).body.id as string;
+      await prisma.taskAssignee.create({ data: { taskId: t, userId: former.id } });
+      clock.advanceMs(1000);
+      expectError(
+        await patch(owner, p, t, { assignees: change([former.id, stranger.id]) }),
+        400,
+        "validation_failed",
+      );
+      // A former member who isn't on the task can't be added.
+      const t2 = (await create(owner, p)).body.id as string;
+      clock.advanceMs(1000);
+      expectError(
+        await patch(owner, p, t2, { assignees: change([former.id]) }),
+        400,
+        "validation_failed",
+      );
+    });
+
     it("refuses a patch with a duplicate or 21 assignees", async () => {
       const owner = await user();
       const p = await seed(owner);
@@ -431,6 +482,80 @@ describe("/projects/:projectId/tasks", () => {
       expect(done.body.status).toBe("done");
     });
 
+    /**
+     * Runs `send` while a transaction holds the project lock, waits until the request is
+     * blocked on a database lock, then runs `mutate` and commits. The request only sees the
+     * change if it checks under the lock.
+     */
+    async function underLock(
+      projectId: string,
+      mutate: () => Promise<unknown>,
+      send: () => PromiseLike<request.Response>,
+    ): Promise<request.Response> {
+      let response: PromiseLike<request.Response> | undefined;
+      await prisma.$transaction(async (tx) => {
+        await lockProject(tx, projectId);
+        response = Promise.resolve(send());
+        const deadline = Date.now() + 5000;
+        for (;;) {
+          const rows = await tx.$queryRaw<{ n: bigint }[]>`
+            SELECT count(*) AS n FROM pg_stat_activity
+            WHERE wait_event_type = 'Lock' AND datname = current_database()`;
+          if (Number(rows[0]!.n) > 0) break;
+          if (Date.now() > deadline) throw new Error("request never blocked on the project lock");
+          await new Promise((r) => setTimeout(r, 20));
+        }
+        await mutate();
+      }, { timeout: 15000 });
+      return await response!;
+    }
+
+    it("checks the creator-or-owner rule under the project lock: a demoted owner can't delete", async () => {
+      const owner = await user();
+      const other = await user();
+      const p = await seed(owner);
+      await addMember(p, other.id, "owner");
+      const t = (await create(other, p)).body.id as string;
+      const res = await underLock(
+        p,
+        () =>
+          prisma.projectMember.update({
+            where: { projectId_userId: { projectId: p, userId: owner.id } },
+            data: { role: "member" },
+          }),
+        () => del(owner, p, t),
+      );
+      expectError(res, 403, "forbidden");
+      expect(await prisma.task.count({ where: { id: t } })).toBe(1);
+    }, 30000);
+
+    it("checks membership under the project lock: a removed member's create, patch and delete are 404", async () => {
+      const owner = await user();
+      const member = await user();
+      const p = await seed(owner, [member]);
+      const t = (await create(member, p)).body.id as string;
+      const removeMember = () =>
+        prisma.projectMember.delete({
+          where: { projectId_userId: { projectId: p, userId: member.id } },
+        });
+      const newId = randomUUID();
+      expectError(
+        await underLock(p, removeMember, () => create(member, p, { id: newId })),
+        404,
+        "not_found",
+      );
+      await addMember(p, member.id, "member");
+      expectError(
+        await underLock(p, removeMember, () => patch(member, p, t, { title: change("x") })),
+        404,
+        "not_found",
+      );
+      await addMember(p, member.id, "member");
+      expectError(await underLock(p, removeMember, () => del(member, p, t)), 404, "not_found");
+      expect(await prisma.task.count({ where: { id: newId } })).toBe(0);
+      expect((await prisma.task.findUniqueOrThrow({ where: { id: t } })).title).toBe("Mua ly");
+  }, 30000);
+
     it("lets the creator and an Owner delete; a second delete is 404", async () => {
       const owner = await user();
       const member = await user();
@@ -560,9 +685,13 @@ describe("/projects/:projectId/tasks", () => {
         await del(owner, p, taskElsewhere),
       );
       for (const r of taskResults) expectError(r, 404, "not_found");
-      // One identical body across project and task cases alike (R9).
+      // One identical body across project and task cases alike (R9), the member list's included.
+      const memberRoute = await request(app)
+        .get(`/projects/${p}/members`)
+        .set(...bearer(stranger.token));
+      expectError(memberRoute, 404, "not_found");
       for (const r of [...projectResults, ...taskResults]) {
-        expect(r.body).toEqual(projectResults[0]!.body);
+        expect(r.body).toEqual(memberRoute.body);
       }
 
       // Nothing changed.
@@ -615,6 +744,22 @@ describe("/projects/:projectId/tasks", () => {
       for (const r of await Promise.all(calls())) expectError(r, 401, "not_signed_in");
       for (const r of await Promise.all(calls(u.token))) expectError(r, 401, "not_signed_in");
       expect(await prisma.task.count()).toBe(1);
+    });
+  });
+
+  describe("routing", () => {
+    it("looks the session up once per task request in the real app", async () => {
+      const u = await user();
+      const p = await seed(u);
+      const real = createApp({ prisma, now: clock.now });
+      const spy = vi.spyOn(prisma.session, "findUnique");
+      try {
+        const res = await request(real).get(base(p)).set(...bearer(u.token));
+        expect(res.status).toBe(200);
+        expect(spy).toHaveBeenCalledTimes(1);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

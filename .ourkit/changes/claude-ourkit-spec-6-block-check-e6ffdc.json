@@ -46,6 +46,80 @@
       "id": 1,
       "decision": "Due date picker uses @expo/ui/community/datetime-picker, no new dependency",
       "why": "@expo/ui is already installed and the SDK 58 docs say it is included in Expo Go"
+    },
+    {
+      "id": 2,
+      "decision": "Task and member 404s use the projects router's body (not_found, 'Project not found.')",
+      "why": "Review finding: AC9 needs one identical body across task and member requests; reusing #5's message avoids changing a merged public API"
+    },
+    {
+      "id": 3,
+      "decision": "Task picker reads members through #5's member cache instead of a second copy",
+      "why": "Review finding: two offline copies of members can drift; user chose to reuse #5's"
     }
-  ]
+  ],
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "[sensitive] apps/api/src/tasks/routes.ts:257-263 + apps/api/src/members/routes.ts:166,186: removing/leaving a member keeps their TaskAssignee rows; a later PATCH sending the full assignee set (still containing the ex-member, who the picker can't untick) is refused 400 and rolls back the whole edit incl. title/status, so the task's assignees can never be changed again and queued edits are lost.",
+        "resolved": false
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "[sensitive] apps/api/src/tasks/routes.ts:168-171,229-232,282-286: membership/role checked outside the write transaction without lockProject; a member demoted/removed mid-request can still delete or assign (#5 fixed this race for projects).",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "[sensitive] apps/api/src/tasks/routes.ts:184-186: create reusing another project's task id returns 409 id_conflict, revealing the id exists elsewhere (low risk, random UUIDs); note as deliberate or use the 404.",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "[sensitive] migration renamed to 20261112060000_tasks: any DB that applied 20261112000000_tasks would fail deploy; change report should state rollback = drop TaskAssignee, Task, TaskStatus by hand.",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "[sensitive] apps/api/src/app.ts: tasks router mounted after /projects, so requireAuth runs twice per task request (two session lookups and lastUsedAt writes).",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/StatusPicker.ts:23-31: on Android Alert keeps only 3 buttons, so Cancel is dropped and the alert can't be dismissed outside; use cancelable:true or a sheet.",
+        "resolved": false
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/localChange.ts:9-19 (deriveMembers): former members still assigned on cached tasks are offered as pickable and start ticked in edit (formFromTask), leading to 400s on any assignee change.",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/store.ts membersByProject + TasksProvider.refreshMembers: a second offline copy of members next to #5's members/memberCache.ts (members.cache.v1); copies can drift.",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "apps/api/src/tasks/routes.ts:110: task 404 message 'Not found.' differs from #5 members route 'Project not found.' (members/routes.ts:19); AC9 says task and member requests give the same body.",
+        "resolved": false
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/TaskForm.tsx:274-286: description is multiline but Return submits (returnKeyType done, blurAndSubmit), so no line breaks in a 2000-char description.",
+        "resolved": false
+      }
+    ]
+  }
 }
