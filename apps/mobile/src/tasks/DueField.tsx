@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/useTheme";
 import { ErrorText } from "../ui/ErrorText";
 import { PressableScale } from "../ui/PressableScale";
+import { defaultTimeFor, minimumDay, minimumTimeFor } from "./dueRules";
 import { formatDue, type DueLanguage } from "./dueDate";
 import { dateToDay, dateToTime, dayToDate, timeToDate } from "./formState";
 
@@ -14,8 +15,9 @@ type Picking = "day" | "time" | null;
 
 /**
  * Due date: pick a day, optionally add a time, clear either. Clearing the day clears the time.
- * The calendar and clock are `@expo/ui`'s native picker (iOS: shown inline under the field with a
- * Done link; Android: a dialog that opens on mount and is unmounted on confirm or cancel).
+ * Each field opens in place, like a collapsible section: tapping it expands the field with the
+ * native picker inside it (iOS; Done or a second tap closes it), and Android shows its dialog.
+ * Days and times before now can't be picked.
  */
 export function DueField({
   dueDate,
@@ -44,17 +46,6 @@ export function DueField({
   const dayText = dueDate !== null ? formatDue(dueDate, null, lang, t) : null;
   const locale = lang === "vi" ? "vi_VN" : "en_US";
 
-  const row = (invalid: boolean) =>
-    ({
-      flexDirection: "row",
-      alignItems: "center",
-      minHeight: layout.controlHeight,
-      borderRadius: radius.field,
-      borderWidth: 1.5,
-      borderColor: invalid ? colors.danger : "transparent",
-      backgroundColor: invalid ? colors.dangerBg : colors.field,
-    }) as const;
-
   function clearButton(label: string, onPress: () => void) {
     return (
       <PressableScale
@@ -69,7 +60,41 @@ export function DueField({
     );
   }
 
+  function picker(kind: "day" | "time") {
+    const now = new Date();
+    const today = minimumDay(now);
+    return (
+      <DateTimePicker
+        mode={kind === "day" ? "date" : "time"}
+        // A day that already passed is shown as today: it is not a choice that can be made again.
+        value={
+          kind === "day"
+            ? dueDate !== null && dueDate >= dateToDay(now)
+              ? dayToDate(dueDate)
+              : today
+            : timeToDate(dueDate ?? "", dueTime)
+        }
+        display={ios ? (kind === "day" ? "inline" : "spinner") : "default"}
+        presentation={ios ? "inline" : "dialog"}
+        minimumDate={kind === "day" ? today : dueDate !== null ? minimumTimeFor(dueDate, now) : undefined}
+        maximumDate={kind === "day" ? new Date(9999, 11, 31) : undefined}
+        is24Hour
+        locale={locale}
+        accentColor={colors.accentStrong}
+        themeVariant={scheme}
+        onValueChange={(_event, date) => {
+          if (kind === "day") onChangeDay(dateToDay(date));
+          else onChangeTime(dateToTime(date));
+          // The Android dialog is done after one choice; iOS stays open until Done.
+          if (!ios) setPicking(null);
+        }}
+        onDismiss={() => setPicking(null)}
+      />
+    );
+  }
+
   function field(opts: {
+    kind: "day" | "time";
     icon: "calendar-outline" | "time-outline";
     text: string | null;
     placeholder: string;
@@ -79,61 +104,69 @@ export function DueField({
     onClear: (() => void) | null;
     clearLabel: string;
   }) {
+    const open = picking === opts.kind;
     return (
-      <View style={row(opts.invalid)}>
-        <PressableScale
-          accessibilityRole="button"
-          accessibilityLabel={opts.label}
-          disabled={disabled}
-          onPress={opts.onPress}
-          style={{
-            flex: 1,
-            minHeight: layout.controlHeight,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing[1],
-            paddingLeft: spacing[2],
-          }}
-        >
-          <Ionicons name={opts.icon} size={iconSize.sm} color={colors.placeholder} />
-          <Text
-            style={[typography.body, { color: opts.text !== null ? colors.text : colors.placeholder, flexShrink: 1 }]}
+      <View
+        style={{
+          borderRadius: radius.field,
+          borderWidth: 1.5,
+          borderColor: opts.invalid ? colors.danger : "transparent",
+          backgroundColor: opts.invalid ? colors.dangerBg : colors.field,
+          overflow: "hidden",
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", minHeight: layout.controlHeight }}>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={opts.label}
+            accessibilityState={{ expanded: open, disabled }}
+            disabled={disabled}
+            onPress={opts.onPress}
+            style={{
+              flex: 1,
+              minHeight: layout.controlHeight,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing[1],
+              paddingLeft: spacing[2],
+            }}
           >
-            {opts.text ?? opts.placeholder}
-          </Text>
-        </PressableScale>
-        {opts.onClear ? clearButton(opts.clearLabel, opts.onClear) : null}
+            <Ionicons name={opts.icon} size={iconSize.sm} color={colors.placeholder} />
+            <Text
+              style={[typography.body, { color: opts.text !== null ? colors.text : colors.placeholder, flexShrink: 1 }]}
+            >
+              {opts.text ?? opts.placeholder}
+            </Text>
+          </PressableScale>
+          {opts.onClear ? clearButton(opts.clearLabel, opts.onClear) : null}
+          <View pointerEvents="none" style={{ width: spacing[5], alignItems: "center" }}>
+            <Ionicons name={open ? "chevron-up" : "chevron-down"} size={iconSize.sm} color={colors.textSecondary} />
+          </View>
+        </View>
+        {open ? (
+          <View style={{ paddingHorizontal: spacing[1], paddingBottom: spacing[1] }}>
+            {picker(opts.kind)}
+            {ios ? (
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={t("tasks.pickerDone")}
+                onPress={() => setPicking(null)}
+                style={{ minHeight: layout.controlHeight, alignItems: "center", justifyContent: "center" }}
+              >
+                <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>{t("tasks.pickerDone")}</Text>
+              </PressableScale>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     );
   }
-
-  const picker =
-    picking === null || (picking === "time" && dueDate === null) ? null : (
-      <DateTimePicker
-        mode={picking === "day" ? "date" : "time"}
-        value={picking === "day" ? (dueDate !== null ? dayToDate(dueDate) : new Date()) : timeToDate(dueDate ?? "", dueTime)}
-        display={ios ? (picking === "day" ? "inline" : "spinner") : "default"}
-        presentation={ios ? "inline" : "dialog"}
-        minimumDate={picking === "day" ? new Date(1900, 0, 1) : undefined}
-        maximumDate={picking === "day" ? new Date(9999, 11, 31) : undefined}
-        is24Hour
-        locale={locale}
-        accentColor={colors.accentStrong}
-        themeVariant={scheme}
-        onValueChange={(_event, date) => {
-          if (picking === "day") onChangeDay(dateToDay(date));
-          else onChangeTime(dateToTime(date));
-          // The Android dialog is done after one choice; iOS stays open until Done.
-          if (!ios) setPicking(null);
-        }}
-        onDismiss={() => setPicking(null)}
-      />
-    );
 
   return (
     <View style={{ gap: spacing[0] }}>
       <Text style={[typography.label, { color: colors.text }]}>{t("tasks.dueLabel")}</Text>
       {field({
+        kind: "day",
         icon: "calendar-outline",
         text: dayText,
         placeholder: t("tasks.dueNone"),
@@ -156,15 +189,16 @@ export function DueField({
       {dateError ? <ErrorText message={dateError} /> : null}
       {dueDate !== null
         ? field({
+            kind: "time",
             icon: "time-outline",
             text: dueTime,
             placeholder: t("tasks.dueTimeAdd"),
             label: dueTime !== null ? t("tasks.dueTimeLabel", { time: dueTime }) : t("tasks.dueTimeAdd"),
             invalid: !!timeError,
             onPress: () => {
-              // iOS only reports a change, so opening the clock sets the shown default (noon);
-              // the person can adjust or clear it. The Android dialog sets it on confirm.
-              if (ios && picking !== "time" && dueTime === null) onChangeTime("12:00");
+              // iOS only reports a change, so opening the clock sets the shown default (noon, or now
+              // when noon has passed today); the person can adjust or clear it. Android sets it on confirm.
+              if (ios && picking !== "time" && dueTime === null) onChangeTime(defaultTimeFor(dueDate, new Date()));
               setPicking(picking === "time" ? null : "time");
             },
             onClear: dueTime !== null ? () => onChangeTime(null) : null,
@@ -172,17 +206,6 @@ export function DueField({
           })
         : null}
       {timeError ? <ErrorText message={timeError} /> : null}
-      {picker}
-      {ios && picking !== null ? (
-        <PressableScale
-          accessibilityRole="button"
-          accessibilityLabel={t("tasks.pickerDone")}
-          onPress={() => setPicking(null)}
-          style={{ minHeight: layout.controlHeight, alignItems: "center", justifyContent: "center" }}
-        >
-          <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>{t("tasks.pickerDone")}</Text>
-        </PressableScale>
-      ) : null}
     </View>
   );
 }

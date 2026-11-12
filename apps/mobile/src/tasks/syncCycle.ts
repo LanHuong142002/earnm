@@ -16,7 +16,7 @@ import { taskProjectId } from "./sync";
 import type { Task } from "./types";
 import type { TaskRejectedNotice } from "./outcomes";
 
-export type RefreshResult = "ok" | "offline" | "gone" | "skipped";
+export type RefreshResult = "ok" | "offline" | "error" | "gone" | "skipped";
 
 export type TaskSyncCycleDeps = {
   getQueue: () => Queue;
@@ -86,8 +86,9 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
         await deps.commit(projectId, []);
         return "gone";
       }
-      // A network failure and a server failure look the same to the person: keep the cache.
-      return "offline";
+      // Keep the cache either way, but tell the two apart: a server that answered with an error
+      // (500 and the like) is not "offline", and the screen must not say it is.
+      return error instanceof ApiError && error.code === "network" ? "offline" : "error";
     }
   }
 
@@ -101,9 +102,10 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
   async function refreshPending(): Promise<void> {
     await applyChain;
     for (const projectId of pendingRefreshes()) {
-      // A refresh that could not reach the server leaves the project marked, so the next flush retries it.
+      // A refresh that failed leaves the project marked, so the next flush retries it.
       // (A "skipped" one belongs to a session that has ended; "gone" has nothing left to fetch.)
-      if ((await refresh(projectId)) === "offline") marked.add(projectId);
+      const result = await refresh(projectId);
+      if (result === "offline" || result === "error") marked.add(projectId);
     }
   }
 

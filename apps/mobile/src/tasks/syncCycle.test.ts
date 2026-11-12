@@ -230,9 +230,9 @@ describe("refresh(projectId)", () => {
     expect(h.lists.p1).toHaveLength(1);
   });
 
-  it("a 500 is treated like offline", async () => {
+  it("a 500 is a server error, not offline (found at QA: an unmigrated database read as offline)", async () => {
     const h = setup({ lists: { p1: new ApiError("server", 500) } }, { p1: [makeTask()] });
-    expect(await h.cycle.refresh("p1")).toBe("offline");
+    expect(await h.cycle.refresh("p1")).toBe("error");
     expect(h.lists.p1).toHaveLength(1);
     expect(h.onNotSignedIn).not.toHaveBeenCalled();
   });

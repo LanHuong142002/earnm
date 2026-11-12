@@ -32,7 +32,7 @@ export default function TaskListScreen() {
   const focused = useIsFocused();
   const { colors, typography, radius, spacing, layout } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { identity } = useAuth();
   const { status, projects } = useProjects();
   const tasks = useTasks();
   const { ready, refresh, tasksFor, filtersFor, setFilters, setStatus } = tasks;
@@ -43,7 +43,7 @@ export default function TaskListScreen() {
   const [now, setNow] = useState(() => new Date());
   // "loaded" only after a refresh answered "ok"; "failed" after a network or server error.
   // The first load shows blocks, a failed first load shows an error, never "no tasks".
-  const [load, setLoad] = useState<LoadState>({ loaded: false, failed: false });
+  const [load, setLoad] = useState<LoadState>({ loaded: false, failed: false, reason: null });
 
   useEffect(() => {
     if (view === "leave" && focused) goToList();
@@ -52,7 +52,7 @@ export default function TaskListScreen() {
   const fetchTasks = useCallback(() => {
     if (!ready || !id) return;
     void refresh(id)
-      .catch(() => "offline" as const)
+      .catch(() => "error" as const)
       .then((result) => setLoad((prev) => nextLoadState(prev, result)));
   }, [ready, refresh, id]);
 
@@ -80,7 +80,7 @@ export default function TaskListScreen() {
 
   const all = tasksFor(project.id);
   const filters = ready ? filtersFor(project.id) : DEFAULT_FILTERS;
-  const shown = visibleTasks(all, filters, user?.id ?? "", now);
+  const shown = visibleTasks(all, filters, identity?.id ?? "", now);
   const listState = taskListState({ ready, cachedCount: all.length, loaded: load.loaded, failed: load.failed });
   const filtered = filters.status !== "all" || filters.mine || filters.onlyMe || filters.dueSoon;
 
@@ -126,8 +126,13 @@ export default function TaskListScreen() {
             accessibilityRole="alert"
             style={{ gap: spacing[0], padding: spacing[2], borderRadius: radius.card, backgroundColor: colors.dangerBg }}
           >
-            <Text style={[typography.bodyStrong, { color: colors.danger }]}>{t("tasks.loadError")}</Text>
-            <Text style={[typography.label, { color: colors.danger }]}>{t("home.offline")}</Text>
+            {/* Only a real network failure says offline; a server error says to try again. */}
+            <Text style={[typography.bodyStrong, { color: colors.danger }]}>
+              {t(load.reason === "offline" ? "tasks.loadError" : "tasks.loadErrorServer")}
+            </Text>
+            {load.reason === "offline" ? (
+              <Text style={[typography.label, { color: colors.danger }]}>{t("home.offline")}</Text>
+            ) : null}
             <Button label={t("tasks.loadRetry")} variant="secondary" onPress={fetchTasks} />
           </View>
         ) : listState === "loading" ? (

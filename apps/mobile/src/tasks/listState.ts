@@ -1,11 +1,13 @@
 import type { RefreshResult } from "./syncCycle";
 
-export type LoadState = { loaded: boolean; failed: boolean };
+/** `reason`: "offline" when the server couldn't be reached, "server" when it answered with an error. */
+export type LoadState = { loaded: boolean; failed: boolean; reason: "offline" | "server" | null };
 
-/** Folds one refresh result in: only "ok" counts as loaded; "offline" is a failure. */
+/** Folds one refresh result in: only "ok" counts as loaded; "offline" and "error" are failures. */
 export function nextLoadState(prev: LoadState, result: RefreshResult): LoadState {
-  if (result === "ok") return { loaded: true, failed: false };
-  if (result === "offline") return { ...prev, failed: true };
+  if (result === "ok") return { loaded: true, failed: false, reason: null };
+  if (result === "offline") return { ...prev, failed: true, reason: "offline" };
+  if (result === "error") return { ...prev, failed: true, reason: "server" };
   return prev;
 }
 

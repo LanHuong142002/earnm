@@ -103,4 +103,33 @@ describe("buildAssigneeOptions (R27)", () => {
       { id: "old", displayName: "Old", former: false },
     ]);
   });
+
+  // Found at QA: with the profile not loaded the picker was empty (no member list, nobody known).
+  it("always lists the signed-in person, even with no member list and nobody else known", () => {
+    const options = buildAssigneeOptions({ members: null, known: [], selectedIds: [], me: { id: "me", displayName: "Me" } });
+    expect(options).toEqual([{ id: "me", displayName: "Me", former: false }]);
+  });
+
+  it("puts the signed-in person first when the member list does not name them", () => {
+    const options = buildAssigneeOptions({
+      members: [member("u2", "Binh")],
+      known,
+      selectedIds: [],
+      me: { id: "me", displayName: "Me" },
+    });
+    expect(options).toEqual([
+      { id: "me", displayName: "Me", former: false },
+      { id: "u2", displayName: "Binh", former: false },
+    ]);
+  });
+
+  it("does not list the signed-in person twice", () => {
+    const options = buildAssigneeOptions({
+      members: [member("u2", "Binh"), member("me", "Me")],
+      known,
+      selectedIds: [],
+      me: { id: "me", displayName: "Me" },
+    });
+    expect(options.map((o) => o.id)).toEqual(["me", "u2"]);
+  });
 });

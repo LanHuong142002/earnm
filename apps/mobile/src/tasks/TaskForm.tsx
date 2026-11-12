@@ -16,6 +16,7 @@ import { TextField } from "../ui/TextField";
 import { AssigneeField } from "./AssigneeField";
 import { buildAssigneeOptions, toggleAssignee } from "./assignees";
 import { DueField } from "./DueField";
+import { dueChangeError } from "./dueRules";
 import { clearDay, inputFromForm, setDay, setTime, clearTime, type TaskForm as TaskFormValues } from "./formState";
 import { deriveMembers } from "./localChange";
 import { useTasks, type TaskMutationResult } from "./TasksProvider";
@@ -29,6 +30,7 @@ export function TaskForm({
   submitLabel,
   onSubmit,
   extra,
+  showStatus = true,
 }: {
   /** The project whose members can be chosen. */
   projectId: string;
@@ -38,13 +40,16 @@ export function TaskForm({
   onSubmit: (form: TaskFormValues, opened: TaskFormValues) => Promise<TaskMutationResult<object>>;
   /** Set-apart section at the end of the scrolling form (not the footer), e.g. a delete button. */
   extra?: ReactNode;
+  /** Edit shows the status choices; a new task is always To do, so New task hides them. */
+  showStatus?: boolean;
 }) {
   const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
   // The Home stack header sits above this screen; the keyboard overlap must account for it.
   const headerHeight = useHeaderHeight();
   const { tasksFor } = useTasks();
-  const { user } = useAuth();
+  // The saved identity counts while the profile is offline, so "me" is always in the picker.
+  const { identity } = useAuth();
   // The project's current members, from #5's cache and refreshed when the form opens (R27).
   const { members } = useMembers(projectId);
   const opened = useRef(initial).current;
@@ -55,14 +60,23 @@ export function TaskForm({
   const inFlight = useRef(false);
   const descriptionRef = useRef<ComponentRef<typeof TextInput>>(null);
 
-  const known = deriveMembers(user ? { id: user.id, displayName: user.displayName } : null, tasksFor(projectId), []);
-  const options = buildAssigneeOptions({ members, known, selectedIds: form.assigneeIds });
+  const me = identity ? { id: identity.id, displayName: identity.displayName } : null;
+  const known = deriveMembers(me, tasksFor(projectId), []);
+  const options = buildAssigneeOptions({
+    members,
+    known,
+    selectedIds: form.assigneeIds,
+    me,
+  });
 
   function toggle(id: string) {
     const former = options.find((o) => o.id === id)?.former ?? false;
     const next = toggleAssignee(form.assigneeIds, id, !former);
     setForm((f) => ({ ...f, assigneeIds: next.ids }));
-    setErrors((e) => ({ ...e, assignees: next.tooMany ? "tasks.errors.assigneesTooMany" : undefined }));
+    setErrors((e) => ({
+      ...e,
+      assignees: next.tooMany ? "tasks.errors.assigneesTooMany" : undefined,
+    }));
   }
 
   const message = (key?: TaskInputErrors[keyof TaskInputErrors]) => (key ? t(key) : null);
@@ -75,8 +89,12 @@ export function TaskForm({
     setFormError(null);
     try {
       const checked = validateTaskInput(inputFromForm(form));
-      if (!checked.ok) {
-        setErrors(checked.errors);
+      // A past day or time is refused only when the person set or changed it (an overdue task saves as is).
+      const pastKey = dueChangeError(opened, form, new Date());
+      const dueErrors: TaskInputErrors =
+        pastKey === "tasks.errors.dueDatePast" ? { dueDate: pastKey } : pastKey ? { dueTime: pastKey } : {};
+      if (!checked.ok || pastKey) {
+        setErrors({ ...(checked.ok ? {} : checked.errors), ...dueErrors });
         return;
       }
       const result = await onSubmit(form, opened);
@@ -125,23 +143,25 @@ export function TaskForm({
             submitBehavior="newline"
             editable={!busy}
           />
-          <View style={{ gap: spacing[0] }}>
-            <Text style={[typography.label, { color: colors.text }]}>{t("tasks.statusLabel")}</Text>
-            <Card>
-              <View accessibilityRole="radiogroup">
-                {TASK_STATUSES.map((status, i) => (
-                  <ChoiceRow
-                    key={status}
-                    label={t(`tasks.status.${status}`)}
-                    selected={form.status === status}
-                    divider={i > 0}
-                    onPress={() => setForm((f) => ({ ...f, status }))}
-                  />
-                ))}
-              </View>
-            </Card>
-            {errors.status ? <ErrorText message={t(errors.status)} /> : null}
-          </View>
+          {showStatus ? (
+            <View style={{ gap: spacing[0] }}>
+              <Text style={[typography.label, { color: colors.text }]}>{t("tasks.statusLabel")}</Text>
+              <Card>
+                <View accessibilityRole="radiogroup">
+                  {TASK_STATUSES.map((status, i) => (
+                    <ChoiceRow
+                      key={status}
+                      label={t(`tasks.status.${status}`)}
+                      selected={form.status === status}
+                      divider={i > 0}
+                      onPress={() => setForm((f) => ({ ...f, status }))}
+                    />
+                  ))}
+                </View>
+              </Card>
+              {errors.status ? <ErrorText message={t(errors.status)} /> : null}
+            </View>
+          ) : null}
           <DueField
             dueDate={form.dueDate}
             dueTime={form.dueTime}

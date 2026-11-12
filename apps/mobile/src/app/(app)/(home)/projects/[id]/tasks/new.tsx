@@ -34,6 +34,7 @@ export default function NewTaskScreen() {
     <TaskForm
       projectId={project.id}
       initial={emptyForm()}
+      showStatus={false}
       submitLabel={t("tasks.saveButton")}
       onSubmit={async (form) => {
         const result = await create(project.id, inputFromForm(form));

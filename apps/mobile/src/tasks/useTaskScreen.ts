@@ -16,7 +16,7 @@ export function useTaskScreen(projectId: string, taskId: string) {
   const { t } = useTranslation();
   const router = useRouter();
   const focused = useIsFocused();
-  const { user } = useAuth();
+  const { identity } = useAuth();
   const { status, projects } = useProjects();
   const { ready, tasksFor, remove } = useTasks();
   const [deleting, setDeleting] = useState(false);
@@ -38,7 +38,7 @@ export function useTaskScreen(projectId: string, taskId: string) {
     if (view === "leave" && focused && !deleting) router.dismissTo({ pathname: "/projects/[id]/tasks", params: { id: projectId } });
   }, [view, focused, deleting, router, projectId]);
 
-  const canDelete = task !== null && project !== null && user !== null && canDeleteTask(task, user.id, project.role);
+  const canDelete = task !== null && project !== null && identity !== null && canDeleteTask(task, identity.id, project.role);
 
   function confirmDelete() {
     if (!task) return;

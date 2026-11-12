@@ -232,8 +232,109 @@
         "severity": "non-blocking",
         "text": "[r4] apps/api/src/projects/routes.test.ts:126: refused-name characters test omits \\r (task test has it).",
         "resolved": true
+      },
+      {
+        "id": 29,
+        "severity": "blocking",
+        "text": "QA criterion 27 (user on iPhone): expected the assignee picker to list the project's members including me; saw it empty. Expected a delete control for the project Owner; saw none. Due date/time picking felt chaotic (picker rendered below the field).",
+        "resolved": false
+      },
+      {
+        "id": 30,
+        "severity": "blocking",
+        "text": "QA criterion 15/28 (user on iPhone): expected no offline note while online; saw 'Đang ngoại tuyến' constantly. Dev DB lacks migration 20261112060000_tasks, so /tasks answers 500, which the list treats and words as offline.",
+        "resolved": false
       }
     ],
     "reviewed": "19a0914d2cc3d48338f77149afe239479595001f0b9be77d1d4380eb7021d530"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); validation and defaults tests in tasks tests passed",
+        "criterion": "API tests: a title of 0 and 121 characters after trimming, a description of 2001 characters, and an unknown status are refused with `validation_failed`; a title of 120 characters, an empty description, each status and no due date are accepted; a new task without a status is To do."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'stores and returns a day with a time, and a day only' and 'refuses a time without a day' passed",
+        "criterion": "API tests: a due date with a day and time, and with a day only, are stored and returned as given; a time without a day is refused with `validation_failed`."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); assign member, refuse non-member/duplicate/21, keep or remove former member, and members-route clear-on-remove/leave tests (seeding a second project left untouched) passed",
+        "criterion": "API tests: assigning a project member works; adding a non-member, the same person twice, or 21 people is refused with `validation_failed`; a change that keeps an already-assigned former member, or removes them, is accepted; removing a member, and a member leaving, removes their assignments in that project only."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); returned id, repeated create, simultaneous creates and other-project id tests passed",
+        "criterion": "API tests: a task created with a phone-chosen UUID is returned with that id; the same create sent twice leaves one task; a create reusing another project's task id is refused and doesn't change that task."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'lets a Member create a task, edit every field of an Owner's task' passed",
+        "criterion": "API tests: a Member can create a task, edit every field of a task created by the Owner, and change its status."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); creator and Owner delete, Member 403, second delete 404 passed",
+        "criterion": "API tests: the creator and an Owner can delete a task; a Member who didn't create it gets `403`; a second delete gives `404`."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'returns exactly this project's tasks' with assignees {id, displayName} passed",
+        "criterion": "API test: reading a project's tasks returns exactly that project's tasks with every field and assignees' display names."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); #5 members route tests (owners first, by join time) passed; endpoint returns userId, displayName, role",
+        "criterion": "API test: reading a project's members returns each member's id, display name and role."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); one 404 body for non-member, missing project, other project's task, compared with the members route 404",
+        "criterion": "API tests: task and member requests for a project the caller isn't in, a project that doesn't exist, and a task id from another project all give `404` with the same body."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); every route without a token and with a token expired by advancing the clock past the session lifetime gives 401 not_signed_in",
+        "criterion": "API test: every new endpoint without a token, and with an expired one, gives `401 not_signed_in`."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); project-delete and user-delete cascade tests incl. Owner-only delete of creatorless task passed",
+        "criterion": "API tests: deleting a project removes its tasks and assignments; deleting a user removes their assignments and leaves their created tasks with no creator, which a Member then can't delete and an Owner can."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); older status ignored with newer title accepted, future time clamped, assignees replaced as a set",
+        "criterion": "API tests: an older change to `status` is ignored while a newer change to `title` in the same request is accepted; a change with a time one day in the future is stored with the server's current time; assignees are replaced as a whole set by the newer change."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'answers 200 with the current values when every change is ignored' passed",
+        "criterion": "API test: a fully ignored change returns `200` with the task's current values."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "mobile suite 419/419 passed; overlay keeps a waiting rename over a stale refresh; a task missing from the server list is removed",
+        "criterion": "Test of the tasks sync layer: with a waiting rename of task A, a refresh returning the old title still shows the new title; a refresh without task B removes B."
+      },
+      "16": {
+        "result": "pass",
+        "evidence": "mobile suite 419/419 passed; queue merge tests (two edits, create+edit, create+delete sends nothing) passed",
+        "criterion": "Tests of the queue with task changes: two edits give one waiting change; create then edit give one create; create then delete give no request."
+      },
+      "18": {
+        "result": "pass",
+        "evidence": "mobile suite 419/419 passed; 'is dropped on 404 and the next waiting change is still sent' passed",
+        "criterion": "Test: a waiting task change for a project the server answers `404` for is dropped and the next waiting change is still sent."
+      },
+      "20": {
+        "result": "pass",
+        "evidence": "grep of apps/mobile/src/sync non-test files finds no task reference; tasks register via queue.registerEntity in src/tasks/sync.ts",
+        "criterion": "Code check: the shared queue code has no reference to tasks; task kinds of change are registered from the tasks code."
+      }
+    }
   }
 }

@@ -19,8 +19,8 @@ export type TaskInputErrors = {
   title?: "tasks.errors.titleRequired" | "tasks.errors.titleTooLong";
   description?: "tasks.errors.descriptionTooLong";
   status?: "tasks.errors.statusInvalid";
-  dueDate?: "tasks.errors.dueDateInvalid";
-  dueTime?: "tasks.errors.dueTimeInvalid" | "tasks.errors.dueTimeNeedsDate";
+  dueDate?: "tasks.errors.dueDateInvalid" | "tasks.errors.dueDatePast";
+  dueTime?: "tasks.errors.dueTimeInvalid" | "tasks.errors.dueTimeNeedsDate" | "tasks.errors.dueTimePast";
   assignees?: "tasks.errors.assigneesTooMany" | "tasks.errors.assigneesDuplicate";
 };
 

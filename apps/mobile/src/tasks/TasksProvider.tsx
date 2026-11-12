@@ -87,7 +87,9 @@ export function TasksProvider({ children, members }: Props) {
   const { registerSignOutCleanup, handleNotSignedIn } = auth;
   const signedIn = auth.status === "signedIn";
   const userId = auth.user?.id ?? null;
-  const displayName = auth.user?.displayName ?? null;
+  // The saved name counts while the profile has not answered, so "me" is always known to a change.
+  const meId = auth.identity?.id ?? null;
+  const displayName = auth.identity?.displayName ?? null;
   const { sync, projects, status: projectsStatus } = useProjects();
   const { queue, afterEnqueue, onFlushed, runExclusive } = sync;
 
@@ -272,8 +274,8 @@ export function TasksProvider({ children, members }: Props) {
   }, []);
 
   const me = useMemo<TaskAssignee | null>(
-    () => (userId && displayName !== null ? { id: userId, displayName } : null),
-    [userId, displayName],
+    () => (meId && displayName !== null ? { id: meId, displayName } : null),
+    [meId, displayName],
   );
 
   /**

@@ -167,6 +167,8 @@
       "dueDateInvalid": "Hãy chọn một ngày hợp lệ.",
       "dueTimeInvalid": "Hãy chọn một giờ hợp lệ.",
       "dueTimeNeedsDate": "Hãy chọn ngày trước khi thêm giờ.",
+      "dueDatePast": "Hãy chọn hôm nay hoặc một ngày sau đó.",
+      "dueTimePast": "Hãy chọn một giờ chưa qua.",
       "assigneesTooMany": "Một công việc có tối đa 20 người.",
       "assigneesDuplicate": "Mỗi người chỉ được thêm một lần."
     },
@@ -180,6 +182,7 @@
     "filterDueSoon": "Sắp đến hạn",
     "loadError": "Không tải được công việc.",
     "loadRetry": "Thử lại",
+    "loadErrorServer": "Không tải được công việc. Hãy thử lại.",
     "doneSection": "Xong ({{count}})",
     "emptyTitle": "Chưa có công việc nào",
     "emptyBody": "Thêm công việc đầu tiên cho dự án này.",

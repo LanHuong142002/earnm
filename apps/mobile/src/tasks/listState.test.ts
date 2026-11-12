@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { nextLoadState, taskListState } from "./listState";
+import { nextLoadState, taskListState, type LoadState } from "./listState";
 
 describe("taskListState", () => {
   it("is loading until the local copy is ready", () => {
@@ -21,13 +21,21 @@ describe("taskListState", () => {
 });
 
 describe("nextLoadState", () => {
-  const start = { loaded: false, failed: false };
+  const start: LoadState = { loaded: false, failed: false, reason: null };
   it("ok counts as loaded and clears the failure", () => {
-    expect(nextLoadState({ loaded: false, failed: true }, "ok")).toEqual({ loaded: true, failed: false });
+    expect(nextLoadState({ loaded: false, failed: true, reason: "server" }, "ok")).toEqual({ loaded: true, failed: false, reason: null });
   });
   it("offline marks a failure but keeps an earlier load", () => {
-    expect(nextLoadState(start, "offline")).toEqual({ loaded: false, failed: true });
-    expect(nextLoadState({ loaded: true, failed: false }, "offline")).toEqual({ loaded: true, failed: true });
+    expect(nextLoadState(start, "offline")).toEqual({ loaded: false, failed: true, reason: "offline" });
+    expect(nextLoadState({ loaded: true, failed: false, reason: null }, "offline")).toEqual({ loaded: true, failed: true, reason: "offline" });
+  });
+  it("a server error marks a failure of its own kind, not offline", () => {
+    expect(nextLoadState(start, "error")).toEqual({ loaded: false, failed: true, reason: "server" });
+    expect(nextLoadState({ loaded: false, failed: true, reason: "server" }, "offline")).toEqual({
+      loaded: false,
+      failed: true,
+      reason: "offline",
+    });
   });
   it("gone and skipped change nothing", () => {
     expect(nextLoadState(start, "gone")).toEqual(start);
