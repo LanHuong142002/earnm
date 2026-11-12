@@ -115,6 +115,42 @@
         "severity": "non-blocking",
         "text": "apps/api/src/invites/page-routes.ts and invites/routes.ts: page and join limits are per IP, and until TRUST_PROXY is set behind Render every request shares the proxy IP, so one scanner could block everyone. Add invites to the existing TRUST_PROXY note in docs/deploy.md.",
         "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/app/(app)/(home)/projects/join.tsx (~L40-43): after a successful join the screen relies on refresh() to bring the project in; if that refresh fails (network drops right after), projectView returns leave and the person lands on the Project list with no project and no message, and retrying gives already_member. Fix: commit the joined project (GET /projects shape) into the local list before navigating, or show a notice.",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/app/(app)/(home)/projects/[id]/members.tsx (~L200-201): after a successful leave, refreshProjects().catch(()=>{}) then goToList(); if the refresh fails the left project stays in the list (R29 says it is gone) and tapping it gives 404s. Fix: remove the project from the local list and cache right after the 204.",
+        "resolved": true
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "apps/api/src/projects/routes.ts PATCH (~L147) and DELETE (~L168): requireOwner runs once without the project lock; now that roles can change, an Owner demoted at the same moment can still delete or edit the project. Re-check the Owner under lockProject as invite create/revoke now do.",
+        "resolved": true
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "apps/api/src/invites/routes.ts create/revoke: the 20 cap counts only pending invites and old rows are never cleaned, so an Owner (or a script with their session) can loop create/revoke and grow the table without bound; the pending count scans every row. Add a per-account/per-project create limit or a cleanup later.",
+        "resolved": true
+      },
+      {
+        "id": 16,
+        "severity": "non-blocking",
+        "text": "apps/api/src/app.ts (~L39): the invite hash key derives from INTERNAL_SECRET, so rotating it after a leak voids pending invites, and a leaked secret plus a DB dump allows offline guessing of the 39-bit code space. Stated trade-off in docs/deploy.md; optional separate INVITE_CODE_KEY.",
+        "resolved": true
+      },
+      {
+        "id": 17,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/profile-store.ts and members/memberCache.ts: email and display name are now stored unencrypted in AsyncStorage (cleared on sign-out, owner-checked). Not verified that members.cache.v1 is pruned when a refresh drops a project the person was removed from; old co-member names may stay until sign-out.",
+        "resolved": true
       }
     ]
   }
