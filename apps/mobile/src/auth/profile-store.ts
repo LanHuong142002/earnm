@@ -36,3 +36,17 @@ export function visibleProfile(
   if (user) return { email: user.email, displayName: user.displayName };
   return stored;
 }
+
+/**
+ * Who is signed in: the user from the server, or (offline start, profile not answered yet) the saved
+ * id and name. Used wherever the app only needs to know "me", so it still works with the profile offline.
+ */
+export function knownIdentity(
+  user: { id: string; displayName: string } | null,
+  storedUserId: string | null,
+  stored: Profile | null,
+): { id: string; displayName: string } | null {
+  if (user) return { id: user.id, displayName: user.displayName };
+  if (storedUserId !== null && stored !== null) return { id: storedUserId, displayName: stored.displayName };
+  return null;
+}

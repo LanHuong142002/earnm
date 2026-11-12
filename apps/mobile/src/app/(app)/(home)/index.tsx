@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import type { ComponentProps } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -11,60 +10,13 @@ import { useProjects } from "../../../projects/ProjectsProvider";
 import { useOpenProject, useTapOnce } from "../../../projects/useProjectNav";
 import { homeCard } from "../../../projects/routing";
 import { useTheme } from "../../../theme/useTheme";
+import { AreaTile } from "../../../ui/AreaTile";
 import { Enter } from "../../../ui/Enter";
 import { PressableScale } from "../../../ui/PressableScale";
 import { Screen } from "../../../ui/Screen";
 
 // Home shows this many projects before "See all".
 const HOME_PROJECT_LIMIT = 2;
-
-type IconName = ComponentProps<typeof Ionicons>["name"];
-
-// Three of these share one row equally; the box stays square.
-function AreaTile({
-  icon,
-  label,
-  onPress,
-  comingSoon,
-}: {
-  icon: IconName;
-  label: string;
-  onPress?: () => void;
-  comingSoon?: string;
-}) {
-  const { colors, typography, radius, spacing, iconSize, disabled: disabledStyle } = useTheme();
-  const disabled = comingSoon !== undefined;
-  return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel={disabled ? `${label}, ${comingSoon}` : label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={{ flex: 1, gap: spacing[1], opacity: disabled ? disabledStyle.opacity : 1 }}
-    >
-      <View
-        style={{
-          aspectRatio: 1,
-          borderRadius: radius.tile,
-          borderWidth: 1,
-          borderColor: colors.tileBorder,
-          backgroundColor: colors.tile,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Ionicons name={icon} size={iconSize.lg} color={colors.accent} />
-      </View>
-      <View style={{ alignItems: "center" }}>
-        <Text style={[typography.label, { color: colors.text, textAlign: "center" }]}>{label}</Text>
-        {comingSoon ? (
-          <Text style={[typography.caption, { color: colors.textSecondary, textAlign: "center" }]}>{comingSoon}</Text>
-        ) : null}
-      </View>
-    </PressableScale>
-  );
-}
 
 export default function HomeScreen() {
   const { t } = useTranslation();

@@ -12,6 +12,7 @@ import { I18nextProvider } from "react-i18next";
 import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import i18n from "../i18n";
 import { ProjectsProvider } from "../projects/ProjectsProvider";
+import { TasksProvider } from "../tasks/TasksProvider";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -51,7 +52,9 @@ export default function RootLayout() {
     <I18nextProvider i18n={i18n}>
       <AuthProvider>
         <ProjectsProvider>
-          <RootNavigator />
+          <TasksProvider>
+            <RootNavigator />
+          </TasksProvider>
         </ProjectsProvider>
       </AuthProvider>
     </I18nextProvider>

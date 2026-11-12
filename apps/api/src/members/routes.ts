@@ -164,6 +164,8 @@ export function createMembersRouter(deps: { prisma: PrismaClient; now: () => Dat
         }
         if (target.role === "owner" && owners - 1 === 0) throw lastOwner();
         await tx.projectMember.delete({ where: { projectId_userId: { projectId, userId: targetId } } });
+        // They can no longer be on this project's tasks (other projects' tasks are untouched).
+        await tx.taskAssignee.deleteMany({ where: { userId: targetId, task: { projectId } } });
         // The removed user saw the plain codes of their invites; they must not outlive them.
         const at = now();
         await tx.invite.updateMany({
@@ -184,6 +186,7 @@ export function createMembersRouter(deps: { prisma: PrismaClient; now: () => Dat
       await change(projectId, callerId, async (tx, { owners, callerRole }) => {
         if (callerRole === "owner" && owners - 1 === 0) throw lastOwner();
         await tx.projectMember.delete({ where: { projectId_userId: { projectId, userId: callerId } } });
+        await tx.taskAssignee.deleteMany({ where: { userId: callerId, task: { projectId } } });
       });
       res.status(204).end();
     } catch (err) {

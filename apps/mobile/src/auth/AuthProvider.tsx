@@ -37,7 +37,7 @@ import {
   saveStoredUserId,
   saveToken,
 } from "./token-store";
-import { clearProfile, readProfile, visibleProfile, writeProfile, type Profile } from "./profile-store";
+import { clearProfile, knownIdentity, readProfile, visibleProfile, writeProfile, type Profile } from "./profile-store";
 
 const MAX_FLUSH_ROUNDS = 3;
 
@@ -49,6 +49,11 @@ type AuthContextValue = {
   user: User | null;
   /** Name and email to show: the signed-in user, or the saved copy before the server answers. */
   profile: Profile | null;
+  /**
+   * Who is signed in, even while the profile fetch has not answered (the saved id and name then).
+   * Use this, not `user`, wherever only "me" is needed.
+   */
+  identity: { id: string; displayName: string } | null;
   /** State of the background profile fetch at launch. */
   profileStatus: ProfileStatus;
   signIn: (email: string, password: string) => Promise<void>;
@@ -91,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<User | null>(null);
   const [storedProfile, setStoredProfile] = useState<Profile | null>(null);
+  const [storedId, setStoredId] = useState<string | null>(null);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
   const [languagePendingSync, setPendingSync] = useState(false);
   const tokenRef = useRef<string | null>(null);
@@ -123,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     rerunRef.current = false;
     setUser(null);
     setStoredProfile(null);
+    setStoredId(null);
     setProfileStatus("loading");
     setPendingSync(false);
     setStatus("signedOut");
@@ -242,10 +249,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tokenRef.current = token;
       setStatus("signedIn");
       try {
-        const storedId = await getStoredUserId();
-        const saved = storedId ? await readProfile(asyncStorageStore, storedId) : null;
+        const savedId = await getStoredUserId();
+        const saved = savedId ? await readProfile(asyncStorageStore, savedId) : null;
         // Only while the server has not answered; a known user always wins.
-        if (!cancelled && tokenRef.current === token) setStoredProfile(saved);
+        if (!cancelled && tokenRef.current === token) {
+          setStoredProfile(saved);
+          setStoredId(saved ? savedId : null);
+        }
       } catch {
         // No saved profile: the card stays hidden until getMe answers.
       }
@@ -263,7 +273,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfileStatus("ready");
         void saveStoredUserId(me.id).catch(() => {});
         void saveProfileCopy(me);
-        await reconcileLanguage(token, me.language);
+        // The profile is known; a language step that fails must not turn that into "offline".
+        await reconcileLanguage(token, me.language).catch(() => {});
       } catch (error) {
         if (cancelled || tokenRef.current !== token) return;
         if (error instanceof ApiError && error.code === "not_signed_in") await endSession();
@@ -288,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfileStatus("ready");
         void saveStoredUserId(me.id).catch(() => {});
         void saveProfileCopy(me);
-        await reconcileLanguage(token, me.language);
+        await reconcileLanguage(token, me.language).catch(() => {});
         return true;
       } catch (error) {
         if (tokenRef.current !== token) return false;
@@ -325,6 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenRef.current = token;
     setUser(me);
     setStoredProfile(null);
+    setStoredId(null);
     setProfileStatus("ready");
     setStatus("signedIn");
     await reconcileLanguage(token, me.language);
@@ -386,12 +398,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const profile = useMemo(() => visibleProfile(user, storedProfile), [user, storedProfile]);
+  const identity = useMemo(() => knownIdentity(user, storedId, storedProfile), [user, storedId, storedProfile]);
 
   const value = useMemo(
     () => ({
       status,
       user,
       profile,
+      identity,
       profileStatus,
       signIn,
       signUp,
@@ -406,6 +420,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       user,
       profile,
+      identity,
       profileStatus,
       signIn,
       signUp,

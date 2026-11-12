@@ -1,0 +1,432 @@
+{
+  "tier": "feature",
+  "tierReason": "New tasks table, endpoints and member-based permissions; fits one cycle",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "ticket": "6",
+  "planApproval": "76f96d22b83977931df24252977bbdd68f75ef94c3a27facd543b333bad6978f",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    },
+    "8": {
+      "status": "done"
+    },
+    "9": {
+      "status": "done"
+    },
+    "10": {
+      "status": "done"
+    }
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Due date picker uses @expo/ui/community/datetime-picker, no new dependency",
+      "why": "@expo/ui is already installed and the SDK 58 docs say it is included in Expo Go"
+    },
+    {
+      "id": 2,
+      "decision": "Task and member 404s use the projects router's body (not_found, 'Project not found.')",
+      "why": "Review finding: AC9 needs one identical body across task and member requests; reusing #5's message avoids changing a merged public API"
+    },
+    {
+      "id": 3,
+      "decision": "Task picker reads members through #5's member cache instead of a second copy",
+      "why": "Review finding: two offline copies of members can drift; user chose to reuse #5's"
+    },
+    {
+      "id": 4,
+      "decision": "Cap a project at 1000 tasks by refusing the 1001st create (409 task_limit_reached) instead of paging the list",
+      "why": "Review asked for a bounded list; paging is out of scope and silently truncating the list would hide tasks"
+    }
+  ],
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "[sensitive] apps/api/src/tasks/routes.ts:257-263 + apps/api/src/members/routes.ts:166,186: removing/leaving a member keeps their TaskAssignee rows; a later PATCH sending the full assignee set (still containing the ex-member, who the picker can't untick) is refused 400 and rolls back the whole edit incl. title/status, so the task's assignees can never be changed again and queued edits are lost.",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "[sensitive] apps/api/src/tasks/routes.ts:168-171,229-232,282-286: membership/role checked outside the write transaction without lockProject; a member demoted/removed mid-request can still delete or assign (#5 fixed this race for projects).",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "[sensitive] apps/api/src/tasks/routes.ts:184-186: create reusing another project's task id returns 409 id_conflict, revealing the id exists elsewhere (low risk, random UUIDs); note as deliberate or use the 404.",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "[sensitive] migration renamed to 20261112060000_tasks: any DB that applied 20261112000000_tasks would fail deploy; change report should state rollback = drop TaskAssignee, Task, TaskStatus by hand.",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "[sensitive] apps/api/src/app.ts: tasks router mounted after /projects, so requireAuth runs twice per task request (two session lookups and lastUsedAt writes).",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/StatusPicker.ts:23-31: on Android Alert keeps only 3 buttons, so Cancel is dropped and the alert can't be dismissed outside; use cancelable:true or a sheet.",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/localChange.ts:9-19 (deriveMembers): former members still assigned on cached tasks are offered as pickable and start ticked in edit (formFromTask), leading to 400s on any assignee change.",
+        "resolved": true
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/store.ts membersByProject + TasksProvider.refreshMembers: a second offline copy of members next to #5's members/memberCache.ts (members.cache.v1); copies can drift.",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "apps/api/src/tasks/routes.ts:110: task 404 message 'Not found.' differs from #5 members route 'Project not found.' (members/routes.ts:19); AC9 says task and member requests give the same body.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/TaskForm.tsx:274-286: description is multiline but Return submits (returnKeyType done, blurAndSubmit), so no line breaks in a 2000-char description.",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] apps/api/src/tasks/routes.ts:19-28: realDate accepts year 0000, which PostgreSQL DATE rejects, likely giving 500 instead of 400 (unverified); limit the year range.",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] apps/api/src/tasks/routes.ts:172-176: GET tasks list is unbounded (paging out of scope per spec); add a generous cap or note the exception in the change report.",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] routes.ts:279-283 + phone queue: a merged offline change with a newly added ex-member is refused whole (400), dropping title/status edits or an offline-created task; matches R3/R17 but is a data-loss tradeoff.",
+        "resolved": false
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] routes.ts:194-203: a retried create after the task was deleted elsewhere re-creates it (no tombstones, accepted by spec); note in Test Handoff.",
+        "resolved": false
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "[sensitive r2] rollout: db:deploy must run before the new API (member removal uses taskAssignee); undoing needs code revert before dropping tables; note in release notes.",
+        "resolved": false
+      },
+      {
+        "id": 16,
+        "severity": "blocking",
+        "text": "[r2] apps/mobile/src/app/(app)/(home)/projects/[id]/tasks/index.tsx:51-58,78: refresh result is ignored; a failed first fetch (network/500) on an empty cache shows 'No tasks yet' with no error or retry (frontend checklist: error state, way forward).",
+        "resolved": true
+      },
+      {
+        "id": 17,
+        "severity": "blocking",
+        "text": "[r2] apps/mobile/src/tasks/TaskCard.tsx:236-267: status pill is a pressable nested inside the accessible card pressable, so VoiceOver can't reach it; R23 status change from the card is impossible with a screen reader.",
+        "resolved": true
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "[r2] apps/mobile/src/tasks/DueField.tsx:114,140: on iOS the day picker opens on today but dueDate stays null until a change fires, so picking today then Done may save no date; set today when opening, as line 161 does for time.",
+        "resolved": true
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "[r2] apps/mobile/src/tasks/AssigneeField.tsx:334-343: multi-select rows reuse ChoiceRow with accessibilityRole radio; use checkbox.",
+        "resolved": true
+      },
+      {
+        "id": 20,
+        "severity": "blocking",
+        "text": "[r3] apps/mobile/src/app/(app)/(home)/projects/[id]/tasks/index.tsx:131: Retry onPress={() => fetchTasks} returns the function without calling it, so Try again sends no request.",
+        "resolved": true
+      },
+      {
+        "id": 21,
+        "severity": "blocking",
+        "text": "[r3] apps/mobile/src/tasks/outcomes.ts REASON_KEY/noticeKeys reuse project wording (errors.not_found 'That project no longer exists', errors.forbidden owner-only, create_failed 'project could not be created'); task 404, creator-or-owner 403, task_limit_reached 409 and id_conflict give wrong or misleading notices (R7, R28).",
+        "resolved": true
+      },
+      {
+        "id": 22,
+        "severity": "blocking",
+        "text": "[r3] apps/mobile/src/tasks/validate.ts isRealDay + DueField.tsx picker: no 1900-9999 year check or min/max date, so the phone accepts dates the server refuses and an offline create is later dropped whole (R2, R27).",
+        "resolved": true
+      },
+      {
+        "id": 23,
+        "severity": "non-blocking",
+        "text": "[r3] apps/mobile/src/tasks/syncCycle.ts pendingRefreshes(): marks cleared before refresh runs; if it returns offline, a refused change stays visible until the next refresh; re-mark on non-ok.",
+        "resolved": true
+      },
+      {
+        "id": 24,
+        "severity": "non-blocking",
+        "text": "[sensitive r3] apps/api/src/tasks/routes.ts:298-299 (and the existing project schemas): a NUL character in title/description passes zod but PostgreSQL rejects it with 500, which the phone treats as temporary, so the change stays at the head of the shared queue and blocks all later syncs; refuse control characters with validation_failed.",
+        "resolved": true
+      },
+      {
+        "id": 25,
+        "severity": "blocking",
+        "text": "[r4] apps/mobile/src/tasks/TasksProvider.tsx:228-229 still loops pendingRefreshes()+refresh, so the re-mark-on-offline fix in syncCycle.refreshPending (finding 23) never runs in the app; refused edits stay on screen after a failed refresh (R17).",
+        "resolved": true
+      },
+      {
+        "id": 26,
+        "severity": "non-blocking",
+        "text": "[r4] apps/mobile/src/tasks/outcomes.ts:59-74: a create refused with 404 (project gone) says the task 'no longer exists'; needs create+not_found wording.",
+        "resolved": true
+      },
+      {
+        "id": 27,
+        "severity": "non-blocking",
+        "text": "[r4] apps/api/src/http/text.ts:4-7, apps/mobile/src/lib/text.ts:3-4: C1 control characters U+0080-U+009F are not covered by the control-character rule.",
+        "resolved": true
+      },
+      {
+        "id": 28,
+        "severity": "non-blocking",
+        "text": "[r4] apps/api/src/projects/routes.test.ts:126: refused-name characters test omits \\r (task test has it).",
+        "resolved": true
+      },
+      {
+        "id": 29,
+        "severity": "blocking",
+        "text": "QA criterion 27 (user on iPhone): expected the assignee picker to list the project's members including me; saw it empty. Expected a delete control for the project Owner; saw none. Due date/time picking felt chaotic (picker rendered below the field).",
+        "resolved": true
+      },
+      {
+        "id": 30,
+        "severity": "blocking",
+        "text": "QA criterion 15/28 (user on iPhone): expected no offline note while online; saw 'Đang ngoại tuyến' constantly. Dev DB lacks migration 20261112060000_tasks, so /tasks answers 500, which the list treats and words as offline.",
+        "resolved": true
+      },
+      {
+        "id": 31,
+        "severity": "non-blocking",
+        "text": "[sensitive qa] apps/mobile/src/tasks/assignees.ts:53-57: buildAssigneeOptions always lists me as a current member even when a loaded member list leaves me out (e.g. removed, stale cache); picking myself is then refused by the server (validation_failed) with a 'couldn't be saved' notice.",
+        "resolved": true
+      },
+      {
+        "id": 32,
+        "severity": "non-blocking",
+        "text": "[qa-fix] DueField.tsx:201 + dueRules defaultTimeFor: after noon the default time is the current minute, so keeping it and saving a minute later is refused as past.",
+        "resolved": true
+      },
+      {
+        "id": 33,
+        "severity": "non-blocking",
+        "text": "[qa-fix] DueField.tsx:72,177: on iOS an overdue task's calendar shows today but tapping today fires no change, so it can't be moved straight to today.",
+        "resolved": true
+      },
+      {
+        "id": 34,
+        "severity": "non-blocking",
+        "text": "[qa-fix] DueField.tsx:201 + dueChangeError: opening the time on an overdue day auto-sets a time that is always refused, blocking save until the time is cleared.",
+        "resolved": true
+      },
+      {
+        "id": 35,
+        "severity": "non-blocking",
+        "text": "[qa-fix] Android time picker may ignore minimumDate in time mode (unverified); past time only refused on save. Test Handoff.",
+        "resolved": false
+      }
+    ],
+    "reviewed": "d66fe97b876dbaea174ee08fb02091345824ed096c2dc6ab60cf58bf086f20bc"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); validation and defaults tests in tasks tests passed",
+        "criterion": "API tests: a title of 0 and 121 characters after trimming, a description of 2001 characters, and an unknown status are refused with `validation_failed`; a title of 120 characters, an empty description, each status and no due date are accepted; a new task without a status is To do."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'stores and returns a day with a time, and a day only' and 'refuses a time without a day' passed",
+        "criterion": "API tests: a due date with a day and time, and with a day only, are stored and returned as given; a time without a day is refused with `validation_failed`."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); assign member, refuse non-member/duplicate/21, keep or remove former member, and members-route clear-on-remove/leave tests (seeding a second project left untouched) passed",
+        "criterion": "API tests: assigning a project member works; adding a non-member, the same person twice, or 21 people is refused with `validation_failed`; a change that keeps an already-assigned former member, or removes them, is accepted; removing a member, and a member leaving, removes their assignments in that project only."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); returned id, repeated create, simultaneous creates and other-project id tests passed",
+        "criterion": "API tests: a task created with a phone-chosen UUID is returned with that id; the same create sent twice leaves one task; a create reusing another project's task id is refused and doesn't change that task."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'lets a Member create a task, edit every field of an Owner's task' passed",
+        "criterion": "API tests: a Member can create a task, edit every field of a task created by the Owner, and change its status."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); creator and Owner delete, Member 403, second delete 404 passed",
+        "criterion": "API tests: the creator and an Owner can delete a task; a Member who didn't create it gets `403`; a second delete gives `404`."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'returns exactly this project's tasks' with assignees {id, displayName} passed",
+        "criterion": "API test: reading a project's tasks returns exactly that project's tasks with every field and assignees' display names."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); #5 members route tests (owners first, by join time) passed; endpoint returns userId, displayName, role",
+        "criterion": "API test: reading a project's members returns each member's id, display name and role."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); one 404 body for non-member, missing project, other project's task, compared with the members route 404",
+        "criterion": "API tests: task and member requests for a project the caller isn't in, a project that doesn't exist, and a task id from another project all give `404` with the same body."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); every route without a token and with a token expired by advancing the clock past the session lifetime gives 401 not_signed_in",
+        "criterion": "API test: every new endpoint without a token, and with an expired one, gives `401 not_signed_in`."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); project-delete and user-delete cascade tests incl. Owner-only delete of creatorless task passed",
+        "criterion": "API tests: deleting a project removes its tasks and assignments; deleting a user removes their assignments and leaves their created tasks with no creator, which a Member then can't delete and an Owner can."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); older status ignored with newer title accepted, future time clamped, assignees replaced as a set",
+        "criterion": "API tests: an older change to `status` is ignored while a newer change to `title` in the same request is accepted; a change with a time one day in the future is stored with the server's current time; assignees are replaced as a whole set by the newer change."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API suite 358/358 passed (earnm_test); 'answers 200 with the current values when every change is ignored' passed",
+        "criterion": "API test: a fully ignored change returns `200` with the task's current values."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "mobile suite 419/419 passed; overlay keeps a waiting rename over a stale refresh; a task missing from the server list is removed",
+        "criterion": "Test of the tasks sync layer: with a waiting rename of task A, a refresh returning the old title still shows the new title; a refresh without task B removes B."
+      },
+      "15": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: open a project's tasks, turn on airplane mode, close and reopen the app: the task list and details show with the offline note."
+      },
+      "16": {
+        "result": "pass",
+        "evidence": "mobile suite 419/419 passed; queue merge tests (two edits, create+edit, create+delete sends nothing) passed",
+        "criterion": "Tests of the queue with task changes: two edits give one waiting change; create then edit give one create; create then delete give no request."
+      },
+      "17": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Tests of the tasks outcomes: a task change answered `403` or `404` is removed, the local copy shows the server's version (or no task), and the \"couldn't be saved\" message appears; a `401` keeps it queued. By hand: change status, create and delete a task in airplane mode, reconnect, and see the changes on a second phone or in the API."
+      },
+      "18": {
+        "result": "pass",
+        "evidence": "mobile suite 419/419 passed; 'is dropped on 404 and the next waiting change is still sent' passed",
+        "criterion": "Test: a waiting task change for a project the server answers `404` for is dropped and the next waiting change is still sent."
+      },
+      "19": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: sign out and sign in as another person: no tasks or filter choices from the first person show."
+      },
+      "20": {
+        "result": "pass",
+        "evidence": "grep of apps/mobile/src/sync non-test files finds no task reference; tasks register via queue.registerEntity in src/tasks/sync.ts",
+        "criterion": "Code check: the shared queue code has no reference to tasks; task kinds of change are registered from the tasks code."
+      },
+      "21": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand, following each move in requirement 21: the named screen opens; back by header and by swipe returns to where it was opened from; after creating, back doesn't reach the form; after deleting, back doesn't reach the deleted task. The Project screen shows the two-column tile grid above the details, with the Tasks tile's not-done count and the other three tiles disabled with \"Coming soon\" doing nothing when tapped; Home has no Tasks tile."
+      },
+      "22": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Unit test of the list ordering: overdue, due today, due later, no due date, then Done in its own group; tasks with the same due date ordered by creation time. By hand: the Done section starts closed and shows its count."
+      },
+      "23": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: changing status from a card updates it at once and moves it to its new place in the list."
+      },
+      "24": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Unit tests of the filters: each status, \"Assigned to me\", \"Only me\" and \"Due soon\" alone and combined select the right tasks; a task assigned to me and someone else matches \"Assigned to me\" but not \"Only me\". By hand: the choices survive closing and reopening the app."
+      },
+      "25": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "Unit tests of \"due soon\" with a fixed clock: a task due yesterday, today, and in three days counts; one due in four days, a Done task, and one with no due date don't; a day with no time counts until the end of that day. By hand: an overdue task says it is overdue in words."
+      },
+      "26": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: a new project shows the invitation to create a task; filters matching nothing show the message and a way to clear them."
+      },
+      "27": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand: a task saves with a title only; an over-long title shows the field message without saving; the assignee picker lists the project's members, also offline; a due day can be set, a time added, and either cleared; return moves title → description and submit stays above the keyboard; a Member who didn't create the task sees no delete control; delete asks for confirmation naming the task."
+      },
+      "28": {
+        "result": "pass",
+        "evidence": "checked by the user on an iPhone in Expo Go (npm run dev:phone, local API, dev DB) after the QA fixes: reported ok",
+        "criterion": "By hand, in both languages: no untranslated text, dates read naturally in each language, and screens follow `DESIGN.md` and Decision 10."
+      },
+      "29": {
+        "result": "pass",
+        "evidence": "migration 20261112060000_tasks applied cleanly with prisma migrate deploy to the dev database that already had users and projects, and to the test database (earnm_test); the app then worked on it, checked by the user",
+        "criterion": "The migration applies cleanly to an empty database and to one with existing users and projects."
+      }
+    },
+    "checked": "d66fe97b876dbaea174ee08fb02091345824ed096c2dc6ab60cf58bf086f20bc"
+  },
+  "pr": "https://github.com/LanHuong142002/earnm/pull/30"
+}

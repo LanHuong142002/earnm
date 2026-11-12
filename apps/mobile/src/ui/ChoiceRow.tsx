@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "../theme/useTheme";
 import { PressableScale } from "./PressableScale";
@@ -10,19 +10,29 @@ export function ChoiceRow({
   selected,
   onPress,
   divider = false,
+  caption,
+  disabled = false,
+  role = "radio",
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   /** Hairline above the row; set it on every row but the first. */
   divider?: boolean;
+  /** Small line under the label. */
+  caption?: string;
+  disabled?: boolean;
+  /** "radio" for pick-one lists; "checkbox" when several rows can be chosen. */
+  role?: "radio" | "checkbox";
 }) {
   const { colors, typography, layout, iconSize } = useTheme();
   return (
     <PressableScale
-      accessibilityRole="radio"
+      accessibilityRole={role}
       accessibilityLabel={label}
-      accessibilityState={{ selected, checked: selected }}
+      accessibilityState={{ selected, checked: selected, disabled }}
+      accessibilityHint={caption}
+      disabled={disabled}
       onPress={onPress}
       style={{
         minHeight: layout.controlHeight,
@@ -33,9 +43,12 @@ export function ChoiceRow({
         borderTopColor: colors.border,
       }}
     >
-      <Text style={[selected ? typography.bodyStrong : typography.body, { color: colors.text }]}>
-        {label}
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text style={[selected ? typography.bodyStrong : typography.body, { color: colors.text }]}>
+          {label}
+        </Text>
+        {caption ? <Text style={[typography.caption, { color: colors.textSecondary }]}>{caption}</Text> : null}
+      </View>
       {selected ? <Ionicons name="checkmark" size={iconSize.md} color={colors.accent} /> : null}
     </PressableScale>
   );

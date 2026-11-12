@@ -11,6 +11,7 @@ import { createInvitesRouter } from "./invites/routes.js";
 import { createMembersRouter } from "./members/routes.js";
 import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
+import { createTasksRouter } from "./tasks/routes.js";
 
 export interface AppDeps {
   prisma: PrismaClient;
@@ -36,6 +37,8 @@ export function createApp(deps: AppDeps): Express {
 
   app.use("/auth", createAuthRouter(deps));
   app.use("/me", createMeRouter(deps));
+  // Before /projects: that router requires sign-in for everything under it, which would run twice.
+  app.use("/projects/:projectId/tasks", createTasksRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
   // Without INVITE_CODE_KEY or INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.
   const keySource = pickInviteKeySource(deps);
