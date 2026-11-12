@@ -24,6 +24,7 @@ const SKILLS = {
   Fix: '/ourkit-bugfix',
   Verify: '/ourkit-bugfix',
   Grill: '/ourkit-epic',
+  Prototype: '/ourkit-epic',
   'Split into Features': '/ourkit-epic',
 };
 const BUG_SECTIONS = { Reproduce: 'Reproduction', Fix: 'Fix', Verify: 'Verification' };
@@ -67,11 +68,11 @@ function planApproved(projectDir, record, id) {
   return !require('./mockup').mockupProblem(projectDir, record, id);
 }
 
-// What the user still has to do about the mockup, or null.
+// What the user still has to do about the mockup or prototype, or null.
 function mockupWaiting(projectDir, record, id) {
   const mockup = require('./mockup').state(projectDir, record, id);
   if (!mockup.needed || !mockup.exists || mockup.approved) return null;
-  return { kind: 'approval', text: `look at the mockup (${mockup.path}) and approve it or ask for changes` };
+  return { kind: 'approval', text: `look at the ${mockup.kind} (${mockup.path}) and approve it or ask for changes` };
 }
 
 function reviewPassed(projectDir, record, change) {
@@ -82,6 +83,7 @@ function reviewPassed(projectDir, record, change) {
 function stageStates(projectDir, record, change) {
   const id = change.id;
   const tasks = taskProgress(projectDir, record, id);
+  const epicWritten = () => fs.existsSync(path.join(projectDir, relativePathFor('epic', id)));
   const check = {
     Spec: () => artifactDone(projectDir, 'spec', id),
     Plan: () => artifactDone(projectDir, 'plan', id) && planApproved(projectDir, record, id),
@@ -90,8 +92,9 @@ function stageStates(projectDir, record, change) {
     Review: () => reviewPassed(projectDir, record, change),
     QA: () => require('./qa').qaGate(projectDir, record, change).status === 'pass',
     Ship: () => Boolean(record.pr),
-    Grill: () => fs.existsSync(path.join(projectDir, relativePathFor('epic', id))),
-    'Split into Features': () => artifactDone(projectDir, 'epic', id),
+    Grill: () => Boolean(record.mockup) || epicWritten(),
+    Prototype: () => (Boolean(record.mockup) || epicWritten()) && !require('./mockup').mockupProblem(projectDir, record, id),
+    'Split into Features': () => artifactDone(projectDir, 'epic', id) && !require('./mockup').mockupProblem(projectDir, record, id),
   };
   for (const [stage, section] of Object.entries(BUG_SECTIONS)) check[stage] = () => sectionFilled(projectDir, 'bug', id, section);
   let current = null;
@@ -128,6 +131,7 @@ function nextStep({ current, waiting, record, planWritten, mockupPending, tasks,
     if (record.tier === 'epic') return { skill: '/ourkit-spec', text: 'start each Feature on its own branch', waitsForYou: true };
     return { skill: '/ourkit-ship', text: 'open the PR', waitsForYou: false };
   }
+  if (current === 'Prototype' && mockupPending) return { skill: '/ourkit-epic', text: `${before}approve the prototype, then split into Features`, waitsForYou: true };
   if (current === 'Plan' && mockupPending) return { skill: '/ourkit-plan', text: `${before}approve the mockup, then plan`, waitsForYou: true };
   if (current === 'Plan' && planWritten) return { skill: '/ourkit-tasks', text: `${before}approve the plan, then tasks`, waitsForYou: true };
   if (current === 'Build' && tasks && tasks.blocked.length > 0) {
@@ -184,7 +188,7 @@ function computeStatus(projectDir) {
   const { stages, current, tasks } = stageStates(projectDir, record, change);
   const findings = ((record.review || {}).findings || []).filter((f) => f.severity === 'blocking' && !f.resolved);
   const planWritten = artifactDone(projectDir, 'plan', change.id);
-  const mockupPending = current === 'Plan' ? mockupWaiting(projectDir, record, change.id) : null;
+  const mockupPending = ['Plan', 'Prototype'].includes(current) ? mockupWaiting(projectDir, record, change.id) : null;
   const waiting = [
     ...(record.questions || []).filter((q) => q.answer === null).map((q) => ({ kind: 'question', text: q.question })),
     ...(mockupPending ? [mockupPending] : []),

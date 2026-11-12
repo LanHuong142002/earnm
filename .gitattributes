@@ -1,0 +1,7 @@
+# ourkit:start (written by ourkit: the kit's own files, collapsed in pull requests)
+.ourkit/kit/** linguist-generated=true
+.ourkit/install.json linguist-generated=true
+.claude/skills/ourkit-*/** linguist-generated=true
+.claude/agents/ourkit-* linguist-generated=true
+.claude/rules/ourkit.md linguist-generated=true
+# ourkit:end

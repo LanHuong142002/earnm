@@ -7,7 +7,7 @@ const TIERS = ['patch', 'feature', 'epic'];
 const ROUTES = {
   patch: ['Build', 'Review'],
   feature: ['Spec', 'Plan', 'Tasks', 'Build', 'Review', 'QA', 'Ship'],
-  epic: ['Grill', 'Split into Features'],
+  epic: ['Grill', 'Prototype', 'Split into Features'],
 };
 const AREAS = {
   auth: ['auth', 'authn', 'authz', 'authentication', 'authorization', 'login', 'logout', 'oauth', 'oidc', 'saml', 'sso', 'session', 'sessions', 'permission', 'permissions', 'rbac', 'acl', 'password', 'passwords', 'credential', 'credentials', 'token', 'tokens'],

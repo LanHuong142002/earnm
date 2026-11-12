@@ -171,6 +171,42 @@ function removeLegacyBlock(projectDir, { file: name, start: startMarker, end: en
   return true;
 }
 
+// The kit's copies stay committed (ADR 0014), so this block marks them as generated: GitHub then
+// collapses them in pull requests and leaves them out of the language stats (ADR 0015).
+const GENERATED_BLOCK = { file: '.gitattributes', start: '# ourkit:start', end: '# ourkit:end' };
+
+function generatedPatterns() {
+  const shell = readShell();
+  return [
+    `${toRecordPath(KIT_DIR)}/**`,
+    toRecordPath(INSTALL_RECORD),
+    `${shell.stagesDir}/ourkit-*/**`,
+    `${shell.agentsDir}/ourkit-*`,
+    `${shell.rulesDir}/ourkit.md`,
+  ];
+}
+
+// Writes the block, or replaces the one already there, leaving the rest of the file alone.
+// Returns whether the file changed.
+function markGenerated(projectDir) {
+  const { file: name, start, end } = GENERATED_BLOCK;
+  const file = path.join(projectDir, name);
+  const block = [
+    `${start} (written by ourkit: the kit's own files, collapsed in pull requests)`,
+    ...generatedPatterns().map((pattern) => `${pattern} linguist-generated=true`),
+    end,
+  ].join('\n');
+  const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n') : '';
+  const from = existing.indexOf(start);
+  const to = from >= 0 ? existing.indexOf(end, from) : -1;
+  const updated = to >= 0
+    ? `${existing.slice(0, from)}${block}${existing.slice(to + end.length)}`
+    : `${existing.trimEnd() ? `${existing.trimEnd()}\n\n` : ''}${block}\n`;
+  if (updated === existing) return false;
+  fs.writeFileSync(file, updated);
+  return true;
+}
+
 const removeLegacyInstructions = (projectDir) => removeLegacyBlock(projectDir, LEGACY_BLOCKS.instructions);
 const removeLegacyGitignore = (projectDir) => removeLegacyBlock(projectDir, LEGACY_BLOCKS.gitignore);
 
@@ -188,6 +224,7 @@ function install(projectDir, { entry, roles }) {
   const files = copyPlanned(projectDir, plan);
   const record = { version: kitVersion(), host: HOST, entry, roles, detected, files };
   fs.writeFileSync(path.join(projectDir, INSTALL_RECORD), `${JSON.stringify(record, null, 2)}\n`);
+  markGenerated(projectDir);
   return { record };
 }
 
@@ -282,12 +319,12 @@ async function main(args) {
   }
   console.log(`ourkit: installed ${Object.keys(record.files).length} files (${record.entry}; Roles: ${record.roles.join(', ') || 'none'})`);
   if (record.detected.length > 0) console.log(`ourkit: found ${record.detected.join(', ')}`);
-  console.log('ourkit: commit everything it added, so a teammate needs nothing after cloning');
+  console.log('ourkit: commit everything it added in a commit of its own, so a teammate needs nothing after cloning; .gitattributes marks the kit\'s files as generated, so pull requests collapse them');
   console.log('ourkit: then open the agent in this project and run /ourkit-init');
   return 0;
 }
 
 module.exports = {
-  INSTALL_RECORD, KIT_ROOT, copyPlanned, hashFile, install, kitVersion, main, parseEntry, parseRoles, planFiles,
+  INSTALL_RECORD, KIT_ROOT, copyPlanned, hashFile, install, kitVersion, main, markGenerated, parseEntry, parseRoles, planFiles,
   removeLegacyGitignore, removeLegacyInstructions, roleChoices, syncCommand, trackerPlan,
 };

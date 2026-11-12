@@ -3,7 +3,8 @@ const { spawnSync } = require('child_process');
 const path = require('path');
 
 const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
-const KIT_FOLDERS = ['.ourkit', '.claude'];
+// .gitattributes holds the block that marks the kit's files as generated (ADR 0015).
+const KIT_FOLDERS = ['.ourkit', '.claude', '.gitattributes'];
 
 function git(projectDir, args) {
   const result = spawnSync('git', ['-c', 'core.quotepath=off', ...args], { cwd: projectDir, encoding: 'utf8' });
