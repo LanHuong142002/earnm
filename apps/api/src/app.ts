@@ -6,6 +6,7 @@ import { createInternalRouter } from "./internal/routes.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { deriveInviteKey } from "./invites/code.js";
 import { createInvitesRouter } from "./invites/routes.js";
+import { createMembersRouter } from "./members/routes.js";
 import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 
@@ -34,6 +35,7 @@ export function createApp(deps: AppDeps): Express {
   const inviteKey =
     deps.internalSecret !== undefined ? deriveInviteKey(deps.internalSecret) : randomBytes(32);
   app.use(createInvitesRouter({ prisma: deps.prisma, now: deps.now, inviteKey }));
+  app.use(createMembersRouter(deps));
 
   app.use(
     "/internal",
