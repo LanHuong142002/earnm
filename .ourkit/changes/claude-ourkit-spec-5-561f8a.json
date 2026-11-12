@@ -1,0 +1,13 @@
+{
+  "ticket": "5",
+  "tier": "feature",
+  "tierReason": "Joining by invite changes who can access a project and adds invite schema and new public endpoints",
+  "sensitiveAreas": [
+    "auth",
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "planApproval": "b9011a4768a2a8a1094e2ff7f7cf526c136658e3d7e1f6c2ced2afa896899d49"
+}
