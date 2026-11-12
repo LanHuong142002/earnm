@@ -42,12 +42,16 @@ Today (after #6) a task has a title, description, status, assignees and a due da
 ### On the phone: screens
 
 16. **Task card.** The card in the task list also shows the task's labels as chips with name and colour (at most three, then `+n`) and, when the task has items, its progress as `x/y` in words and numbers, not only a bar.
-17. **Task details.** The Task screen shows the task's labels and its checklists. Each checklist shows its name, its own progress and its items. An item is ticked or unticked with one tap, without opening a form. From the Task screen a person can add a checklist, rename or delete one (with a confirmation naming it), add an item at the end of a checklist with the keyboard staying open for the next item, and edit or delete an item.
+17. **Task details.** The Task screen shows the task's labels and its checklists. Each checklist shows its name, its own progress and its items. An item is ticked or unticked with one tap, without opening a form. From the Task screen a person can add a checklist, rename or delete one (with a confirmation naming it), add an item at the end of a checklist with the keyboard staying open for the next item, and edit or delete an item. (Changed at the mockup review:) Adding a checklist and editing the task are reachable without scrolling past the checklists: "Edit" sits in the header's right side, and "Add" sits at the right of the Checklist section heading. The header shows only the back chevron, with no text beside it, and the screen title centred, like the app's other screens.
 18. **Picking labels.** On the Task screen and in the Edit task form, a label field opens a picker listing the project's labels; tapping one adds or removes it from the task. The picker offers "New label" (name and colour) and a way to manage labels.
 19. **Managing labels.** A Labels screen, reached from the picker, lists the project's labels. Any member can create, rename and recolour from it; Owners also see delete, which asks for confirmation, names the label, and says it will be removed from every task. Back returns to where it was opened from.
 20. **Filter by label.** The filter bar gains a label filter: choose one or more labels, and the list shows tasks carrying at least one of them. It combines with the existing status, "Assigned to me", "Only me" and "Due soon" filters (all must hold), is remembered per project until sign-out like the others, clears with them, and forgets a label that has been deleted.
 21. **Colours.** The 8 label colours are added to `DESIGN.md` and the theme tokens as soft, muted tints, each readable in light and dark mode with the label's name on it at normal-text contrast (4.5:1). A label always shows its name, so colour is never the only sign. Labels don't use the accent colour.
 22. **Look and language.** Screens follow `DESIGN.md` and Decision 10, and all new text is in Vietnamese and English.
+
+### Appearance (added at the mockup review)
+
+24. The Settings screen gains an "Appearance" section, under Language, with three choices: System (the default), Light and Dark, shown as choice rows with a ✓ on the selected one. Choosing one changes every screen at once, including native headers, sheets and alerts. The choice is kept on the phone and stays after closing the app and after signing out; it isn't saved to the account.
 
 ### Data
 
@@ -78,6 +82,7 @@ Today (after #6) a task has a title, description, status, assignees and a due da
 21. By hand, in light and dark mode: all 8 label colours show their names readably, and no label uses the accent colour. Check: each colour's text contrast is at least 4.5:1.
 22. By hand, in both languages: no untranslated text, and the new screens follow `DESIGN.md` and Decision 10.
 23. The migration applies cleanly to an empty database and to one with existing users, projects and tasks.
+24. Unit test of the stored appearance choice: a missing or unknown stored value reads as System. By hand: choosing Dark with the phone in light mode turns every screen, header, sheet and alert dark at once; System follows the phone again; the choice survives closing the app and signing out; the Task screen shows "Edit" in the header and "Add" beside the Checklist heading without scrolling.
 
 ## Out of Scope
 
@@ -86,6 +91,7 @@ Today (after #6) a task has a title, description, status, assignees and a due da
 - Colours outside the fixed palette, and label icons.
 - Filtering by checklist progress, and showing labels or progress anywhere other than the task list and the Task screen (for example on the Project screen's Tasks tile).
 - Merging concurrent changes to a task's labels: the set is one field, so two people changing it at once keep only the later set.
+- Saving the appearance choice to the account or syncing it between phones.
 - Comments (#8), photos (#9), reminders and push (#10, #16), and real-time updates from the server.
 
 ## Open Questions

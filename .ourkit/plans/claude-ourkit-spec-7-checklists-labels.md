@@ -73,7 +73,13 @@ Mobile: three new queue entities, `label`, `checklist` and `checklistItem`, regi
 - **Screens.** Each move follows the mockup's navigation:
   - `TaskCard` (mockup 1a): adds a row with `LabelChips` and `ProgressCount`.
   - `FilterBar` (mockup 1a, 1c): adds a "Labels" row that opens the label filter sheet and shows the chosen names.
-  - Task details `[taskId]/index.tsx` (mockup 2a–2g): a Labels row with Edit/Add, a "Checklist" section with total progress, `ChecklistCard`s, and "＋ Add checklist", placed above the Edit button.
+  - Task details `[taskId]/index.tsx` (mockup 2a–2g):
+    - a Labels row with Edit/Add;
+    - a "Checklist" section whose heading row holds the total progress and an "＋ Add" link, then the `ChecklistCard`s;
+    - the "Edit task" button moves into the header's right side (`headerRight`, a text link in `accentStrong` with a 44pt touch area), so neither action needs scrolling (R17);
+    - with no checklists, the empty-state invitation keeps one secondary "＋ Add checklist" button;
+    - the delete button stays at the bottom, set apart, as in #6.
+    - The header keeps the app's `HeaderBack` (chevron only) and the centred native title.
   - `[taskId]/edit.tsx`: a Labels field opening the same picker (R18).
   - New `formSheet` routes under `projects/[id]/tasks/`:
     - `labels/pick.tsx` (mockup 3a, 3d), with `taskId`;
@@ -81,7 +87,12 @@ Mobile: three new queue entities, `label`, `checklist` and `checklistItem`, regi
     - `labels/form.tsx` (mockup 3b, 3c, 3f), for both new and edit.
   - A pushed `labels/index.tsx` (Labels screen, mockup 3e). Delete shows only for Owners, using `permissions.ts` `canDeleteLabel(role)`, with an `Alert` confirmation (mockup 3g).
   - All routes are registered in `(home)/_layout.tsx`. Back and swipe return to the opener.
-- `src/i18n/en.json`, `vi.json`: `tasks.checklist.*`, `tasks.labels.*`, the colour names, notices and errors. The parity test covers both.
+- **Appearance (R24, mockup 5a–5b):**
+  - `src/theme/appearance.ts`: `readAppearance(store)` and `writeAppearance(store, choice)`, where the choice is `"system" | "light" | "dark"`. The key is `appearance.v1`, and a missing or unknown value reads as `"system"`.
+  - At start-up (root `_layout.tsx`, before the first screen), and whenever the choice changes, call React Native's `Appearance.setColorScheme(choice === "system" ? null : choice)`. `useColorScheme()`, and so `useTheme`, native headers, sheets and alerts, all follow it without other changes.
+  - `app/(app)/account.tsx`: an "Appearance" section under Language with three `ChoiceRow`s.
+  - The key is not registered with sign-out cleanup, so the choice survives sign-out. At Build, confirm that sign-out doesn't clear all storage.
+- `src/i18n/en.json`, `vi.json`: `settings.appearance.*` (System, Light, Dark), `tasks.checklist.*`, `tasks.labels.*`, the colour names, notices and errors. The parity test covers both.
 
 ## Risks
 
@@ -97,6 +108,7 @@ Mobile: three new queue entities, `label`, `checklist` and `checklistItem`, regi
   - A remaining edge: another person deletes a checklist while I'm offline adding items. My item creates get `404`, are dropped, and the notice shows. That is the spec's R12/R15 behaviour.
 - **Task response size:** a task can carry 10×50 items. The tasks list has at most 1000 tasks, so an extreme project could return a large list. Real projects are far smaller (Out of Scope of #6: no paging). The 10kb body limit applies only to requests, which stay small.
 - **`formSheet` in Expo Go:** checked at Build, with `modal` as the fallback (see Prior Art).
+- **Appearance override:** `Appearance.setColorScheme` must run before the first screen renders, or the screen flashes in the wrong theme. The stored value is read during the existing splash/loading step. At Build, check on iOS in Expo Go that native headers and `Alert` follow it.
 - **Cache shape change:** bumping the key to `v2` avoids reading an old shape. A first open after the update refetches.
 - **Review convergence (lessons):**
   - Only correctness, security and spec gaps block. Nits go to the report.
@@ -140,6 +152,7 @@ Commands: `ourkit command test` (`npm --prefix apps/api test && npm --prefix app
   - queue merging for the new entities (two ticks give one change, create then rename, create then delete);
   - `outcomes.test.ts`: refused item, refused duplicate label stripped from the task and the waiting changes;
   - the checklist delete drops the items' waiting changes;
+  - `appearance.test.ts`: missing or unknown stored values read as `"system"`, and a written value reads back (AC 24);
   - `contrast.test.ts`: all 16 light and dark pairs ≥ 4.5:1, and none equals the accent;
   - code check: no `label`/`checklist` in `src/sync/`.
 - **Network failures in tests:** fake senders throwing `ApiError("network")`, as in #6.
@@ -154,5 +167,7 @@ Commands: `ourkit command test` (`npm --prefix apps/api test && npm --prefix app
   - the label filter after a restart;
   - light and dark mode;
   - both languages;
-  - sheets' back and swipe-down.
+  - sheets' back and swipe-down;
+  - Settings → Appearance: Dark, Light and System, after a restart and after sign-out;
+  - "Edit" in the header and "＋ Add" beside the Checklist heading, reachable without scrolling.
 - **Not verified automatically:** the screens, sheets, action sheets and keyboard behaviour (there are no component tests in this app). These are covered by the Test Handoff.
