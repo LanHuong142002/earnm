@@ -79,9 +79,9 @@ describe("applyTaskOverlay with checklists and items (AC14)", () => {
     expect(created.checklists.map((c) => c.name)).toEqual(["Steps"]);
   });
 
-  it("task labels from a waiting update replace the server set, and a waiting label delete takes the label off", () => {
+  it("task labels from a waiting taskLabels change replace the server set, and a waiting label delete takes the label off", () => {
     const tasks = [makeTask({ labelIds: ["a", "b"] }), makeTask({ id: "t2", labelIds: ["a"] })];
-    const set = [change("task", "update", "t1", { labels: ["b", "c"] })];
+    const set = [change("taskLabels", "update", "t1", { labels: ["b", "c"] })];
     expect(applyTaskOverlay("p1", tasks, set)[0].labelIds).toEqual(["b", "c"]);
     const del = [change("label", "delete", "a", {})];
     expect(applyTaskOverlay("p1", tasks, del).map((t) => t.labelIds)).toEqual([["b"], []]);

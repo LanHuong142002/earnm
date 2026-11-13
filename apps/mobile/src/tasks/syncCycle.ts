@@ -5,7 +5,7 @@
  *
  * - handlers.onApplied: the cached task becomes the server's reply (a malformed reply marks the project for refresh).
  * - handlers.onRejected: sets the notice, removes the task on 404, and marks the project for refresh.
- * - The same two handlers serve labels, checklists and items (picked by the change's entity).
+ * - The same two handlers serve labels, checklists, items and a task's label set (picked by the change's entity).
  * - refresh(projectId): list tasks and labels, replay the waiting changes on top, commit.
  * - refreshPending(): after a flush, refresh every project marked above.
  */
@@ -13,10 +13,9 @@ import { ApiError } from "../lib/api";
 import type { Change, Queue } from "../sync/queue";
 import * as outcomes from "./outcomes";
 import { applyLabelOverlay, applyTaskOverlay, isLabel, isTask } from "./store";
-import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, taskProjectId } from "./sync";
+import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_LABELS_ENTITY, taskProjectId } from "./sync";
 import type { Label, Task } from "./types";
 import type { TaskRejectedNotice } from "./outcomes";
-import { stripLabelFromWaiting } from "./waitingLabels";
 
 export type RefreshResult = "ok" | "offline" | "error" | "gone" | "skipped";
 
@@ -69,6 +68,7 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
           await deps.commit(projectId, outcomes.onChildApplied(deps.getTasks(projectId), change, response, waiting));
           return;
         }
+        if (change.entity === TASK_LABELS_ENTITY && change.kind === "delete") return;
         if (change.kind !== "delete" && !isTask(response)) {
           // A malformed reply must not remove the task; the next refresh brings the server's version.
           marked.add(projectId);
@@ -94,9 +94,9 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
           deps.setNotice(outcome.notice);
           marked.add(outcome.refreshProjectId);
           if (outcome.removedLabelId !== null) {
-            // The label will never exist: its waiting changes and its place on waiting task changes go too (R15).
+            // The label will never exist: its other waiting changes go too. Its place on waiting label sets was
+            // taken out by the label create's sender before the queue moved on (R15).
             await queue.dropEntity(LABEL_ENTITY, outcome.removedLabelId);
-            await stripLabelFromWaiting(queue, projectId, outcome.removedLabelId, new Date());
           }
           await deps.commitLabels(projectId, outcome.labels);
           await deps.commit(projectId, outcome.list);
@@ -107,6 +107,13 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
           deps.setNotice(outcome.notice);
           marked.add(outcome.refreshProjectId);
           await deps.commit(projectId, outcome.list);
+          return;
+        }
+        if (change.entity === TASK_LABELS_ENTITY) {
+          // Only the label set is refused: the task keeps its other edits. The refresh shows the server's labels.
+          const taskTitle = deps.getTasks(projectId).find((t) => t.id === change.entityId)?.title ?? null;
+          deps.setNotice({ kind: "update", taskTitle, reason: outcomes.reasonFor(error), subject: "taskLabels" });
+          marked.add(projectId);
           return;
         }
         const outcome = outcomes.onRejected(deps.getTasks(projectId), change, error, await deps.getQueue().waiting());

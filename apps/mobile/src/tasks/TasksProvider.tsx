@@ -50,11 +50,11 @@ import {
   setProjectTasks,
   type TaskCache,
 } from "./store";
-import { ITEM_ENTITY, TASK_ENTITY, registerChecklistEntities, registerTaskEntity } from "./sync";
+import { ITEM_ENTITY, TASK_LABELS_ENTITY, registerChecklistEntities, registerTaskEntity } from "./sync";
 import { createTaskSyncCycle, type RefreshResult } from "./syncCycle";
 import type { Label, Task, TaskAssignee, TaskStatus } from "./types";
 import type { TaskInput, TaskInputErrors } from "./validate";
-import { stripLabelFromWaiting, taskChangesToResend } from "./waitingLabels";
+import { queueTaskLabels } from "./waitingLabels";
 
 export type { TaskRejectedNotice } from "./outcomes";
 export type { TaskFilters } from "./filters";
@@ -430,6 +430,7 @@ export function TasksProvider({ children, members }: Props) {
       if (!readyRef.current || !task) return;
       const change = planTaskDelete(task);
       await track(async () => {
+        await queue.dropEntity(TASK_LABELS_ENTITY, taskId); // a label set for a task that is going away has nowhere to go
         await queue.enqueue(change);
         const list = cacheRef.current.byProject[projectId] ?? [];
         void commit(projectId, showLocalChange(list, projectId, change, new Date()));
@@ -499,8 +500,7 @@ export function TasksProvider({ children, members }: Props) {
       const change = planLabelDelete(label, projectId);
       const now = new Date();
       await track(async () => {
-        // Waiting task changes that still name the label are queued again without it, with a fresh time.
-        await stripLabelFromWaiting(queue, projectId, labelId, now);
+        // Waiting label sets that name it are cleaned by the delete's sender once the server has deleted it.
         await queue.enqueue(change);
         void commitLabels(projectId, showLocalLabelChange(cachedLabelsFor(cacheRef.current, projectId), projectId, change, now));
         // The label delete laid over the tasks takes the label off the local task copies.
@@ -522,13 +522,8 @@ export function TasksProvider({ children, members }: Props) {
       const change = plan.change;
       if (!change) return { ok: true };
       await track(async () => {
-        await queue.enqueue(change);
-        // A task change waiting ahead of a label created after it would reach the server first: queue it again after.
-        const resend = taskChangesToResend(await queue.waiting(), taskId, labelIds);
-        if (resend) {
-          await queue.dropEntity(TASK_ENTITY, taskId);
-          for (const again of resend) await queue.enqueue(again);
-        }
+        // The task's labels are their own change; it is kept behind any label create it uses.
+        await queueTaskLabels(queue, change);
         void commit(projectId, showLocalChange(cacheRef.current.byProject[projectId] ?? [], projectId, change, now));
       });
       await afterEnqueue();

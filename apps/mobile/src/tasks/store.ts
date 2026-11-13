@@ -1,6 +1,6 @@
 import type { Change } from "../sync/queue";
 import type { KeyValueStore } from "../sync/storage";
-import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY } from "./sync";
+import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY } from "./sync";
 import { DEFAULT_FILTERS, type TaskFilters } from "./filters";
 import { TASK_STATUSES, type Checklist, type ChecklistItem, type Label, type Task, type TaskAssignee } from "./types";
 
@@ -257,6 +257,10 @@ export function applyTaskOverlay(projectId: string, serverList: Task[], waiting:
     if (change.entity === CHECKLIST_ENTITY || change.entity === ITEM_ENTITY) {
       const taskId = String(change.data.taskId);
       list = list.map((t) => (t.id === taskId ? withChecklistChange(t, change) : t));
+      continue;
+    }
+    if (change.entity === TASK_LABELS_ENTITY) {
+      if (change.kind !== "delete") list = list.map((t) => (t.id === change.entityId ? withFields(t, { labels: change.data.labels }) : t));
       continue;
     }
     if (change.entity !== TASK_ENTITY) continue;

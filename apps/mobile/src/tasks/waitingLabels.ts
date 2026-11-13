@@ -1,37 +1,28 @@
-import type { Change, NewChange, Queue } from "../sync/queue";
-import { TASK_ENTITY } from "./sync";
+import type { Queue, NewChange } from "../sync/queue";
+import { TASK_LABELS_ENTITY } from "./entities";
 
 /**
  * Helpers for waiting changes that depend on a label. They live here, not in the shared queue, which
- * knows nothing about labels: they read the queue's waiting list and enqueue ordinary task updates.
+ * knows nothing about labels: they read the queue's waiting list and enqueue ordinary changes.
+ *
+ * A task's labels are their own queue change (`taskLabels`, `entityId` = task id, `data` = { projectId, labels }),
+ * so they never ride in a task update that may already be on its way.
  */
 
-/** Waiting task changes in this project that put `labelId` on a task, with the set they would send. */
-function changesWithLabel(waiting: Change[], projectId: string, labelId: string): Change[] {
-  return waiting.filter(
-    (c) =>
-      c.entity === TASK_ENTITY &&
-      c.kind !== "delete" &&
-      c.data.projectId === projectId &&
-      Array.isArray(c.data.labels) &&
-      (c.data.labels as unknown[]).includes(labelId),
-  );
-}
-
 /**
- * Takes `labelId` out of every waiting task-label change (a label that was deleted here, or refused by
- * the server). Each affected task gets a new label update without it and with a fresh time, which the
- * queue folds into the waiting change.
+ * Takes `labelId` out of every waiting taskLabels change in the project (a label that was refused by the
+ * server, or deleted here). Each affected task gets a new label set without it and with a fresh time, which
+ * the queue folds into the waiting change.
  */
 export async function stripLabelFromWaiting(queue: Queue, projectId: string, labelId: string, now: Date): Promise<void> {
   const waiting = await queue.waiting();
   const at = now.toISOString();
-  for (const change of changesWithLabel(waiting, projectId, labelId)) {
-    // A task that is about to be deleted needs no update after its delete.
-    if (waiting.some((c) => c.entity === TASK_ENTITY && c.entityId === change.entityId && c.kind === "delete")) continue;
+  for (const change of waiting) {
+    if (change.entity !== TASK_LABELS_ENTITY || change.data.projectId !== projectId) continue;
+    if (!Array.isArray(change.data.labels) || !(change.data.labels as unknown[]).includes(labelId)) continue;
     const labels = (change.data.labels as string[]).filter((id) => id !== labelId);
     await queue.enqueue({
-      entity: TASK_ENTITY,
+      entity: TASK_LABELS_ENTITY,
       entityId: change.entityId,
       kind: "update",
       data: { projectId, labels },
@@ -41,22 +32,22 @@ export async function stripLabelFromWaiting(queue: Queue, projectId: string, lab
 }
 
 /**
- * The label order problem: the queue is first in, first out, but a task's waiting changes merge into
- * one. If a task already waits ahead of a label it is about to use (the label is created or renamed
- * after it), the merged task change would reach the server before the label. This returns the task's
- * waiting changes to send again after the label's, or null when the order is already right or the
- * task has a change in flight (which cannot be moved).
+ * Queues a task's new label set. The queue is first in, first out and merges a task's waiting labels
+ * into one change, so if the task's waiting labels change sits before a waiting label create the new
+ * set uses, merging would send the set before the label exists. In that case the older labels change
+ * is dropped and the new set queued at the end. Only the label set moves: task, checklist and item
+ * changes are never touched. A crash between the drop and the enqueue loses nothing but this task's
+ * label set (which the next refresh brings back from the server).
  */
-export function taskChangesToResend(waiting: Change[], taskId: string, labelIds: string[]): NewChange[] | null {
-  const taskIndexes = waiting.flatMap((c, i) => (c.entity === "task" && c.entityId === taskId ? [i] : []));
-  if (taskIndexes.length === 0) return null;
-  if (taskIndexes.some((i) => (waiting[i].attempts ?? 0) > 0)) return null;
-  const firstTask = taskIndexes[0];
-  const ids = new Set(labelIds);
-  const labelAfter = waiting.some((c, i) => i > firstTask && c.entity === "label" && c.kind === "create" && ids.has(c.entityId));
-  if (!labelAfter) return null;
-  return taskIndexes.map((i) => {
-    const c = waiting[i];
-    return { entity: c.entity, entityId: c.entityId, kind: c.kind, data: { ...c.data }, fieldTimes: { ...c.fieldTimes } };
+export async function queueTaskLabels(queue: Queue, change: NewChange): Promise<void> {
+  const waiting = await queue.waiting();
+  const labels = Array.isArray(change.data.labels) ? (change.data.labels as string[]) : [];
+  let lastOwn = -1;
+  waiting.forEach((c, i) => {
+    if (c.entity === TASK_LABELS_ENTITY && c.entityId === change.entityId) lastOwn = i;
   });
+  const needsMove =
+    lastOwn >= 0 && waiting.some((c, i) => i > lastOwn && c.entity === "label" && c.kind === "create" && labels.includes(c.entityId));
+  if (needsMove) await queue.dropEntity(TASK_LABELS_ENTITY, change.entityId);
+  await queue.enqueue(change);
 }

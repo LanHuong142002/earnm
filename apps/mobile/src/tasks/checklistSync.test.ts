@@ -12,10 +12,10 @@ import {
   planLabelUpdate,
   planSetTaskLabels,
 } from "./optimistic";
-import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, registerChecklistEntities, registerTaskEntity } from "./sync";
+import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_LABELS_ENTITY, registerChecklistEntities, registerTaskEntity } from "./sync";
 import { createTaskSyncCycle } from "./syncCycle";
 import type { Checklist, Label, Task } from "./types";
-import { stripLabelFromWaiting, taskChangesToResend } from "./waitingLabels";
+import { queueTaskLabels, stripLabelFromWaiting } from "./waitingLabels";
 
 const USER = "user-1";
 const NOW = new Date("2026-11-12T09:00:00.000Z");
@@ -29,7 +29,7 @@ const checklist = (over: Partial<Checklist> = {}): Checklist => ({
   ...over,
 });
 
-type Throwing = (() => Promise<unknown>) | undefined;
+type Throwing = ((...args: unknown[]) => Promise<unknown>) | undefined;
 
 /** A queue with fake senders (nothing leaves the process) and the real cycle on top. */
 function setup(initial: { tasks?: Task[]; labels?: Label[] } = {}, behave: Record<string, Throwing> = {}) {
@@ -40,7 +40,7 @@ function setup(initial: { tasks?: Task[]; labels?: Label[] } = {}, behave: Recor
     vi.fn(async (...args: unknown[]) => {
       calls.push({ name, args: args.slice(1) });
       const custom = behave[name];
-      if (custom) return custom();
+      if (custom) return custom(...args.slice(1));
       throw new ApiError("network"); // never a real request
     });
   const deps = {
@@ -162,13 +162,113 @@ describe("merging in the shared queue (AC14)", () => {
     expect(Object.keys(fields)).toEqual(["done"]);
   });
 
-  it("a task label change created offline is sent after its create", async () => {
+  it("a task's labels are their own change: not folded into the task create, sent after it", async () => {
     const h = setup({}, { createTask: async () => ({}), patchTask: async () => ({}) });
     await h.enqueue({ entity: "task", entityId: "t5", kind: "create", data: { projectId: "p1", title: "New" } });
-    await h.enqueue({ entity: "task", entityId: "t5", kind: "update", data: { projectId: "p1", labels: ["a"] } });
-    expect(await h.queue.count()).toBe(1);
+    await h.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t5", kind: "update", data: { projectId: "p1", labels: ["a"] } });
+    const waiting = await h.queue.waiting();
+    expect(waiting.map((c) => c.entity)).toEqual(["task", TASK_LABELS_ENTITY]);
+    expect(waiting[0].data.labels).toBeUndefined();
     await h.flush();
     expect(h.calls.map((c) => c.name)).toEqual(["createTask", "patchTask"]);
+    expect(Object.keys(h.calls[1].args[2] as object)).toEqual(["labels"]);
+  });
+});
+
+/** Senders that work or fail with a network error, depending on `net.online`. */
+function switchable() {
+  const net = { online: false };
+  const ok = (reply: () => unknown): Throwing => async () => {
+    if (!net.online) throw new ApiError("network");
+    return reply();
+  };
+  const behave: Record<string, Throwing> = {
+    createTask: ok(() => makeTask({ id: "T" })),
+    patchTask: ok(() => makeTask({ id: "T" })),
+    createLabel: ok(() => ({ id: "L", projectId: "p1", name: "Urgent", colour: "red" })),
+    createChecklist: ok(() => ({ id: "C", name: "Steps", createdAt: "x", items: [] })),
+    createChecklistItem: ok(() => ({ id: "I", text: "a", done: false, createdAt: "x" })),
+    patchChecklistItem: ok(() => ({ id: "I", text: "a", done: true, createdAt: "x" })),
+  };
+  return { net, behave };
+}
+
+describe("a task's labels and the label they need (AC14)", () => {
+  const urgent: Label = { id: "L", projectId: "p1", name: "Urgent", colour: "red" };
+
+  it("offline: task, checklist, ticked item, label, label on the task all go up in order and none is refused", async () => {
+    const { net, behave } = switchable();
+    const h = setup({}, behave);
+    await h.enqueue({ entity: "task", entityId: "T", kind: "create", data: { projectId: "p1", title: "Trip" } });
+    await h.enqueue({ entity: CHECKLIST_ENTITY, entityId: "C", kind: "create", data: { projectId: "p1", taskId: "T", name: "Steps" } });
+    await h.enqueue({ entity: ITEM_ENTITY, entityId: "I", kind: "create", data: { projectId: "p1", taskId: "T", checklistId: "C", text: "a", done: false } });
+    await h.enqueue({ entity: ITEM_ENTITY, entityId: "I", kind: "update", data: { projectId: "p1", taskId: "T", checklistId: "C", done: true } });
+    await h.flush(); // offline: the task create is tried and fails
+    await h.enqueue({ entity: LABEL_ENTITY, entityId: "L", kind: "create", data: { projectId: "p1", name: "Urgent", colour: "red" } });
+    const plan = planSetTaskLabels(makeTask({ id: "T" }), ["L"], [urgent], NOW);
+    await queueTaskLabels(h.queue, (plan as { change: NewChange }).change);
+    expect((await h.queue.waiting()).map((c) => c.entity)).toEqual(["task", CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_LABELS_ENTITY]);
+
+    net.online = true;
+    h.calls.length = 0;
+    await h.flush();
+    expect(h.calls.map((c) => c.name)).toEqual([
+      "createTask",
+      "createChecklist",
+      "createChecklistItem",
+      "patchChecklistItem",
+      "createLabel",
+      "patchTask",
+    ]);
+    expect(h.calls[5].args.slice(0, 2)).toEqual(["p1", "T"]);
+    expect(Object.keys(h.calls[5].args[2] as object)).toEqual(["labels"]);
+    expect(await h.queue.count()).toBe(0);
+    expect(h.notice).toBeNull();
+  });
+
+  it("a task update that was already tried keeps its place and carries no labels; the labels go after the label create", async () => {
+    const { net, behave } = switchable();
+    const h = setup({ tasks: [makeTask()] }, behave);
+    await h.enqueue({ entity: "task", entityId: "t1", kind: "update", data: { projectId: "p1", status: "done" } });
+    await h.flush(); // tried once and failed: attempts is 1
+    expect((await h.queue.waiting())[0].attempts).toBe(1);
+    await h.enqueue({ entity: LABEL_ENTITY, entityId: "L", kind: "create", data: { projectId: "p1", name: "Urgent", colour: "red" } });
+    const plan = planSetTaskLabels(makeTask(), ["L"], [urgent], NOW);
+    await queueTaskLabels(h.queue, (plan as { change: NewChange }).change);
+
+    net.online = true;
+    h.calls.length = 0;
+    await h.flush();
+    expect(h.calls.map((c) => c.name)).toEqual(["patchTask", "createLabel", "patchTask"]);
+    expect(Object.keys(h.calls[0].args[2] as object)).toEqual(["status"]);
+    expect(Object.keys(h.calls[2].args[2] as object)).toEqual(["labels"]);
+    expect(h.notice).toBeNull();
+  });
+
+  it("a label set queued ahead of a label create it now uses is moved behind it; nothing else moves", async () => {
+    const h = setup();
+    await h.enqueue({ entity: "task", entityId: "t1", kind: "update", data: { projectId: "p1", title: "x" } });
+    await h.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a"] } });
+    await h.enqueue({ entity: LABEL_ENTITY, entityId: "n", kind: "create", data: { projectId: "p1", name: "N", colour: "red" } });
+    await queueTaskLabels(h.queue, {
+      entity: TASK_LABELS_ENTITY,
+      entityId: "t1",
+      kind: "update",
+      data: { projectId: "p1", labels: ["a", "n"] },
+    });
+    const waiting = await h.queue.waiting();
+    expect(waiting.map((c) => c.entity)).toEqual(["task", LABEL_ENTITY, TASK_LABELS_ENTITY]);
+    expect(waiting[2].data.labels).toEqual(["a", "n"]);
+  });
+
+  it("a label set that is already after the labels it uses is merged in place", async () => {
+    const h = setup();
+    await h.enqueue({ entity: LABEL_ENTITY, entityId: "n", kind: "create", data: { projectId: "p1", name: "N", colour: "red" } });
+    await h.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a"] } });
+    await queueTaskLabels(h.queue, { entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a", "n"] } });
+    const waiting = await h.queue.waiting();
+    expect(waiting.map((c) => c.entity)).toEqual([LABEL_ENTITY, TASK_LABELS_ENTITY]);
+    expect(waiting[1].data.labels).toEqual(["a", "n"]);
   });
 });
 
@@ -244,20 +344,47 @@ describe("a label the server refuses (AC15)", () => {
     expect(h.notice).toMatchObject({ subject: "label", reason: "labelNameTaken" });
   });
 
-  it("a duplicate is stripped from waiting task-label changes, which keep their other labels", async () => {
+  it("a duplicate is taken off the waiting label set before it is sent, with a succeeding task patch (R15)", async () => {
     const h = setup(
       { tasks: [makeTask({ labelIds: ["dup", "ok"] })], labels },
-      { createLabel: async () => Promise.reject(new ApiError("label_name_taken", 409)) },
+      {
+        createLabel: async () => Promise.reject(new ApiError("label_name_taken", 409)),
+        patchTask: async () => makeTask(),
+      },
     );
     await h.enqueue({ entity: LABEL_ENTITY, entityId: "dup", kind: "create", data: { projectId: "p1", name: "Urgent", colour: "red" } });
-    await h.queue.enqueue({ entity: "task", entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["dup", "ok"] } });
-    // Send the label create only; the task change stays waiting behind it.
-    await h.queue.flush(USER);
-    await h.cycle.idle();
-    const waiting = await h.queue.waiting();
-    expect(waiting.filter((c) => c.entity === "task")).toHaveLength(1);
-    expect(waiting.find((c) => c.entity === "task")?.data.labels).toEqual(["ok"]);
-    expect(await h.queue.waiting().then((w) => w.some((c) => c.entity === LABEL_ENTITY))).toBe(false);
+    await h.queue.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["dup", "ok"] } });
+    await h.queue.enqueue({ entity: "task", entityId: "t1", kind: "update", data: { projectId: "p1", status: "done" } });
+    await h.flush();
+    const patches = h.calls.filter((c) => c.name === "patchTask").map((c) => c.args[2] as Record<string, { value: unknown }>);
+    expect(patches).toHaveLength(2);
+    expect(patches[0].labels.value).toEqual(["ok"]);
+    expect(Object.keys(patches[1])).toEqual(["status"]); // the task's other edit is untouched
+    expect(await h.queue.count()).toBe(0);
+    expect(h.notice).toMatchObject({ subject: "label", reason: "labelNameTaken" });
+  });
+
+  it("a refused label set drops only the labels: the task's other waiting edits are still sent", async () => {
+    const h = setup(
+      { tasks: [makeTask({ labelIds: ["a"] })] },
+      {
+        patchTask: async (...args) => {
+          const fields = args[2] as Record<string, unknown>;
+          if ("labels" in fields) throw new ApiError("validation_failed", 400);
+          return makeTask({ title: "Renamed" });
+        },
+      },
+    );
+    h.state.tasks = [makeTask({ labelIds: ["a", "b"] })]; // what the phone showed
+    await h.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a", "b"] } });
+    await h.queue.enqueue({ entity: "task", entityId: "t1", kind: "update", data: { projectId: "p1", title: "Renamed" } });
+    await h.flush();
+    expect(h.calls.map((c) => Object.keys(c.args[2] as object))).toEqual([["labels"], ["title"]]);
+    expect(await h.queue.count()).toBe(0);
+    expect(h.notice).toMatchObject({ subject: "taskLabels", reason: "invalid" });
+    expect(noticeKeys(h.notice!).headline).toBe("tasks.rejectedTaskLabels");
+    await h.cycle.refreshPending();
+    expect(h.state.tasks[0].labelIds).toEqual(["a"]);
   });
 
   it("a refresh loads the project labels and keeps a waiting label create", async () => {
@@ -269,9 +396,9 @@ describe("a label the server refuses (AC15)", () => {
 });
 
 describe("waiting label helpers", () => {
-  it("stripLabelFromWaiting re-enqueues a waiting task-label change without the label, with a fresh time", async () => {
+  it("stripLabelFromWaiting re-enqueues a waiting label set without the label, with a fresh time", async () => {
     const h = setup();
-    await h.enqueue({ entity: "task", entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a", "b"] }, fieldTimes: { labels: NOW.toISOString(), projectId: NOW.toISOString() } });
+    await h.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a", "b"] }, fieldTimes: { labels: NOW.toISOString(), projectId: NOW.toISOString() } });
     await stripLabelFromWaiting(h.queue, "p1", "a", LATER);
     const waiting = await h.queue.waiting();
     expect(waiting).toHaveLength(1);
@@ -279,14 +406,12 @@ describe("waiting label helpers", () => {
     expect(waiting[0].fieldTimes.labels).toBe(LATER.toISOString());
   });
 
-  it("taskChangesToResend asks to move a task change that waits ahead of a label create it now uses", async () => {
-    const h = setup();
-    await h.enqueue({ entity: "task", entityId: "t1", kind: "update", data: { projectId: "p1", title: "x" } });
-    await h.enqueue({ entity: LABEL_ENTITY, entityId: "n", kind: "create", data: { projectId: "p1", name: "N", colour: "red" } });
-    const waiting = await h.queue.waiting();
-    expect(taskChangesToResend(waiting, "t1", ["n"])).toHaveLength(1);
-    expect(taskChangesToResend(waiting, "t1", ["other"])).toBeNull();
-    expect(taskChangesToResend(waiting, "t2", ["n"])).toBeNull();
+  it("a label the server deleted is taken off waiting label sets by the delete's sender", async () => {
+    const h = setup({}, { deleteLabel: async () => undefined });
+    await h.enqueue({ entity: LABEL_ENTITY, entityId: "a", kind: "delete", data: { projectId: "p1", name: "Urgent" } });
+    await h.queue.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a", "b"] } });
+    await h.flush();
+    expect((await h.queue.waiting()).map((c) => c.data.labels)).toEqual([["b"]]);
   });
 });
 

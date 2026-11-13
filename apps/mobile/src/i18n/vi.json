@@ -287,6 +287,7 @@
     "rejectedLabel": "Không lưu được thay đổi với nhãn.",
     "rejectedChecklist": "Không lưu được thay đổi với danh sách.",
     "rejectedItem": "Không lưu được thay đổi với mục trong danh sách.",
+    "rejectedTaskLabels": "Không lưu được nhãn của công việc {{title}}. Các thay đổi khác của công việc vẫn được giữ.",
     "colours": {
       "gray": "Xám",
       "red": "Đỏ",

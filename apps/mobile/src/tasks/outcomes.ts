@@ -18,7 +18,7 @@ export type RejectedReason =
   | "checklistLimit"
   | "itemLimit";
 /** What a notice is about when it is not a task: a label, a checklist or one of its items. */
-export type NoticeSubject = "label" | "checklist" | "item";
+export type NoticeSubject = "label" | "checklist" | "item" | "taskLabels";
 export type TaskRejectedNotice = {
   kind: ChangeKind;
   taskTitle: string | null;
@@ -99,11 +99,13 @@ const SUBJECT_NOT_FOUND: Record<NoticeSubject, string> = {
   label: "tasks.reasons.labelNotFound",
   checklist: "tasks.reasons.checklistNotFound",
   item: "tasks.reasons.itemNotFound",
+  taskLabels: "tasks.reasons.notFound",
 };
 const SUBJECT_HEADLINE: Record<NoticeSubject, string> = {
   label: "tasks.rejectedLabel",
   checklist: "tasks.rejectedChecklist",
   item: "tasks.rejectedItem",
+  taskLabels: "tasks.rejectedTaskLabels",
 };
 
 /** i18n keys for a refused-change notice. Only the creator or an Owner can delete, so a refused delete says that. */

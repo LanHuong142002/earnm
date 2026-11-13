@@ -1,3 +1,4 @@
+import { ApiError } from "../lib/api";
 import type { Change, EntityHandlers, Queue } from "../sync/queue";
 import type { LabelColour } from "../theme/tokens";
 import {
@@ -19,17 +20,17 @@ import {
   type TaskField,
   type TaskFieldPatch,
 } from "./api";
+import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY } from "./entities";
+import { stripLabelFromWaiting } from "./waitingLabels";
 
-export const TASK_ENTITY = "task";
-export const LABEL_ENTITY = "label";
-export const CHECKLIST_ENTITY = "checklist";
-export const ITEM_ENTITY = "checklistItem";
+export { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY };
 
 /**
  * What a task change's `data` holds. Every change carries `projectId` (the URL needs it).
  * Create and update use the same keys, so the queue folds an edit into a waiting create:
  * title, description, status, due ({ date, time } or null) and assignees (user ids).
- * An update (or a create folded with one) may also carry `labels`, the whole set of label ids.
+ * New changes never carry `labels` (a task's labels are the separate `taskLabels` entity). A change
+ * saved by an older app version may still carry them; it is forwarded as before (a create then patches them).
  * `assigneeNames` (id to display name) and `createdById` are for showing the task before the
  * server answers; they are never sent.
  */
@@ -55,7 +56,16 @@ function latestTime(change: Change): string {
   return latest;
 }
 
+/**
+ * Registers tasks, and a task's labels as their own entity: `taskLabels` (`entityId` = task id) holds
+ * `projectId` and `labels` (the whole set of label ids), and is only ever an update.
+ */
 export function registerTaskEntity(queue: Queue, handlers: EntityHandlers, deps: Deps = realDeps): void {
+  const sendLabels = (change: Change, token: string) =>
+    deps.patchTask(token, taskProjectId(change), change.entityId, {
+      labels: { value: (change.data.labels as string[] | undefined) ?? [], editedAt: change.fieldTimes.labels ?? change.createdAt },
+    });
+  queue.registerEntity(TASK_LABELS_ENTITY, { create: sendLabels, update: sendLabels, delete: () => Promise.resolve(undefined) }, handlers);
   queue.registerEntity(
     TASK_ENTITY,
     {
@@ -119,6 +129,12 @@ const realChildDeps: ChildDeps = {
   deleteChecklistItem,
 };
 
+/** The queue's own rule for a refusal that no resend will change: a 4xx other than 401, 408 and 429. */
+function isPermanentRefusal(error: ApiError): boolean {
+  if (error.code === "validation_failed") return true;
+  return error.status >= 400 && error.status < 500 && ![401, 408, 429].includes(error.status);
+}
+
 const timeOf = (change: Change, field: string) => change.fieldTimes[field] ?? change.createdAt;
 
 /**
@@ -137,12 +153,22 @@ export function registerChecklistEntities(queue: Queue, handlers: EntityHandlers
     {
       create: async (change, token) => {
         const { data } = change;
-        return deps.createLabel(token, taskProjectId(change), {
-          id: change.entityId,
-          name: data.name as string,
-          colour: data.colour as LabelColour,
-          editedAt: latestTime(change),
-        });
+        const projectId = taskProjectId(change);
+        try {
+          return await deps.createLabel(token, projectId, {
+            id: change.entityId,
+            name: data.name as string,
+            colour: data.colour as LabelColour,
+            editedAt: latestTime(change),
+          });
+        } catch (error) {
+          // The label will never exist (a taken name, the limit...): take it out of the waiting label sets now,
+          // before the queue goes on to send them (R15), then let the queue record the refusal.
+          if (error instanceof ApiError && isPermanentRefusal(error)) {
+            await stripLabelFromWaiting(queue, projectId, change.entityId, new Date());
+          }
+          throw error;
+        }
       },
       update: (change, token) => {
         const fields: LabelFieldPatch = {};
@@ -150,7 +176,21 @@ export function registerChecklistEntities(queue: Queue, handlers: EntityHandlers
         if ("colour" in change.data) fields.colour = { value: change.data.colour as LabelColour, editedAt: timeOf(change, "colour") };
         return deps.patchLabel(token, taskProjectId(change), change.entityId, fields);
       },
-      delete: (change, token) => deps.deleteLabel(token, taskProjectId(change), change.entityId),
+      delete: async (change, token) => {
+        // Once the server has deleted the label (or says it is already gone), no waiting label set may name it.
+        const projectId = taskProjectId(change);
+        let result: unknown;
+        try {
+          result = await deps.deleteLabel(token, projectId, change.entityId);
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 404) {
+            await stripLabelFromWaiting(queue, projectId, change.entityId, new Date());
+          }
+          throw error;
+        }
+        await stripLabelFromWaiting(queue, projectId, change.entityId, new Date());
+        return result;
+      },
     },
     handlers,
   );

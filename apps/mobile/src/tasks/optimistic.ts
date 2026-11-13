@@ -1,6 +1,6 @@
 import type { Change, NewChange } from "../sync/queue";
 import type { LabelColour } from "../theme/tokens";
-import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY } from "./sync";
+import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY } from "./sync";
 import {
   CHECKLISTS_PER_TASK_MAX,
   ITEMS_PER_CHECKLIST_MAX,
@@ -192,7 +192,7 @@ export function planSetTaskLabels(task: Task, labelIds: string[], labels: Label[
   const same = next.length === task.labelIds.length && next.every((id) => task.labelIds.includes(id));
   if (same) return { ok: true, change: null };
   const data = { projectId: task.projectId, labels: next };
-  return { ok: true, change: { entity: TASK_ENTITY, entityId: task.id, kind: "update", data, fieldTimes: stamp(data, now) } };
+  return { ok: true, change: { entity: TASK_LABELS_ENTITY, entityId: task.id, kind: "update", data, fieldTimes: stamp(data, now) } };
 }
 
 export function planChecklistCreate(args: { id: string; task: Task; name: string; now: Date }): PlanResult {
