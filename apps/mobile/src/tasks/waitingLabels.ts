@@ -1,5 +1,5 @@
 import type { Queue, NewChange } from "../sync/queue";
-import { TASK_LABELS_ENTITY } from "./entities";
+import { LABEL_ENTITY, TASK_LABELS_ENTITY } from "./entities";
 
 /**
  * Helpers for waiting changes that depend on a label. They live here, not in the shared queue, which
@@ -29,6 +29,20 @@ export async function stripLabelFromWaiting(queue: Queue, projectId: string, lab
       fieldTimes: { projectId: at, labels: at },
     });
   }
+}
+
+/**
+ * Queues a label delete. A label create the server never saw (still waiting, never attempted) is removed
+ * together with the delete, so the delete's sender never runs: the label is taken off the waiting label
+ * sets here, first. Every other case is cleaned by the delete's sender once the server has answered.
+ */
+export async function queueLabelDelete(queue: Queue, change: NewChange, now: Date): Promise<void> {
+  const projectId = String(change.data.projectId);
+  const unsent = (await queue.waiting()).some(
+    (c) => c.entity === LABEL_ENTITY && c.kind === "create" && c.entityId === change.entityId && (c.attempts ?? 0) === 0,
+  );
+  if (unsent) await stripLabelFromWaiting(queue, projectId, change.entityId, now);
+  await queue.enqueue(change);
 }
 
 /**

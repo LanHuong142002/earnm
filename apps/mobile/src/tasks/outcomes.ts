@@ -116,6 +116,9 @@ export function noticeKeys(notice: TaskRejectedNotice): { headline: string; reas
     if (notice.subject === "label" && notice.kind === "delete" && notice.reason === "forbidden") {
       reason = "tasks.reasons.labelForbiddenDelete";
     }
+    if (notice.subject === "taskLabels" && notice.taskTitle === null) {
+      return { headline: "tasks.rejectedTaskLabelsNoTitle", reason };
+    }
     return { headline: SUBJECT_HEADLINE[notice.subject], reason };
   }
   const named = notice.taskTitle !== null;

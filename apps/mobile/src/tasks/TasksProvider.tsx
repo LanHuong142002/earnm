@@ -54,7 +54,7 @@ import { ITEM_ENTITY, TASK_LABELS_ENTITY, registerChecklistEntities, registerTas
 import { createTaskSyncCycle, type RefreshResult } from "./syncCycle";
 import type { Label, Task, TaskAssignee, TaskStatus } from "./types";
 import type { TaskInput, TaskInputErrors } from "./validate";
-import { queueTaskLabels } from "./waitingLabels";
+import { queueLabelDelete, queueTaskLabels } from "./waitingLabels";
 
 export type { TaskRejectedNotice } from "./outcomes";
 export type { TaskFilters } from "./filters";
@@ -500,8 +500,7 @@ export function TasksProvider({ children, members }: Props) {
       const change = planLabelDelete(label, projectId);
       const now = new Date();
       await track(async () => {
-        // Waiting label sets that name it are cleaned by the delete's sender once the server has deleted it.
-        await queue.enqueue(change);
+        await queueLabelDelete(queue, change, now);
         void commitLabels(projectId, showLocalLabelChange(cachedLabelsFor(cacheRef.current, projectId), projectId, change, now));
         // The label delete laid over the tasks takes the label off the local task copies.
         void commit(projectId, showLocalChange(cacheRef.current.byProject[projectId] ?? [], projectId, change, now));

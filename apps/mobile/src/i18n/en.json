@@ -290,6 +290,7 @@
     "rejectedChecklist": "Your change to a checklist couldn't be saved.",
     "rejectedItem": "Your change to a checklist item couldn't be saved.",
     "rejectedTaskLabels": "Your labels for the task {{title}} couldn't be saved. The task's other changes were kept.",
+    "rejectedTaskLabelsNoTitle": "Your labels for a task couldn't be saved. The task's other changes were kept.",
     "colours": {
       "gray": "Gray",
       "red": "Red",

@@ -15,7 +15,7 @@ import {
 import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_LABELS_ENTITY, registerChecklistEntities, registerTaskEntity } from "./sync";
 import { createTaskSyncCycle } from "./syncCycle";
 import type { Checklist, Label, Task } from "./types";
-import { queueTaskLabels, stripLabelFromWaiting } from "./waitingLabels";
+import { queueLabelDelete, queueTaskLabels, stripLabelFromWaiting } from "./waitingLabels";
 
 const USER = "user-1";
 const NOW = new Date("2026-11-12T09:00:00.000Z");
@@ -412,6 +412,29 @@ describe("waiting label helpers", () => {
     await h.queue.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a", "b"] } });
     await h.flush();
     expect((await h.queue.waiting()).map((c) => c.data.labels)).toEqual([["b"]]);
+  });
+
+  it("deleting a label whose create was never sent sends no label request and keeps the other labels", async () => {
+    const h = setup(
+      { tasks: [makeTask({ labelIds: [] })] },
+      { patchTask: async () => makeTask({ labelIds: ["a"] }) },
+    );
+    await h.enqueue({ entity: LABEL_ENTITY, entityId: "l", kind: "create", data: { projectId: "p1", name: "New", colour: "red" } });
+    await h.queue.enqueue({ entity: TASK_LABELS_ENTITY, entityId: "t1", kind: "update", data: { projectId: "p1", labels: ["a", "l"] } });
+    await queueLabelDelete(h.queue, { entity: LABEL_ENTITY, entityId: "l", kind: "delete", data: { projectId: "p1", name: "New" } }, new Date());
+    await h.flush();
+    expect(h.calls.filter((c) => c.name === "createLabel" || c.name === "deleteLabel")).toEqual([]);
+    const patches = h.calls.filter((c) => c.name === "patchTask").map((c) => c.args[2] as Record<string, { value: unknown }>);
+    expect(patches).toHaveLength(1);
+    expect(patches[0].labels.value).toEqual(["a"]);
+    expect(h.notice).toBeNull();
+    expect(await h.queue.count()).toBe(0);
+  });
+
+  it("an untitled taskLabels refusal uses the untitled headline", () => {
+    const keys = noticeKeys({ kind: "update", taskTitle: null, reason: "invalid", subject: "taskLabels" });
+    expect(keys.headline).toBe("tasks.rejectedTaskLabelsNoTitle");
+    expect(noticeKeys({ kind: "update", taskTitle: "T", reason: "invalid", subject: "taskLabels" }).headline).toBe("tasks.rejectedTaskLabels");
   });
 });
 
