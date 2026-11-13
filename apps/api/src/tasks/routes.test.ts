@@ -597,6 +597,9 @@ describe("/projects/:projectId/tasks", () => {
         response = Promise.resolve(send());
         const deadline = Date.now() + 5000;
         for (;;) {
+          // pg_stat_activity is a per-transaction snapshot: without clearing it, every poll would
+          // see the first read again and miss a request that blocks after it.
+          await tx.$executeRaw`SELECT pg_stat_clear_snapshot()`;
           const rows = await tx.$queryRaw<{ n: bigint }[]>`
             SELECT count(*) AS n FROM pg_stat_activity
             WHERE wait_event_type = 'Lock' AND datname = current_database()`;
