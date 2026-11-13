@@ -13,5 +13,50 @@
     "reason": null
   },
   "mockupApproval": "0f15f3d21927ea48dcb2c8c88c512786e4afcda45a0ce7cb2b392b291beadd89",
-  "planApproval": "27a17365d5da88f6440b7b3e66bcaf5ce74704d423024d1271e4544a1edd2575"
+  "planApproval": "27a17365d5da88f6440b7b3e66bcaf5ce74704d423024d1271e4544a1edd2575",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    },
+    "8": {
+      "status": "done"
+    },
+    "9": {
+      "status": "done"
+    },
+    "10": {
+      "status": "done"
+    },
+    "11": {
+      "status": "done"
+    },
+    "12": {
+      "status": "done"
+    }
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Phone QA of #7 starts with npm run dev:phone from this checkout, after db:deploy on the dev database (already applied: migration 20261112164613_checklists_labels)",
+      "why": "Expo on the default .env talks to Render (main), where the new routes don't exist yet"
+    }
+  ]
 }
