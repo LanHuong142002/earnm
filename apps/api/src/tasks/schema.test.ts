@@ -310,14 +310,28 @@ describe("checklists and labels migration on existing data", () => {
         const rows = (await tx.$queryRawUnsafe(
           `SELECT "title", "createdAt" = "labelsEditedAt" AS same FROM "Task"`,
         )) as { title: string; same: boolean }[];
+
+        // Later migrations, then an insert that omits labelsEditedAt, as the previous server version does
+        // while a new migration runs ahead of its deploy: the column must keep a default.
+        for (const folder of folders.slice(labelsAt + 1)) {
+          for (const statement of statements(folder)) await tx.$executeRawUnsafe(statement);
+        }
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "Task" ("id","projectId","title","titleEditedAt","descriptionEditedAt","statusEditedAt","dueEditedAt","assigneesEditedAt","updatedAt")
+           VALUES ('t-2','p-1','Old code',TIMESTAMP '2026-01-01 00:00:00',TIMESTAMP '2026-01-01 00:00:00',TIMESTAMP '2026-01-01 00:00:00',TIMESTAMP '2026-01-01 00:00:00',TIMESTAMP '2026-01-01 00:00:00',TIMESTAMP '2026-01-01 00:00:00')`,
+        );
+        const oldCode = (await tx.$queryRawUnsafe(
+          `SELECT count(*)::int AS n FROM "Task" WHERE "id" = 't-2' AND "labelsEditedAt" IS NOT NULL`,
+        )) as { n: number }[];
         const checklists = (await tx.$queryRawUnsafe(
           `SELECT count(*)::int AS n FROM "Checklist"`,
         )) as { n: number }[];
-        return { rows, checklists };
+        return { rows, checklists, oldCode };
       });
 
       expect(read.rows).toEqual([{ title: "Mua ly", same: true }]);
       expect(read.checklists[0]?.n).toBe(0);
+      expect(read.oldCode[0]?.n).toBe(1);
     } finally {
       await prisma.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
     }

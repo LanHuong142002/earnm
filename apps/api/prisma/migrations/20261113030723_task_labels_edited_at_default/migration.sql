@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Task" ALTER COLUMN "labelsEditedAt" SET DEFAULT CURRENT_TIMESTAMP;
