@@ -58,5 +58,142 @@
       "decision": "Phone QA of #7 starts with npm run dev:phone from this checkout, after db:deploy on the dev database (already applied: migration 20261112164613_checklists_labels)",
       "why": "Expo on the default .env talks to Render (main), where the new routes don't exist yet"
     }
-  ]
+  ],
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "waitingLabels.ts:53 taskChangesToResend + TasksProvider.setTaskLabels: labels are folded into a task change that can sit ahead of the waiting label create. Offline, the head change has attempts>0 (not in flight) so labels merge into it; on reconnect PATCH gets 400 validation_failed and the status edit + labels are lost. Second path: moving an unattempted task create to the end lets its queued checklist/item creates run first and 404. Fix: send task labels as their own change that always lands after the label create; never move creates. Tests: attempted head update; task create with a checklist queued behind.",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "syncCycle.ts label onRejected + queue runPass: R15 strip of a duplicate label from waiting task-label changes runs async after the queue has moved on, so the next PATCH carrying the label is usually already in flight; it gets 400, other fields in it are lost and the notice is overwritten. checklistSync.test.ts:247 hides it with a failing patchTask. Fix: strip synchronously before the queue moves on (e.g. in the label create sender) and/or separate task-labels changes; test with a succeeding patchTask.",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/api/src/tasks/routes.ts labels branch: one invalid label id 400s the whole task PATCH and rolls back other fields (follows AC8; worsens blocking 1-2 unless labels are sent separately).",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/sync.ts task create sender: createTask then patchTask(labels); a refused label patch reports 'couldn't create the task' though the task was created.",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "checklistSync.test.ts:207: test name says the local copy is left but it asserts the item is removed; rename.",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/api/src/labels/routes.test.ts: AC12 for labels not tested directly (PATCH after delete gives 404).",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "apps/api/src/tasks/routes.ts taskInclude: unpaged GET /tasks now nests checklists/items; worst case 1000x10x50 rows (~100MB). Cap, page or note the accepted limit.",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/store.ts isTask: checklist and item entries aren't shape-checked; a malformed one would crash checklist.items.map on render.",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "labels/pick.tsx: selected drops task label ids the phone doesn't know yet; a toggle then removes them from the task on the server. Keep unknown ids in the sent set.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "blocking",
+        "text": "(sensitive) TasksProvider.tsx:526-531 + waitingLabels.ts:50-62: setTaskLabels moves a task's waiting changes (including an offline create) behind a label create, so the task's checklist/item creates reach the server first, 404, and are removed locally (AC14 scenario). The move is dropEntity then enqueue, so a kill between them loses the task create. Same root cause as finding 1.",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "blocking",
+        "text": "(sensitive) migration 20261112164613_checklists_labels line 9 DROP DEFAULT on Task.labelsEditedAt: render.yaml runs db:deploy before the new code starts, so the old server's task.create (no labelsEditedAt) returns 500 during rollout, and stays broken if the new deploy fails its health check. Keep a default (new follow-up migration, since this one is applied to dev).",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "(sensitive) TasksProvider.tsx:497-512 deleteLabel strips the label from waiting task-label changes before the server accepts the delete; a refused delete (Member, offline demotion) doesn't undo that. Strip only for Owners or after acceptance.",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "(sensitive) apps/api/src/labels/routes.ts:190: a duplicate-name rename rolls back a colour change sent in the same request. Consistent, noted only.",
+        "resolved": false
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "(sensitive) GET /tasks response size grows with nested checklists/items (same as finding 7).",
+        "resolved": false
+      },
+      {
+        "id": 15,
+        "severity": "blocking",
+        "text": "(fix review) TasksProvider.tsx ~L503 deleteLabel + sync.ts ~L179-193: when a label's create is still waiting unsent, enqueue(delete) removes create+delete together, so the delete sender (which now strips) never runs; the waiting taskLabels set still names L; on reconnect PATCH [A, L] is refused 400 and A is lost (regression vs R7/R14/R15). Fix: strip at once in deleteLabel when the label's create is waiting with no attempts; keep the post-delete strip otherwise. Test: create L, set [A, L], delete L, flush -> PATCH [A].",
+        "resolved": true
+      },
+      {
+        "id": 16,
+        "severity": "non-blocking",
+        "text": "(fix review) TasksProvider.tsx ~L433: deleting a task drops its waiting taskLabels set before the delete is accepted; a refused delete (403) loses that set. Matches existing update-then-delete folding.",
+        "resolved": false
+      },
+      {
+        "id": 17,
+        "severity": "non-blocking",
+        "text": "(fix review) waitingLabels.ts stripLabelFromWaiting: reads waiting() then enqueues with a fresh time; a pick made in between can be replaced. Tiny window, pre-existing pattern.",
+        "resolved": false
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "(fix review) waitingLabels.ts queueTaskLabels: drop then enqueue; a crash between loses only that task's label set, restored by refresh. Acceptable, commented.",
+        "resolved": false
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "(fix review) syncCycle.ts taskLabels rejection: taskTitle can be null -> 'Your labels for the task  couldn't be saved.' Use an untitled variant like outcomes.ts named branch.",
+        "resolved": true
+      },
+      {
+        "id": 20,
+        "severity": "non-blocking",
+        "text": "(fix review) store.ts isTask stricter: one corrupted cached task makes the whole cache read as null and refetch. Only for corrupted caches.",
+        "resolved": false
+      },
+      {
+        "id": 21,
+        "severity": "non-blocking",
+        "text": "(last fix review) waitingLabels.ts:44-45 queueLabelDelete strips before enqueueing the delete; if that enqueue fails to persist, the sets lost the label but the label and its create remain. Suggest enqueue first, then strip if the create is gone from waiting().",
+        "resolved": false
+      },
+      {
+        "id": 22,
+        "severity": "non-blocking",
+        "text": "(last fix review) waitingLabels.ts:41-43 copies the queue's create+delete drop rule; if queue.ts changes it the helper silently stops matching. The reorder above removes the copy.",
+        "resolved": false
+      }
+    ],
+    "reviewed": "6cb0f59bac9efec1677a75e1b168e6e27a706c814abbb1ce608c82bce30a3b1c"
+  }
 }
