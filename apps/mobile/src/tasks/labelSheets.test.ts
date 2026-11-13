@@ -19,6 +19,14 @@ describe("toggleTaskLabel", () => {
     const ten = Array.from({ length: 10 }, (_, i) => `x${i}`);
     expect(toggleTaskLabel(ten, "new")).toEqual({ ids: ten, limit: true });
   });
+  it("keeps an id the phone does not know in the set it sends", () => {
+    expect(toggleTaskLabel(["unknown", "a"], "b").ids).toEqual(["unknown", "a", "b"]);
+    expect(toggleTaskLabel(["unknown", "a"], "a").ids).toEqual(["unknown"]);
+  });
+  it("counts unknown ids toward the 10-label limit", () => {
+    const ids = ["u1", "u2", "u3", "u4", "u5", "u6", "u7", "u8", "u9", "a"];
+    expect(toggleTaskLabel(ids, "b")).toEqual({ ids, limit: true });
+  });
   it("still removes a label when at 10", () => {
     const ten = Array.from({ length: 10 }, (_, i) => `x${i}`);
     expect(toggleTaskLabel(ten, "x3").ids).toHaveLength(9);

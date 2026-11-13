@@ -35,7 +35,8 @@ export default function PickLabelsSheet() {
 
   const selected = task.labelIds.filter((x) => labels.some((l) => l.id === x));
   const toggle = (labelId: string) => {
-    const next = toggleTaskLabel(selected, labelId);
+    // The full set, including ids this phone has not fetched yet, so a toggle never drops them.
+    const next = toggleTaskLabel(task.labelIds, labelId);
     if (next.limit) {
       setError("tasks.errors.labelsPerTaskLimit");
       return;

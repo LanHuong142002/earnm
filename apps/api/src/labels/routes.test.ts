@@ -282,6 +282,20 @@ describe("/projects/:projectId/labels", () => {
       expectError(await del(owner, p, id), 404, "not_found");
     });
 
+    it("a PATCH to a deleted label is 404 not_found, same body as other 404s (AC12)", async () => {
+      const owner = await user();
+      const p = await seed(owner);
+      const id = (await create(owner, p)).body.id as string;
+      const other = await patch(owner, p, randomUUID(), { name: change("Never") });
+      expect((await del(owner, p, id)).status).toBe(204);
+      const renamed = await patch(owner, p, id, { name: change("Renamed") });
+      expectError(renamed, 404, "not_found");
+      const recoloured = await patch(owner, p, id, { colour: change("blue") });
+      expectError(recoloured, 404, "not_found");
+      expect(renamed.body).toEqual(other.body);
+      expect(await prisma.label.count()).toBe(0);
+    });
+
     it("removes labels when the project is deleted", async () => {
       const owner = await user();
       const p = await seed(owner);

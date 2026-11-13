@@ -7,6 +7,7 @@ import {
   applyTaskOverlay,
   clearTaskCache,
   emptyTaskCache,
+  isTask,
   loadTaskCache,
   openTaskCache,
   pruneTaskCache,
@@ -155,6 +156,30 @@ describe("task cache", () => {
     expect(loaded?.byProject.p1[0].labelIds).toEqual([]);
     expect(loaded?.byProject.p1[0].checklists).toEqual([]);
     expect(loaded?.filters.p1.labelIds).toEqual([]);
+  });
+
+  it("a cached task with a malformed checklist makes the whole copy untrusted", async () => {
+    const store = createMemoryStore();
+    const bad = { ...makeTask(), checklists: [{ id: "c1", name: "List" }] };
+    await store.setJSON("tasks.cache.v1", { ownerId: "u1", byProject: { p1: [bad] }, filters: {} });
+    expect(await loadTaskCache(store, "u1")).toBeNull();
+    const badItem = { ...makeTask(), checklists: [{ id: "c1", name: "List", items: [{ id: "i1", text: "x" }] }] };
+    await store.setJSON("tasks.cache.v1", { ownerId: "u1", byProject: { p1: [badItem] }, filters: {} });
+    expect(await loadTaskCache(store, "u1")).toBeNull();
+  });
+
+  it("a cached task with a well-formed checklist loads", async () => {
+    const store = createMemoryStore();
+    const checklists = [
+      { id: "c1", name: "List", createdAt: "2026-11-01T00:00:00.000Z", items: [{ id: "i1", text: "x", done: true, createdAt: "2026-11-01T00:00:00.000Z" }] },
+    ];
+    await saveTaskCache(store, setProjectTasks(emptyTaskCache("u1"), "p1", [makeTask({ checklists })]));
+    expect((await loadTaskCache(store, "u1"))?.byProject.p1[0].checklists).toEqual(checklists);
+  });
+
+  it("isTask rejects a server task whose checklist lacks items", () => {
+    expect(isTask({ ...makeTask(), checklists: [{ id: "c1", name: "List" }] })).toBe(false);
+    expect(isTask({ ...makeTask(), checklists: [{ id: "c1", name: "List", items: [] }] })).toBe(true);
   });
 
   it("clear removes it", async () => {

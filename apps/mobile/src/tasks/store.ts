@@ -44,7 +44,30 @@ export function isTask(value: unknown): value is Task {
     typeof value.createdAt === "string" &&
     // Copies saved before labels and checklists existed have neither; readTaskCache fills them in.
     (value.labelIds === undefined || isStringArray(value.labelIds)) &&
-    (value.checklists === undefined || Array.isArray(value.checklists))
+    (value.checklists === undefined || (Array.isArray(value.checklists) && value.checklists.every(isChecklist)))
+  );
+}
+
+function isChecklistItem(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.text === "string" &&
+    typeof value.done === "boolean" &&
+    (value.createdAt === undefined || typeof value.createdAt === "string")
+  );
+}
+
+// A malformed checklist makes the whole task untrusted (like any other bad field): a cached copy is
+// dropped and fetched again, a server task is skipped until the next refresh.
+function isChecklist(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    (value.createdAt === undefined || typeof value.createdAt === "string") &&
+    Array.isArray(value.items) &&
+    value.items.every(isChecklistItem)
   );
 }
 

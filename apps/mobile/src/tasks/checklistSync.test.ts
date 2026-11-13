@@ -304,7 +304,7 @@ describe("a refused checklist or item change (AC15)", () => {
     expect(noticeKeys(h.notice!).reason).toBe("tasks.reasons.checklistNotFound");
   });
 
-  it("a refused item create over the limit leaves the local copy", async () => {
+  it("a refused item create over the limit removes the item from the local copy", async () => {
     const h = setup(
       { tasks: [makeTask({ checklists: [checklist({ items: [{ id: "i2", text: "x", done: false, createdAt: "2026-11-01T00:00:00.000Z" }] })] })] },
       { createChecklistItem: async () => Promise.reject(new ApiError("item_limit_reached", 409)) },
