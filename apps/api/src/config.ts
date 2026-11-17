@@ -14,6 +14,8 @@ export type Config = {
   inviteInstallUrl: string | null;
   /** Optional separate key for invite codes; null means they use INTERNAL_SECRET. */
   inviteCodeKey: string | null;
+  /** Cloudinary account for photos; null (photos off) unless all three variables are set. */
+  cloudinary: { cloudName: string; apiKey: string; apiSecret: string } | null;
 };
 
 const MIN_SECRET_LENGTH = 32;
@@ -73,6 +75,12 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     inviteCodeKey = inviteCodeKeyRaw;
   }
 
+  const cloudName = env["CLOUDINARY_CLOUD_NAME"] ?? "";
+  const apiKey = env["CLOUDINARY_API_KEY"] ?? "";
+  const apiSecret = env["CLOUDINARY_API_SECRET"] ?? "";
+  const cloudinary =
+    cloudName !== "" && apiKey !== "" && apiSecret !== "" ? { cloudName, apiKey, apiSecret } : null;
+
   return {
     databaseUrl,
     trustProxy: Number(trustProxyRaw),
@@ -80,5 +88,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     port: Number(env["PORT"] ?? 3000),
     inviteInstallUrl,
     inviteCodeKey,
+    cloudinary,
   };
 }

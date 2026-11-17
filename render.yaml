@@ -1,5 +1,5 @@
 # Render Blueprint for the earnm API. See docs/deploy.md for setup steps.
-# Secret values (DATABASE_URL, INTERNAL_SECRET, TRUST_PROXY, and the optional INVITE_INSTALL_URL and INVITE_CODE_KEY) are entered in
+# Secret values (DATABASE_URL, INTERNAL_SECRET, TRUST_PROXY, and the optional INVITE_INSTALL_URL, INVITE_CODE_KEY and the CLOUDINARY_* variables) are entered in
 # Render's dashboard, never in this file.
 services:
   - type: web
@@ -29,4 +29,11 @@ services:
         sync: false
       # Optional: separate key (32+ characters) for invite codes. Empty = derived from INTERNAL_SECRET. Changing it voids pending invites.
       - key: INVITE_CODE_KEY
+        sync: false
+      # Optional: Cloudinary account for task photos. Photos are on only when all three are set.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
         sync: false
