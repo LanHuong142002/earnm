@@ -231,6 +231,8 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
 
   const setOrder = useCallback((next: CommentOrder) => {
     setOrderState(next);
+    // Changing the order goes back to the first batch (spec R19).
+    setMore(null);
     void saveSortOrder(asyncStorageStore, next).catch(() => {});
   }, []);
 

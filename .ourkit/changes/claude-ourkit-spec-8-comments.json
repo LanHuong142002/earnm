@@ -53,6 +53,16 @@
       "id": 8,
       "decision": "Treated the user's '/ourkit-handsoff cho 2 cái #8 và #9' reply to the plan-approval question as approving both plans",
       "why": "It answered 'Duyệt plan #8?' by asking to carry both through; Ship still waits for explicit approval"
+    },
+    {
+      "id": 9,
+      "decision": "Comments UI departures from the mockup: sort uses the native action sheet; composer is inline in the scroll view; 'Đã xem hết bình luận' shows only when more than 5 exist",
+      "why": "Matches existing app patterns (checklist menu, Screen keyboard handling); the end line adds nothing for 5 or fewer"
+    },
+    {
+      "id": 10,
+      "decision": "Review finding 3 (unpaged GET comments) resolved as by design",
+      "why": "The approved plan chose one bounded list per task (max 500) with paging on the phone, as the tasks list already does; decision 3"
     }
   ],
   "mockup": {
@@ -67,6 +77,57 @@
     },
     "2": {
       "status": "done"
+    },
+    "3": {
+      "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "useTaskComments.ts:232-235 setOrder keeps the expanded 'shown' count, so switching sort after 'Xem thêm' still shows 15 instead of going back to 5 (R19)",
+        "resolved": false,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "CommentBubble.tsx:38-41 Action buttons (Sửa/Xoá/Bỏ/Huỷ/Lưu) have minWidth 22pt and no hitSlop, under the 44pt target (R26)",
+        "resolved": false,
+        "attempts": 1
+      },
+      {
+        "id": 3,
+        "severity": "blocking",
+        "text": "comments/routes.ts:131-139 GET comments returns all comments without take/cursor; up to 500 x 1000 chars per response on every open and sync pass (paging checklist item)",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "CommentsSection.tsx:139 'Đã xem hết bình luận' shows only when count > 5, differing from R18 wording (decision 9)",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "comments/sync.ts:94-104 retrying a create refused for remindWith (author no longer involved) resends the flag and fails forever",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "comments/store.ts:93-96 dropTaskComments is never called, so a deleted task's cached comments stay until the project is pruned",
+        "resolved": false
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "CommentComposer.tsx:30-43 send has try/finally without catch; a storage failure rejects unhandled with no message",
+        "resolved": false
+      }
+    ]
   }
 }

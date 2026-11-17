@@ -115,7 +115,9 @@ export async function retryFailed(queue: Queue, store: KeyValueStore, ownerId: s
     return withoutFailed(cache, (c) => c.entityId === commentId);
   });
   for (const change of taken) {
-    await queue.enqueue({ entity: change.entity, entityId: change.entityId, kind: change.kind, data: change.data, fieldTimes: change.fieldTimes });
+    // A create refused for its reminder flag (the author is no longer involved) is sent without it, so the text can still be posted.
+    const data = change.kind === "create" && change.data.remindWith === true ? { ...change.data, remindWith: false } : change.data;
+    await queue.enqueue({ entity: change.entity, entityId: change.entityId, kind: change.kind, data, fieldTimes: change.fieldTimes });
   }
 }
 

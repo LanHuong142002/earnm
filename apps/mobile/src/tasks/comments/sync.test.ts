@@ -167,6 +167,20 @@ describe("a permanent refusal", () => {
     expect((await loadCommentCache(store, "me")).failed).toHaveLength(1);
   });
 
+  it("retry sends a failed create without the reminder flag", async () => {
+    const refuse = vi.fn(async () => {
+      throw new ApiError("forbidden", 403);
+    });
+    const { queue, store } = setup({ createComment: refuse });
+    await queue.setOwner("me");
+    await enqueue(queue, commentCreateChange({ ...ctx, id: "c1", text: "hi", remindWith: true, author: null, now: NOW }));
+    await queue.flush();
+    await settleFailures();
+    await retryFailed(queue, store, "me", "c1");
+    const waiting = await queue.waiting();
+    expect(waiting[0]).toMatchObject({ entityId: "c1", kind: "create", data: { text: "hi", remindWith: false } });
+  });
+
   it("retry puts the failed changes of that comment back on the queue; discard drops them", async () => {
     const refuse = vi.fn(async () => {
       throw new ApiError("validation_failed", 400);

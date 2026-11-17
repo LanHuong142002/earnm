@@ -37,6 +37,8 @@ export function CommentComposer({
         setText("");
         setRemind(false);
       }
+    } catch {
+      setFailed(true);
     } finally {
       busy.current = false;
     }

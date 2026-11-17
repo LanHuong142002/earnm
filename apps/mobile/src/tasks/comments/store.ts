@@ -89,12 +89,6 @@ export function setTaskComments(cache: CommentCache, projectId: string, taskId: 
   return { ...cache, byTask: { ...cache.byTask, [taskId]: { projectId, comments } } };
 }
 
-/** Forgets one task's comments and refused changes (the task was deleted). */
-export function dropTaskComments(cache: CommentCache, taskId: string): CommentCache {
-  const { [taskId]: _gone, ...rest } = cache.byTask;
-  return { ...cache, byTask: rest, failed: cache.failed.filter((c) => c.data.taskId !== taskId) };
-}
-
 /** Drops the comments and refused changes of projects that are no longer in `projectIds`. */
 export function pruneCommentCache(cache: CommentCache, projectIds: string[]): CommentCache {
   const keep = new Set(projectIds);

@@ -37,8 +37,9 @@ function Action({ label, a11y, onPress, color, disabled = false }: { label: stri
       onPress={onPress}
       style={{
         minHeight: layout.controlHeight,
-        minWidth: layout.controlHeight / 2,
+        minWidth: layout.controlHeight,
         justifyContent: "center",
+        alignItems: "center",
         opacity: disabled ? disabledStyle.opacity : 1,
       }}
     >
