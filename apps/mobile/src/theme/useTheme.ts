@@ -6,6 +6,7 @@ import {
   disabled,
   header,
   iconSize,
+  labelColors,
   layout,
   motion,
   onFixed,
@@ -15,11 +16,14 @@ import {
   tile,
   typography,
   type ColorSet,
+  type LabelColour,
+  type LabelColourPair,
 } from "./tokens";
 
 export type Theme = {
   scheme: "light" | "dark";
   colors: ColorSet;
+  labelColors: Record<LabelColour, LabelColourPair>;
   typography: typeof typography;
   spacing: typeof spacing;
   layout: typeof layout;
@@ -39,6 +43,7 @@ export function useTheme(): Theme {
   return {
     scheme,
     colors: colors[scheme],
+    labelColors: labelColors[scheme],
     typography,
     spacing,
     layout,

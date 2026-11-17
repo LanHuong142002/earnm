@@ -15,6 +15,7 @@ import { Screen } from "../ui/Screen";
 import { TextField } from "../ui/TextField";
 import { AssigneeField } from "./AssigneeField";
 import { buildAssigneeOptions, toggleAssignee } from "./assignees";
+import { LabelsField } from "./LabelsField";
 import { DueField } from "./DueField";
 import { dueChangeError } from "./dueRules";
 import { clearDay, inputFromForm, setDay, setTime, clearTime, type TaskForm as TaskFormValues } from "./formState";
@@ -31,6 +32,7 @@ export function TaskForm({
   onSubmit,
   extra,
   showStatus = true,
+  labelsTaskId,
 }: {
   /** The project whose members can be chosen. */
   projectId: string;
@@ -42,6 +44,8 @@ export function TaskForm({
   extra?: ReactNode;
   /** Edit shows the status choices; a new task is always To do, so New task hides them. */
   showStatus?: boolean;
+  /** Edit passes the task so its labels can be changed here (R18); New task has no labels field. */
+  labelsTaskId?: string;
 }) {
   const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
@@ -171,6 +175,14 @@ export function TaskForm({
             timeError={message(errors.dueTime)}
             disabled={busy}
           />
+          {labelsTaskId ? (
+            <View style={{ gap: spacing[0] }}>
+              <Text style={[typography.label, { color: colors.text }]}>{t("tasks.labelsField.label")}</Text>
+              <Card>
+                <LabelsField projectId={projectId} taskId={labelsTaskId} />
+              </Card>
+            </View>
+          ) : null}
           <AssigneeField
             people={options}
             selectedIds={form.assigneeIds}

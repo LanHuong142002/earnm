@@ -80,3 +80,42 @@ export function validateTaskInput(input: TaskInput): TaskValidation {
     },
   };
 }
+
+export const CHECKLIST_NAME_MAX = 60;
+export const CHECKLIST_ITEM_TEXT_MAX = 200;
+export const LABEL_NAME_MAX = 30;
+export const CHECKLISTS_PER_TASK_MAX = 10;
+export const ITEMS_PER_CHECKLIST_MAX = 50;
+export const LABELS_PER_PROJECT_MAX = 50;
+export const LABELS_PER_TASK_MAX = 10;
+
+export type TextValidation<E extends string> = { ok: true; value: string } | { ok: false; error: E };
+
+function validateText<E extends string>(raw: string, max: number, required: E, tooLong: E): TextValidation<E> {
+  const value = cleanSingleLine(raw);
+  if (value.length === 0) return { ok: false, error: required };
+  if (value.length > max) return { ok: false, error: tooLong };
+  return { ok: true, value };
+}
+
+export const validateChecklistName = (raw: string) =>
+  validateText(raw, CHECKLIST_NAME_MAX, "tasks.errors.checklistNameRequired", "tasks.errors.checklistNameTooLong");
+
+export const validateItemText = (raw: string) =>
+  validateText(raw, CHECKLIST_ITEM_TEXT_MAX, "tasks.errors.itemTextRequired", "tasks.errors.itemTextTooLong");
+
+export const validateLabelName = (raw: string) =>
+  validateText(raw, LABEL_NAME_MAX, "tasks.errors.labelNameRequired", "tasks.errors.labelNameTooLong");
+
+/** The server's comparison: trimmed, Unicode NFC, case-folded. */
+const labelKey = (name: string) => name.trim().normalize("NFC").toLowerCase();
+
+/** True when another label (not `exceptId`) already has this name. */
+export function isDuplicateLabelName(
+  name: string,
+  labels: readonly { id: string; name: string }[],
+  exceptId?: string,
+): boolean {
+  const key = labelKey(name);
+  return labels.some((l) => l.id !== exceptId && labelKey(l.name) === key);
+}

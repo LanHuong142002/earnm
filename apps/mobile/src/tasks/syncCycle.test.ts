@@ -33,6 +33,9 @@ function setup(server: Server, initial: Record<string, Task[]>) {
     getQueue: () => queue,
     getToken: async () => token,
     listTasks,
+    listLabels: async () => [],
+    getLabels: () => [],
+    commitLabels: async () => undefined,
     getTasks: (projectId) => lists[projectId] ?? [],
     commit: async (projectId, next) => {
       lists[projectId] = next;

@@ -86,6 +86,11 @@ function floorGate(record, scope) {
 // The next Stage can't start from a document that isn't complete, whatever the Tier.
 function artifactGate(projectDir, record, id, name) {
   const problems = checkArtifact(projectDir, name, id);
+  // The Features are cut from the Prototype the user approved, so the split waits for it.
+  if (name === 'epic') {
+    const prototype = require('./mockup').mockupProblem(projectDir, record, id);
+    if (prototype) problems.push(prototype);
+  }
   if (problems.length === 0) return { status: 'pass', severity: 'none', action: 'continue' };
   return { status: 'fail', problems, severity: 'block', action: ACTIONS.block[modeOf(record)] };
 }

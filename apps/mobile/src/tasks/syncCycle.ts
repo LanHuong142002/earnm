@@ -5,15 +5,16 @@
  *
  * - handlers.onApplied: the cached task becomes the server's reply (a malformed reply marks the project for refresh).
  * - handlers.onRejected: sets the notice, removes the task on 404, and marks the project for refresh.
- * - refresh(projectId): list, replay the waiting changes on top, commit.
+ * - The same two handlers serve labels, checklists, items and a task's label set (picked by the change's entity).
+ * - refresh(projectId): list tasks and labels, replay the waiting changes on top, commit.
  * - refreshPending(): after a flush, refresh every project marked above.
  */
 import { ApiError } from "../lib/api";
 import type { Change, Queue } from "../sync/queue";
 import * as outcomes from "./outcomes";
-import { applyTaskOverlay, isTask } from "./store";
-import { taskProjectId } from "./sync";
-import type { Task } from "./types";
+import { applyLabelOverlay, applyTaskOverlay, isLabel, isTask } from "./store";
+import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_LABELS_ENTITY, taskProjectId } from "./sync";
+import type { Label, Task } from "./types";
 import type { TaskRejectedNotice } from "./outcomes";
 
 export type RefreshResult = "ok" | "offline" | "error" | "gone" | "skipped";
@@ -23,8 +24,12 @@ export type TaskSyncCycleDeps = {
   getToken: () => Promise<string | null>;
   listTasks: (token: string, projectId: string) => Promise<Task[]>;
   getTasks: (projectId: string) => Task[];
+  listLabels: (token: string, projectId: string) => Promise<Label[]>;
+  getLabels: (projectId: string) => Label[];
   /** Shows and saves one project's list. */
   commit: (projectId: string, list: Task[]) => Promise<unknown>;
+  /** Shows and saves one project's labels. */
+  commitLabels: (projectId: string, labels: Label[]) => Promise<unknown>;
   setNotice: (notice: TaskRejectedNotice) => void;
   /** Changes when the session ends or the person changes; late results are then dropped. */
   getGeneration: () => number;
@@ -44,6 +49,26 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
       applyChain = applyChain.then(async () => {
         if (deps.isWiped()) return;
         const projectId = taskProjectId(change);
+        if (change.entity === LABEL_ENTITY) {
+          if (change.kind !== "delete" && !isLabel(response)) {
+            marked.add(projectId);
+            return;
+          }
+          const waiting = await deps.getQueue().waiting();
+          await deps.commitLabels(projectId, outcomes.onLabelApplied(deps.getLabels(projectId), change, response, waiting));
+          return;
+        }
+        if (change.entity === CHECKLIST_ENTITY || change.entity === ITEM_ENTITY) {
+          const wellFormed = typeof response === "object" && response !== null && typeof (response as { id?: unknown }).id === "string";
+          if (change.kind !== "delete" && !wellFormed) {
+            marked.add(projectId);
+            return;
+          }
+          const waiting = await deps.getQueue().waiting();
+          await deps.commit(projectId, outcomes.onChildApplied(deps.getTasks(projectId), change, response, waiting));
+          return;
+        }
+        if (change.entity === TASK_LABELS_ENTITY && change.kind === "delete") return;
         if (change.kind !== "delete" && !isTask(response)) {
           // A malformed reply must not remove the task; the next refresh brings the server's version.
           marked.add(projectId);
@@ -57,6 +82,40 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
       applyChain = applyChain.then(async () => {
         if (deps.isWiped()) return;
         const projectId = taskProjectId(change);
+        if (change.entity === LABEL_ENTITY) {
+          const queue = deps.getQueue();
+          const outcome = outcomes.onLabelRejected(
+            deps.getLabels(projectId),
+            deps.getTasks(projectId),
+            change,
+            error,
+            await queue.waiting(),
+          );
+          deps.setNotice(outcome.notice);
+          marked.add(outcome.refreshProjectId);
+          if (outcome.removedLabelId !== null) {
+            // The label will never exist: its other waiting changes go too. Its place on waiting label sets was
+            // taken out by the label create's sender before the queue moved on (R15).
+            await queue.dropEntity(LABEL_ENTITY, outcome.removedLabelId);
+          }
+          await deps.commitLabels(projectId, outcome.labels);
+          await deps.commit(projectId, outcome.list);
+          return;
+        }
+        if (change.entity === CHECKLIST_ENTITY || change.entity === ITEM_ENTITY) {
+          const outcome = outcomes.onChildRejected(deps.getTasks(projectId), change, error, await deps.getQueue().waiting());
+          deps.setNotice(outcome.notice);
+          marked.add(outcome.refreshProjectId);
+          await deps.commit(projectId, outcome.list);
+          return;
+        }
+        if (change.entity === TASK_LABELS_ENTITY) {
+          // Only the label set is refused: the task keeps its other edits. The refresh shows the server's labels.
+          const taskTitle = deps.getTasks(projectId).find((t) => t.id === change.entityId)?.title ?? null;
+          deps.setNotice({ kind: "update", taskTitle, reason: outcomes.reasonFor(error), subject: "taskLabels" });
+          marked.add(projectId);
+          return;
+        }
         const outcome = outcomes.onRejected(deps.getTasks(projectId), change, error, await deps.getQueue().waiting());
         deps.setNotice(outcome.notice);
         marked.add(outcome.refreshProjectId);
@@ -71,8 +130,10 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
     if (!token || gen !== deps.getGeneration()) return "skipped";
     try {
       const server = (await deps.listTasks(token, projectId)).filter(isTask);
+      const serverLabels = (await deps.listLabels(token, projectId)).filter(isLabel);
       const waiting = await deps.settleMutations();
       if (gen !== deps.getGeneration()) return "skipped";
+      await deps.commitLabels(projectId, applyLabelOverlay(projectId, serverLabels, waiting));
       await deps.commit(projectId, applyTaskOverlay(projectId, server, waiting));
       return "ok";
     } catch (error) {
@@ -84,6 +145,7 @@ export function createTaskSyncCycle(deps: TaskSyncCycleDeps) {
       if (error instanceof ApiError && error.status === 404) {
         // The project is gone or the person left it: its tasks are no longer theirs to see.
         await deps.commit(projectId, []);
+        await deps.commitLabels(projectId, []);
         return "gone";
       }
       // Keep the cache either way, but tell the two apart: a server that answered with an error

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "../theme/useTheme";
@@ -13,6 +14,7 @@ export function ChoiceRow({
   caption,
   disabled = false,
   role = "radio",
+  content,
 }: {
   label: string;
   selected: boolean;
@@ -24,6 +26,8 @@ export function ChoiceRow({
   disabled?: boolean;
   /** "radio" for pick-one lists; "checkbox" when several rows can be chosen. */
   role?: "radio" | "checkbox";
+  /** Shown in place of the text label (e.g. a label chip); `label` stays the accessible name. */
+  content?: ReactNode;
 }) {
   const { colors, typography, layout, iconSize } = useTheme();
   return (
@@ -43,10 +47,12 @@ export function ChoiceRow({
         borderTopColor: colors.border,
       }}
     >
-      <View style={{ flex: 1 }}>
-        <Text style={[selected ? typography.bodyStrong : typography.body, { color: colors.text }]}>
-          {label}
-        </Text>
+      <View style={{ flex: 1, alignItems: content ? "flex-start" : undefined }}>
+        {content ?? (
+          <Text style={[selected ? typography.bodyStrong : typography.body, { color: colors.text }]}>
+            {label}
+          </Text>
+        )}
         {caption ? <Text style={[typography.caption, { color: colors.textSecondary }]}>{caption}</Text> : null}
       </View>
       {selected ? <Ionicons name="checkmark" size={iconSize.md} color={colors.accent} /> : null}

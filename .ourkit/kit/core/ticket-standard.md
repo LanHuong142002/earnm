@@ -9,7 +9,7 @@ Every ticket the kit creates, every PR, and every ticket assessed before work st
 - **User Story:** "As a ..., I want ..., so that ...".
 - **Context:** why this matters and what the reader must know, with reasons rather than instructions.
 - **Scope Boundary:** an `In:` line and an `Out:` line. When something is out because another ticket covers it, name that ticket.
-- **Links & References:** decisions, documents and related tickets. Add `Blocked by:` when other tickets must finish first.
+- **Links & References:** decisions, documents and related tickets, and the Prototype screens it builds when its Epic has a Prototype. Add `Blocked by:` when other tickets must finish first.
 
 ## PR
 

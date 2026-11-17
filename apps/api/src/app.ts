@@ -11,6 +11,8 @@ import { createInvitesRouter } from "./invites/routes.js";
 import { createMembersRouter } from "./members/routes.js";
 import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
+import { createChecklistsRouter } from "./checklists/routes.js";
+import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 
 export interface AppDeps {
@@ -38,7 +40,10 @@ export function createApp(deps: AppDeps): Express {
   app.use("/auth", createAuthRouter(deps));
   app.use("/me", createMeRouter(deps));
   // Before /projects: that router requires sign-in for everything under it, which would run twice.
+  // Before the tasks router, which also requires sign-in and would otherwise run first.
+  app.use("/projects/:projectId/tasks/:taskId/checklists", createChecklistsRouter(deps));
   app.use("/projects/:projectId/tasks", createTasksRouter(deps));
+  app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
   // Without INVITE_CODE_KEY or INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.
   const keySource = pickInviteKeySource(deps);

@@ -6,7 +6,11 @@ import { useTheme } from "../theme/useTheme";
 import { Card } from "../ui/Card";
 import { PressableScale } from "../ui/PressableScale";
 import { formatDue, isOverdue, type DueLanguage } from "./dueDate";
-import type { Task } from "./types";
+import { LabelChips } from "./LabelChip";
+import { resolveLabels } from "./labelDisplay";
+import { ProgressCount } from "./ProgressCount";
+import { taskProgress } from "./progress";
+import type { Label, Task } from "./types";
 
 // Assignee first names shown before "+n".
 const NAMES_SHOWN = 3;
@@ -25,10 +29,13 @@ export function assigneeLine(task: Task, moreLabel: (count: number) => string): 
 export function TaskCard({
   task,
   now,
+  labels = [],
   onOpen,
   onChangeStatus,
 }: {
   task: Task;
+  /** The project's labels; the task's labelIds are looked up here. */
+  labels?: readonly Label[];
   now: Date;
   onOpen: () => void;
   onChangeStatus: () => void;
@@ -42,10 +49,15 @@ export function TaskCard({
   const assignees = assigneeLine(task, (count) => t("tasks.moreAssignees", { count }));
   const due = task.dueDate !== null ? formatDue(task.dueDate, task.dueTime, lang, t) : null;
 
+  const taskLabels = resolveLabels(task.labelIds, labels);
+  const progress = taskProgress(task);
+
   const label = [
     t("tasks.cardLabel", { title: task.title, status: statusName }),
     assignees !== "" ? t("tasks.assignedTo", { names: assignees }) : null,
     due !== null ? t(overdue ? "tasks.overdueOn" : "tasks.dueOn", { date: due }) : null,
+    taskLabels.length > 0 ? t("tasks.labels.cardA11y", { names: taskLabels.map((l) => l.name).join(", ") }) : null,
+    progress !== null ? t("tasks.progressA11y", progress) : null,
   ]
     .filter((part) => part !== null)
     .join(". ");
@@ -108,6 +120,12 @@ export function TaskCard({
               <Text style={[typography.caption, { color: overdue ? colors.danger : colors.textSecondary, flexShrink: 1 }]}>
                 {overdue ? `${t("tasks.overdue")} · ${due}` : due}
               </Text>
+            </View>
+          ) : null}
+          {taskLabels.length > 0 || progress !== null ? (
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing[1] }}>
+              <View style={{ flex: 1 }}>{taskLabels.length > 0 ? <LabelChips labels={taskLabels} /> : null}</View>
+              {progress !== null ? <ProgressCount progress={progress} /> : null}
             </View>
           ) : null}
         </View>

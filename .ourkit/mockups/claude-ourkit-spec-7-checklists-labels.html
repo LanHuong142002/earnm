@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup #7: checklist và nhãn</title>
+<style>
+  :root {
+    --bg:#FFFFFF; --surface:#FFFFFF; --field:#F3F4F6; --tile:#FFF1EB; --tileBorder:#FADCCB; --border:#EEEEEE;
+    --text:#141414; --text2:#5F5F5F; --ph:#6B6B6B; --accent:#F4511E; --accentStrong:#C2410C; --onAccent:#FFFFFF;
+    --danger:#B3261E; --dangerBg:#FDF0EF; --success:#1E7F4F;
+    /* label palette, light (R21) */
+    --l-gray-bg:#EEEEEE; --l-gray-tx:#3F3F3F;
+    --l-red-bg:#FBE4E2; --l-red-tx:#8C1D18;
+    --l-orange-bg:#FDE8D7; --l-orange-tx:#8A3A0B;
+    --l-yellow-bg:#FBF0C9; --l-yellow-tx:#6B5200;
+    --l-green-bg:#DFF1E6; --l-green-tx:#1B5E3A;
+    --l-teal-bg:#DCEFEE; --l-teal-tx:#155E5A;
+    --l-blue-bg:#E1EAF8; --l-blue-tx:#1E4A8A;
+    --l-purple-bg:#ECE4F6; --l-purple-tx:#5B2E8C;
+    --page:#F6F1EE; --note:#6B4A3A;
+  }
+  .dark {
+    --bg:#121212; --surface:#1C1C1C; --field:#1E1E1E; --tile:#2A1A14; --tileBorder:#3D261B; --border:#2A2A2A;
+    --text:#F2F2F2; --text2:#A3A3A3; --ph:#8F8F8F; --accent:#F4511E; --accentStrong:#F4511E; --onAccent:#141414;
+    --danger:#F2B8B5; --dangerBg:#3A1715; --success:#6FCF97;
+    --l-gray-bg:#2C2C2C; --l-gray-tx:#D6D6D6;
+    --l-red-bg:#3A1D1B; --l-red-tx:#F2B8B5;
+    --l-orange-bg:#3A2414; --l-orange-tx:#F5C29A;
+    --l-yellow-bg:#352C10; --l-yellow-tx:#EBD58A;
+    --l-green-bg:#17301F; --l-green-tx:#9ED8B4;
+    --l-teal-bg:#133130; --l-teal-tx:#93D4CF;
+    --l-blue-bg:#172639; --l-blue-tx:#A9C4EE;
+    --l-purple-bg:#2A1E3A; --l-purple-tx:#CDB6EE;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); font-family:"Plus Jakarta Sans",-apple-system,"Segoe UI",Roboto,sans-serif; color:#141414; }
+  header.page { padding:24px 32px 8px; max-width:1500px; margin:0 auto; }
+  header.page h1 { font-size:24px; font-weight:800; margin:0 0 6px; }
+  header.page p { margin:4px 0; color:#5F5F5F; font-size:14px; max-width:900px; line-height:1.5; }
+  h2.group { max-width:1500px; margin:28px auto 4px; padding:0 32px; font-size:17px; font-weight:800; }
+  .row { display:flex; flex-wrap:wrap; gap:28px; padding:12px 32px 8px; max-width:1500px; margin:0 auto; align-items:flex-start; }
+  .shot { width:375px; }
+  .cap { font-size:13px; font-weight:600; margin:0 0 8px; color:#141414; }
+  .cap small { display:block; font-weight:400; color:var(--note); margin-top:3px; line-height:1.4; }
+  .phone { width:375px; min-height:740px; background:var(--bg); border-radius:40px; border:10px solid #1b1b1b; overflow:hidden; position:relative; color:var(--text); }
+  .status-bar { height:44px; display:flex; justify-content:space-between; align-items:center; padding:0 26px; font-size:14px; font-weight:600; }
+  .nav { height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; position:relative; color:var(--accentStrong); font-size:15px; }
+  .nav .chev { font-size:26px; width:44px; line-height:44px; }
+  .nav .ttl { color:var(--text); font-weight:600; position:absolute; left:0; right:0; text-align:center; pointer-events:none; font-size:17px; }
+  .nav .right { color:var(--accentStrong); font-weight:600; font-size:15px; }
+  .scr { padding:4px 20px 28px; display:flex; flex-direction:column; gap:16px; }
+  .h1 { font-size:24px; font-weight:800; line-height:30px; margin:0; }
+  .h2 { font-size:17px; font-weight:800; line-height:22px; margin:0; }
+  .lbl { font-size:13px; font-weight:600; color:var(--text2); }
+  .cap12 { font-size:12px; color:var(--text2); }
+  .body { font-size:15px; line-height:21px; }
+  .strong { font-weight:600; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:12px 14px; }
+  .card.flush { padding:0 14px; }
+  .rowline { min-height:44px; display:flex; align-items:center; gap:10px; border-top:1px solid var(--border); }
+  .rowline:first-child { border-top:0; }
+  .grow { flex:1; min-width:0; }
+  .pill { display:inline-flex; align-items:center; gap:4px; height:44px; padding:0 14px; border-radius:999px; background:var(--field); border:1px solid var(--field); font-size:15px; }
+  .pill.sel { background:var(--tile); border-color:var(--tileBorder); font-weight:600; }
+  .pill.sel::before { content:"✓"; color:var(--accent); font-weight:800; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .switch { width:46px; height:28px; border-radius:14px; background:var(--field); position:relative; flex:none; }
+  .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+  .switch.on { background:var(--accentStrong); }
+  .switch.on::after { left:21px; }
+  .chev-r { color:var(--text2); font-size:18px; }
+  .status { display:inline-block; background:var(--tile); color:var(--accentStrong); border-radius:999px; padding:2px 8px; font-size:12px; font-weight:600; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chip { display:inline-flex; align-items:center; border-radius:999px; padding:2px 9px; font-size:12px; font-weight:600; line-height:18px; white-space:nowrap; }
+  .chip.lg { font-size:13px; padding:4px 11px; }
+  .chip.more { background:var(--field); color:var(--text2); }
+  .c-gray{background:var(--l-gray-bg);color:var(--l-gray-tx)} .c-red{background:var(--l-red-bg);color:var(--l-red-tx)}
+  .c-orange{background:var(--l-orange-bg);color:var(--l-orange-tx)} .c-yellow{background:var(--l-yellow-bg);color:var(--l-yellow-tx)}
+  .c-green{background:var(--l-green-bg);color:var(--l-green-tx)} .c-teal{background:var(--l-teal-bg);color:var(--l-teal-tx)}
+  .c-blue{background:var(--l-blue-bg);color:var(--l-blue-tx)} .c-purple{background:var(--l-purple-bg);color:var(--l-purple-tx)}
+  .meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .prog { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text2); font-weight:600; }
+  .prog .box { width:14px; height:14px; border:1.5px solid var(--text2); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:9px; }
+  .bar { height:4px; border-radius:2px; background:var(--field); overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--accent); }
+  .cb { width:20px; height:20px; border-radius:6px; border:1.5px solid var(--ph); flex:none; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+  .cb.on { background:var(--accent); border-color:var(--accent); color:var(--onAccent); }
+  .cb.on::after { content:"✓"; }
+  .done-t { color:var(--text2); text-decoration:line-through; }
+  .item { min-height:44px; display:flex; align-items:center; gap:12px; border-top:1px solid var(--border); font-size:15px; }
+  .clhead { display:flex; align-items:center; gap:8px; min-height:44px; }
+  .more-btn { width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--text2); font-size:20px; margin-right:-12px; }
+  .link { color:var(--accentStrong); font-weight:600; font-size:15px; min-height:44px; display:flex; align-items:center; gap:6px; }
+  .btn { height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; }
+  .btn.pri { background:var(--accentStrong); color:var(--onAccent); }
+  .btn.sec { background:var(--field); color:var(--text); }
+  .btn.dan { background:var(--field); color:var(--danger); }
+  .field { height:44px; border-radius:12px; background:var(--field); display:flex; align-items:center; padding:0 12px; gap:8px; font-size:15px; color:var(--text); }
+  .field.ph { color:var(--ph); }
+  .field.focus { border:1.5px solid var(--accent); background:var(--surface); }
+  .field.err { border:1.5px solid var(--danger); background:var(--dangerBg); }
+  .errmsg { color:var(--danger); font-size:13px; display:flex; gap:6px; align-items:center; margin-top:6px; }
+  .offline { font-size:12px; color:var(--text2); }
+  .notice { background:var(--dangerBg); color:var(--danger); border-radius:12px; padding:10px 12px; font-size:13px; line-height:18px; }
+  .sk { background:var(--field); border-radius:12px; }
+  .ann { position:absolute; background:#2F6FEB; color:#fff; font:700 10px/1 -apple-system,sans-serif; padding:3px 5px; border-radius:6px; z-index:5; }
+  .rel { position:relative; }
+  .sheet-dim { position:absolute; inset:0; background:rgba(0,0,0,.35); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--bg); border-radius:20px 20px 0 0; padding:8px 20px 28px; display:flex; flex-direction:column; gap:12px; }
+  .grab { width:36px; height:5px; border-radius:3px; background:var(--border); margin:0 auto 4px; }
+  .sheethead { display:flex; justify-content:space-between; align-items:center; min-height:44px; }
+  .kbd { position:absolute; left:0; right:0; bottom:0; height:250px; background:#D1D4DA; display:flex; align-items:center; justify-content:center; color:#555; font-size:13px; }
+  .dark .kbd { background:#2B2B2D; color:#aaa; }
+  .swatches { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .sw { height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:4px; font-size:13px; font-weight:600; border:2px solid transparent; }
+  .sw.sel { border-color:var(--text); }
+  .sw.sel::before { content:"✓"; font-weight:800; }
+  .dialog { position:absolute; left:40px; right:40px; top:250px; background:var(--surface); border-radius:14px; padding:18px 16px 8px; text-align:center; }
+  .dialog .t { font-weight:600; font-size:16px; margin-bottom:6px; }
+  .dialog .m { font-size:13px; color:var(--text2); line-height:18px; }
+  .dialog .acts { display:flex; border-top:1px solid var(--border); margin:14px -16px 0; }
+  .dialog .acts div { flex:1; height:44px; display:flex; align-items:center; justify-content:center; font-size:16px; color:#0A84FF; }
+  .dialog .acts div + div { border-left:1px solid var(--border); }
+  .dialog .acts .d { color:#E5372B; font-weight:600; }
+  .menu { position:absolute; left:10px; right:10px; bottom:20px; display:flex; flex-direction:column; gap:8px; }
+  .menu .grp { background:var(--surface); border-radius:14px; overflow:hidden; }
+  .menu .grp div { height:54px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#0A84FF; border-top:1px solid var(--border); }
+  .menu .grp div:first-child { border-top:0; }
+  .menu .grp .ttl { height:40px; font-size:13px; color:var(--text2); }
+  .menu .grp .d { color:#E5372B; }
+  table.pal { border-collapse:collapse; font-size:13px; }
+  table.pal td, table.pal th { padding:6px 10px; text-align:left; }
+  .legend { max-width:1500px; margin:0 auto; padding:0 32px; font-size:13px; color:var(--note); }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Mockup #7: checklist và nhãn màu cho công việc</h1>
+  <p>Hình tĩnh, không phải code. Mỗi khung là màn hình iPhone 375pt. Ô xanh <b style="background:#2F6FEB;color:#fff;padding:0 4px;border-radius:4px">R16</b> chỉ ra yêu cầu trong spec mà phần đó đáp ứng. Nội dung bằng tiếng Việt; bản tiếng Anh có cùng bố cục.</p>
+  <p>Điều hướng: Danh sách công việc → chạm thẻ → Công việc (chi tiết). Trên màn Công việc: chạm “Nhãn” → bảng chọn nhãn (sheet) → “Quản lý nhãn” → màn Nhãn (mở chồng lên, back/vuốt quay về Công việc). Checklist được sửa ngay trên màn Công việc, không qua form Sửa. Header: chỉ có mũi tên back, tiêu đề ở giữa như các màn hiện tại.</p>
+</header>
+
+<!-- ============ TASK LIST ============ -->
+<h2 class="group">1. Danh sách công việc</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">1a. Danh sách, có lọc nhãn<small>Hàng “Nhãn” mới trong thẻ bộ lọc, hiện tên các nhãn đang chọn. Thẻ công việc thêm một dòng: tối đa 3 nhãn rồi “+n”, và tiến độ x/y khi có mục.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span></div>
+      <div class="scr">
+        <div class="pills"><span class="pill sel">Tất cả</span><span class="pill">Cần làm</span><span class="pill">Đang làm</span><span class="pill">Xong</span></div>
+        <div class="card flush rel">
+          <span class="ann" style="right:-8px;top:8px">R20</span>
+          <div class="rowline"><span class="body grow">Giao cho tôi</span><span class="switch"></span></div>
+          <div class="rowline"><span class="body grow">Chỉ mình tôi</span><span class="switch"></span></div>
+          <div class="rowline"><span class="body grow">Sắp đến hạn</span><span class="switch"></span></div>
+          <div class="rowline"><span class="body">Nhãn</span><span class="grow" style="text-align:right;font-size:15px;color:var(--accentStrong);font-weight:600">Pha chế, Mua sắm</span><span class="chev-r">›</span></div>
+        </div>
+        <div class="card rel">
+          <span class="ann" style="right:-8px;top:8px">R16</span>
+          <div class="body strong">Thử công thức trà đào cam sả</div>
+          <div class="meta" style="margin-top:4px"><span class="status">Đang làm</span><span class="cap12">Lan, Huy</span></div>
+          <div class="meta" style="margin-top:6px"><span class="cap12">📅 T6, 14 Thg 11</span></div>
+          <div class="meta" style="margin-top:8px">
+            <span class="chips"><span class="chip c-green">Pha chế</span><span class="chip c-blue">Thử nghiệm</span></span>
+            <span class="prog" style="margin-left:auto"><span class="box">✓</span>3/7 mục</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="body strong">Mua máy xay và ly nhựa</div>
+          <div class="meta" style="margin-top:4px"><span class="status">Cần làm</span><span class="cap12">Minh</span></div>
+          <div class="meta" style="margin-top:6px"><span class="cap12" style="color:var(--danger)">⚠ Quá hạn · T3, 11 Thg 11</span></div>
+          <div class="meta" style="margin-top:8px">
+            <span class="chips"><span class="chip c-orange">Mua sắm</span><span class="chip c-red">Gấp</span><span class="chip c-purple">Thiết bị</span><span class="chip more">+2</span></span>
+            <span class="prog" style="margin-left:auto"><span class="box"></span>0/4 mục</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="body strong">Hỏi giá thuê mặt bằng Q.3</div>
+          <div class="meta" style="margin-top:4px"><span class="status">Cần làm</span><span class="cap12">Lan</span></div>
+          <div class="meta" style="margin-top:8px"><span class="chips"><span class="chip c-orange">Mua sắm</span></span></div>
+          <div class="cap12" style="margin-top:6px;color:var(--note)">↑ không có mục nào → không hiện tiến độ (R16)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1b. Chọn nhãn để lọc (sheet)<small>Chọn nhiều nhãn; công việc có ít nhất một nhãn được chọn sẽ hiện. Dấu ✓ chứ không chỉ màu.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span></div>
+      <div class="scr" style="opacity:.5"><div class="pills"><span class="pill sel">Tất cả</span><span class="pill">Cần làm</span></div></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet rel">
+        <span class="ann" style="right:12px;top:-10px">R20</span>
+        <div class="grab"></div>
+        <div class="sheethead"><span class="h2">Lọc theo nhãn</span><span class="link">Xong</span></div>
+        <div class="cap12">Hiện công việc có ít nhất một nhãn đã chọn.</div>
+        <div class="card flush">
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-red">Gấp</span></span></div>
+          <div class="rowline"><span class="cb on"></span><span class="grow"><span class="chip lg c-orange">Mua sắm</span></span></div>
+          <div class="rowline"><span class="cb on"></span><span class="grow"><span class="chip lg c-green">Pha chế</span></span></div>
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-purple">Thiết bị</span></span></div>
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-blue">Thử nghiệm</span></span></div>
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-gray">Giấy tờ</span></span></div>
+        </div>
+        <div class="btn sec">Bỏ chọn tất cả</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1c. Lọc không ra kết quả<small>Dùng lại trạng thái “không có công việc phù hợp” của #6; “Bỏ bộ lọc” xoá cả lọc nhãn.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span></div>
+      <div class="scr">
+        <div class="pills"><span class="pill">Tất cả</span><span class="pill">Cần làm</span><span class="pill">Đang làm</span><span class="pill sel">Xong</span></div>
+        <div class="card flush">
+          <div class="rowline"><span class="body grow">Giao cho tôi</span><span class="switch on"></span></div>
+          <div class="rowline"><span class="body grow">Chỉ mình tôi</span><span class="switch"></span></div>
+          <div class="rowline"><span class="body grow">Sắp đến hạn</span><span class="switch"></span></div>
+          <div class="rowline"><span class="body">Nhãn</span><span class="grow" style="text-align:right;font-size:15px;color:var(--accentStrong);font-weight:600">Thiết bị</span><span class="chev-r">›</span></div>
+        </div>
+        <div class="rel">
+          <span class="ann" style="right:0;top:0">R20</span>
+          <div class="h2">Không có công việc phù hợp</div>
+          <div class="body" style="color:var(--text2);margin:4px 0 12px">Thử đổi bộ lọc.</div>
+          <div class="btn sec">Bỏ bộ lọc</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TASK DETAILS ============ -->
+<h2 class="group">2. Màn Công việc: nhãn và checklist</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">2a. Công việc có nhãn và 2 checklist<small>“Sửa” ở góc phải header; “＋ Thêm” checklist cạnh tiêu đề mục Checklist, nên không phải cuộn xuống cuối. Nhãn nằm trong thẻ thông tin. Mỗi checklist là một thẻ: tên, tiến độ riêng, các mục. Chạm ô vuông để tick, một chạm.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h1">Thử công thức trà đào cam sả</div>
+        <div class="card">
+          <div class="lbl">Trạng thái</div>
+          <div class="body strong" style="color:var(--accentStrong);min-height:30px">Đang làm ⌄</div>
+          <div class="lbl" style="margin-top:6px">Nhãn</div>
+          <div class="rel" style="display:flex;align-items:center;gap:8px;min-height:44px">
+            <span class="ann" style="left:-30px;top:12px">R18</span>
+            <span class="chips grow"><span class="chip lg c-green">Pha chế</span><span class="chip lg c-blue">Thử nghiệm</span></span>
+            <span class="link">Sửa</span>
+          </div>
+          <div class="lbl" style="margin-top:6px">Hạn · Người làm</div>
+          <div class="body">T6, 14 Thg 11 · Lan, Huy</div>
+        </div>
+
+        <div class="rel" style="display:flex;align-items:center;gap:10px;margin-bottom:-6px">
+          <span class="ann" style="left:-30px;top:12px">R17</span>
+          <div class="h2">Checklist</div><div class="cap12 strong grow">3/7 mục xong</div><span class="link">＋ Thêm</span>
+        </div>
+
+        <div class="card rel" style="padding-bottom:4px">
+          <span class="ann" style="right:-8px;top:8px">R17</span>
+          <div class="clhead"><span class="body strong grow">Nguyên liệu</span><span class="cap12 strong">2/3</span><span class="more-btn" title="Tuỳ chọn danh sách">⋯</span></div>
+          <div class="bar"><i style="width:66%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="grow done-t">Trà đen Cozy 500g</span></div>
+          <div class="item"><span class="cb on"></span><span class="grow done-t">Đào ngâm hộp</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Sả tươi, cam vàng</span></div>
+          <div class="item"><span class="link">＋ Thêm mục</span></div>
+        </div>
+
+        <div class="card" style="padding-bottom:4px">
+          <div class="clhead"><span class="body strong grow">Pha thử</span><span class="cap12 strong">1/4</span><span class="more-btn">⋯</span></div>
+          <div class="bar"><i style="width:25%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="grow done-t">Pha mẫu 1: 40ml syrup</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Pha mẫu 2: 30ml syrup</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Cho cả nhóm nếm thử</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Chốt công thức</span></div>
+          <div class="item"><span class="link">＋ Thêm mục</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2b. Thêm mục liên tục<small>Gõ rồi nhấn Return: mục được thêm cuối danh sách, ô nhập vẫn mở, bàn phím vẫn còn. Chạm ra ngoài để kết thúc.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="card rel" style="padding-bottom:10px">
+          <span class="ann" style="right:-8px;top:8px">R17</span>
+          <div class="clhead"><span class="body strong grow">Pha thử</span><span class="cap12 strong">1/6</span><span class="more-btn">⋯</span></div>
+          <div class="bar"><i style="width:16%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="grow done-t">Pha mẫu 1: 40ml syrup</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Pha mẫu 2: 30ml syrup</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Cho cả nhóm nếm thử</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Chốt công thức</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Chụp ảnh ly mẫu</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Tính giá vốn</span></div>
+          <div class="field focus" style="margin-top:6px">Ghi lại phản hồi|</div>
+          <div class="cap12" style="margin-top:6px">Return để thêm · tối đa 200 ký tự</div>
+        </div>
+      </div>
+      <div class="kbd">Bàn phím · phím Return = “Thêm”</div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2c. Sửa hoặc xoá một mục<small>Chạm vào chữ của mục để sửa ngay tại chỗ; nút × bên phải để xoá mục (không cần xác nhận, chỉ là một dòng).</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="card rel" style="padding-bottom:4px">
+          <span class="ann" style="right:-8px;top:8px">R17</span>
+          <div class="clhead"><span class="body strong grow">Nguyên liệu</span><span class="cap12 strong">2/3</span><span class="more-btn">⋯</span></div>
+          <div class="bar"><i style="width:66%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="grow done-t">Trà đen Cozy 500g</span></div>
+          <div class="item"><span class="cb on"></span><span class="field focus grow" style="height:38px">Đào ngâm hộp Rhodes|</span><span class="more-btn" title="Xoá mục" style="color:var(--danger)">×</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Sả tươi, cam vàng</span></div>
+          <div class="item"><span class="link">＋ Thêm mục</span></div>
+        </div>
+      </div>
+      <div class="kbd">Bàn phím · Return = “Xong”</div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2d. Tuỳ chọn checklist (⋯) và xác nhận xoá<small>Action sheet iOS: Đổi tên / Xoá checklist. Xoá thì hỏi lại, nêu tên và số mục.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr" style="opacity:.5">
+        <div class="card"><div class="clhead"><span class="body strong grow">Pha thử</span><span class="cap12 strong">1/4</span></div></div>
+      </div>
+      <div class="sheet-dim"></div>
+      <div class="dialog rel">
+        <span class="ann" style="right:-6px;top:-8px">R17</span>
+        <div class="t">Xoá checklist “Pha thử”?</div>
+        <div class="m">4 mục trong checklist này cũng bị xoá. Không thể hoàn tác.</div>
+        <div class="acts"><div>Huỷ</div><div class="d">Xoá</div></div>
+      </div>
+      <div class="menu" style="opacity:.35">
+        <div class="grp"><div class="ttl">Pha thử</div><div>Đổi tên</div><div class="d">Xoá checklist</div></div>
+        <div class="grp"><div style="font-weight:600">Huỷ</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2e. Chưa có checklist, chưa có nhãn<small>Không chiếm chỗ: một dòng gợi ý và một nút thêm (trạng thái trống). “Sửa” vẫn ở header.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h1">Hỏi giá thuê mặt bằng Q.3</div>
+        <div class="card">
+          <div class="lbl">Trạng thái</div>
+          <div class="body strong" style="color:var(--accentStrong);min-height:30px">Cần làm ⌄</div>
+          <div class="lbl" style="margin-top:6px">Nhãn</div>
+          <div style="display:flex;align-items:center;min-height:44px"><span class="body grow" style="color:var(--text2)">Chưa có nhãn</span><span class="link">Thêm</span></div>
+        </div>
+        <div class="h2">Checklist</div>
+        <div class="body" style="color:var(--text2);margin-top:-8px">Chia công việc thành các bước để theo dõi tiến độ.</div>
+        <div class="btn sec">＋ Thêm checklist</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2f. Thêm checklist mới<small>Ô tên ngay trong thẻ mới; Return tạo checklist và chuyển ngay sang ô “Thêm mục”.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h2">Checklist</div>
+        <div class="card rel">
+          <span class="ann" style="right:-8px;top:8px">R17</span>
+          <div class="lbl" style="margin-bottom:6px">Tên checklist</div>
+          <div class="field focus">Giấy tờ|</div>
+          <div class="cap12" style="margin-top:6px">Tối đa 60 ký tự · tối đa 10 checklist mỗi công việc</div>
+        </div>
+      </div>
+      <div class="kbd">Bàn phím · Return = “Tạo”</div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2g. Đang tải, ngoại tuyến, và thay đổi bị từ chối<small>Đang tải: khối xám như #6. Ngoại tuyến: ghi chú nhỏ, vẫn tick được. Bị từ chối: thông báo dangerBg, mục trở về bản của server.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="offline rel">Đang ngoại tuyến<span class="ann" style="left:110px;top:-2px">R13</span></div>
+        <div class="notice rel">Không lưu được thay đổi của bạn với checklist “Pha thử”. Mục này không còn tồn tại.<span class="ann" style="right:-8px;top:-8px">R15</span></div>
+        <div class="h1">Thử công thức trà đào cam sả</div>
+        <div class="card" style="padding-bottom:4px">
+          <div class="clhead"><span class="body strong grow">Nguyên liệu</span><span class="cap12 strong">3/3</span></div>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="grow done-t">Trà đen Cozy 500g</span></div>
+          <div class="item"><span class="cb on"></span><span class="grow done-t">Đào ngâm hộp</span></div>
+          <div class="item"><span class="cb on"></span><span class="grow done-t">Sả tươi, cam vàng</span></div>
+        </div>
+        <div class="lbl" style="margin-top:8px">Đang tải (lần đầu mở, chưa có bản lưu):</div>
+        <div class="sk" style="height:30px;width:70%"></div>
+        <div class="sk" style="height:110px;border-radius:16px"></div>
+        <div class="sk" style="height:44px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LABELS ============ -->
+<h2 class="group">3. Chọn nhãn và quản lý nhãn</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">3a. Gắn nhãn cho công việc (sheet)<small>Mở từ “Sửa” cạnh Nhãn, ở màn Công việc và form Sửa công việc. Chạm để gắn/bỏ, lưu ngay. Tối đa 10 nhãn mỗi công việc.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet rel">
+        <span class="ann" style="right:12px;top:-10px">R18</span>
+        <div class="grab"></div>
+        <div class="sheethead"><span class="h2">Nhãn</span><span class="link">Xong</span></div>
+        <div class="card flush">
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-red">Gấp</span></span></div>
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-orange">Mua sắm</span></span></div>
+          <div class="rowline"><span class="cb on"></span><span class="grow"><span class="chip lg c-green">Pha chế</span></span></div>
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-purple">Thiết bị</span></span></div>
+          <div class="rowline"><span class="cb on"></span><span class="grow"><span class="chip lg c-blue">Thử nghiệm</span></span></div>
+          <div class="rowline"><span class="cb"></span><span class="grow"><span class="chip lg c-gray">Giấy tờ</span></span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span class="link">＋ Nhãn mới</span><span class="link">Quản lý nhãn ›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">3b. Nhãn mới: tên và màu<small>8 màu cố định, mỗi ô có tên màu (không chỉ màu). Xem trước nhãn ở trên. Tạo xong thì nhãn được gắn luôn vào công việc.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet rel" style="padding-bottom:22px">
+        <span class="ann" style="right:12px;top:-10px">R18 R21</span>
+        <div class="grab"></div>
+        <div class="sheethead"><span class="link">Huỷ</span><span class="h2">Nhãn mới</span><span style="width:40px"></span></div>
+        <div style="text-align:center"><span class="chip lg c-teal">Khai trương</span></div>
+        <div><div class="lbl" style="margin-bottom:6px">Tên nhãn</div><div class="field focus">Khai trương|</div></div>
+        <div>
+          <div class="lbl" style="margin-bottom:6px">Màu</div>
+          <div class="swatches">
+            <div class="sw c-gray">Xám</div><div class="sw c-red">Đỏ</div><div class="sw c-orange">Cam</div><div class="sw c-yellow">Vàng</div>
+            <div class="sw c-green">Lục</div><div class="sw c-teal sel">Ngọc</div><div class="sw c-blue">Lam</div><div class="sw c-purple">Tím</div>
+          </div>
+        </div>
+        <div class="btn pri">Tạo nhãn</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">3c. Tên nhãn bị trùng<small>Kiểm tra ngay trên máy (không phân biệt hoa thường, bỏ khoảng trắng) với các nhãn đang có; server cũng từ chối.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet rel" style="padding-bottom:22px">
+        <span class="ann" style="right:12px;top:-10px">R6</span>
+        <div class="grab"></div>
+        <div class="sheethead"><span class="link">Huỷ</span><span class="h2">Nhãn mới</span><span style="width:40px"></span></div>
+        <div><div class="lbl" style="margin-bottom:6px">Tên nhãn</div><div class="field err"> pha chế |</div>
+          <div class="errmsg">⚠ Dự án đã có nhãn “Pha chế”.</div></div>
+        <div>
+          <div class="lbl" style="margin-bottom:6px">Màu</div>
+          <div class="swatches">
+            <div class="sw c-gray">Xám</div><div class="sw c-red">Đỏ</div><div class="sw c-orange">Cam</div><div class="sw c-yellow">Vàng</div>
+            <div class="sw c-green sel">Lục</div><div class="sw c-teal">Ngọc</div><div class="sw c-blue">Lam</div><div class="sw c-purple">Tím</div>
+          </div>
+        </div>
+        <div class="btn pri" style="opacity:.5">Tạo nhãn</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">3d. Dự án chưa có nhãn nào<small>Sheet chọn nhãn khi trống: lời mời tạo nhãn đầu tiên.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="sheethead"><span class="h2">Nhãn</span><span class="link">Xong</span></div>
+        <div class="h2" style="font-size:15px">Dự án chưa có nhãn</div>
+        <div class="body" style="color:var(--text2);margin-top:-8px">Tạo nhãn để nhóm các công việc, ví dụ “Mua sắm” hay “Pha chế”.</div>
+        <div class="btn sec">＋ Nhãn mới</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="shot">
+    <div class="cap">3e. Màn Nhãn, thành viên (Member)<small>Chạm một nhãn để đổi tên/màu. Member không thấy nút xoá; một dòng chú thích nói ai xoá được.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Nhãn</span></div>
+      <div class="scr rel">
+        <span class="ann" style="right:12px;top:0">R19</span>
+        <div class="card flush">
+          <div class="rowline"><span class="grow"><span class="chip lg c-red">Gấp</span></span><span class="chev-r">›</span></div>
+          <div class="rowline"><span class="grow"><span class="chip lg c-orange">Mua sắm</span></span><span class="chev-r">›</span></div>
+          <div class="rowline"><span class="grow"><span class="chip lg c-green">Pha chế</span></span><span class="chev-r">›</span></div>
+          <div class="rowline"><span class="grow"><span class="chip lg c-purple">Thiết bị</span></span><span class="chev-r">›</span></div>
+          <div class="rowline"><span class="grow"><span class="chip lg c-blue">Thử nghiệm</span></span><span class="chev-r">›</span></div>
+          <div class="rowline"><span class="grow"><span class="chip lg c-gray">Giấy tờ</span></span><span class="chev-r">›</span></div>
+        </div>
+        <div class="cap12">Chỉ Chủ dự án mới xoá được nhãn. 6/50 nhãn.</div>
+        <div class="btn sec">＋ Nhãn mới</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">3f. Sửa nhãn, Chủ dự án (Owner)<small>Cùng sheet với Nhãn mới, thêm nút xoá đặt tách khỏi nút Lưu.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Nhãn</span></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet rel" style="padding-bottom:22px">
+        <span class="ann" style="right:12px;top:-10px">R7 R19</span>
+        <div class="grab"></div>
+        <div class="sheethead"><span class="link">Huỷ</span><span class="h2">Sửa nhãn</span><span style="width:40px"></span></div>
+        <div style="text-align:center"><span class="chip lg c-purple">Thiết bị</span></div>
+        <div><div class="lbl" style="margin-bottom:6px">Tên nhãn</div><div class="field">Thiết bị</div></div>
+        <div>
+          <div class="lbl" style="margin-bottom:6px">Màu</div>
+          <div class="swatches">
+            <div class="sw c-gray">Xám</div><div class="sw c-red">Đỏ</div><div class="sw c-orange">Cam</div><div class="sw c-yellow">Vàng</div>
+            <div class="sw c-green">Lục</div><div class="sw c-teal">Ngọc</div><div class="sw c-blue">Lam</div><div class="sw c-purple sel">Tím</div>
+          </div>
+        </div>
+        <div class="btn pri">Lưu</div>
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px"><div class="btn dan">Xoá nhãn</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">3g. Xác nhận xoá nhãn<small>Nêu tên nhãn và nói rõ nhãn bị gỡ khỏi mọi công việc.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Nhãn</span></div>
+      <div class="scr" style="opacity:.5"><div class="card flush"><div class="rowline"><span class="chip lg c-purple">Thiết bị</span></div></div></div>
+      <div class="sheet-dim"></div>
+      <div class="dialog rel">
+        <span class="ann" style="right:-6px;top:-8px">R19</span>
+        <div class="t">Xoá nhãn “Thiết bị”?</div>
+        <div class="m">Nhãn sẽ bị gỡ khỏi mọi công việc đang dùng nó. Không thể hoàn tác.</div>
+        <div class="acts"><div>Huỷ</div><div class="d">Xoá</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">3h. Chế độ tối<small>Cùng màn 1a ở chế độ tối: nền màu tối, chữ sáng, vẫn đọc được tên nhãn.</small></div>
+    <div class="phone dark">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span></div>
+      <div class="scr">
+        <div class="card">
+          <div class="body strong">Thử công thức trà đào cam sả</div>
+          <div class="meta" style="margin-top:4px"><span class="status">Đang làm</span><span class="cap12">Lan, Huy</span></div>
+          <div class="meta" style="margin-top:8px">
+            <span class="chips"><span class="chip c-green">Pha chế</span><span class="chip c-blue">Thử nghiệm</span></span>
+            <span class="prog" style="margin-left:auto"><span class="box">✓</span>3/7 mục</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="body strong">Mua máy xay và ly nhựa</div>
+          <div class="meta" style="margin-top:8px">
+            <span class="chips"><span class="chip c-orange">Mua sắm</span><span class="chip c-red">Gấp</span><span class="chip c-purple">Thiết bị</span><span class="chip more">+2</span></span>
+            <span class="prog" style="margin-left:auto"><span class="box"></span>0/4 mục</span>
+          </div>
+        </div>
+        <div class="card" style="padding-bottom:4px">
+          <div class="clhead"><span class="body strong grow">Nguyên liệu</span><span class="cap12 strong">2/3</span><span class="more-btn">⋯</span></div>
+          <div class="bar"><i style="width:66%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="grow done-t">Trà đen Cozy 500g</span></div>
+          <div class="item"><span class="cb"></span><span class="grow">Sả tươi, cam vàng</span></div>
+        </div>
+        <div class="swatches">
+          <div class="sw c-gray">Xám</div><div class="sw c-red">Đỏ</div><div class="sw c-orange">Cam</div><div class="sw c-yellow">Vàng</div>
+          <div class="sw c-green">Lục</div><div class="sw c-teal">Ngọc</div><div class="sw c-blue">Lam</div><div class="sw c-purple">Tím</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ THEME ============ -->
+<h2 class="group">5. Cài đặt: Giao diện (R24), bấm thử được</h2>
+<style>
+  .thm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; position:relative; }
+  .thm { position:relative; z-index:1; height:84px; border-radius:14px; background:var(--field); border:1px solid transparent;
+         display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer;
+         color:var(--text2); font-size:13px; font-weight:600; transition:transform 120ms, color 250ms, background 250ms, border-color 250ms; user-select:none; }
+  .thm:active { transform:scale(.97); }
+  .thm .ic { display:flex; transition:transform 300ms cubic-bezier(.2,.8,.2,1); }
+  .thm .ok { position:absolute; top:6px; right:8px; color:var(--accent); font-weight:800; font-size:13px; opacity:0; transform:scale(.6); transition:opacity 200ms, transform 200ms; }
+  .thm.sel { background:var(--tile); border-color:var(--tileBorder); color:var(--text); }
+  .thm.sel .ic { color:var(--accent); }
+  .thm.sel .ok { opacity:1; transform:scale(1); }
+  .thm.sel[data-v=light] .ic { transform:rotate(90deg) scale(1.12); }
+  .thm.sel[data-v=dark] .ic { transform:rotate(-20deg) scale(1.12); }
+  .thm.sel[data-v=system] .ic { transform:translateY(-2px) scale(1.12); }
+  .phone.anim, .phone.anim * { transition:background-color 300ms, color 300ms, border-color 300ms; }
+</style>
+<div class="row">
+  <div class="shot">
+    <div class="cap">5a. Cài đặt: Giao diện<small>3 ô ngang, mỗi ô có icon và tên. Ô được chọn: nền tile, icon cam, dấu ✓ (không chỉ dựa vào màu). Chạm vào: ô nhún (motion.press), icon xoay/phóng nhẹ (mặt trời xoay 90°, trăng nghiêng, điện thoại nhấc lên), cả màn chuyển màu mượt 300ms. Bật Reduce Motion thì chỉ còn đổi màu mờ dần.</small></div>
+    <div class="phone anim" id="thmPhone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Cài đặt</span></div>
+      <div class="scr">
+        <div><div class="h2" style="margin-bottom:8px">Hồ sơ</div>
+          <div class="card"><div class="body strong">Lan Hương</div><div class="cap12">lan@example.com</div></div></div>
+        <div><div class="h2" style="margin-bottom:8px">Ngôn ngữ</div>
+          <div class="card flush">
+            <div class="rowline"><span class="body grow">Tiếng Việt</span><span style="color:var(--accent);font-weight:800">✓</span></div>
+            <div class="rowline"><span class="body grow">English</span></div>
+          </div></div>
+        <div class="rel"><span class="ann" style="right:0;top:0">R24</span><div class="h2" style="margin-bottom:8px">Giao diện</div>
+          <div class="thm-grid" role="radiogroup">
+            <div class="thm sel" data-v="system" role="radio"><span class="ok">✓</span><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>Theo hệ thống</div>
+            <div class="thm" data-v="light" role="radio"><span class="ok">✓</span><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></span>Sáng</div>
+            <div class="thm" data-v="dark" role="radio"><span class="ok">✓</span><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg></span>Tối</div>
+          </div>
+          <div class="cap12" style="margin-top:8px" id="thmNote">Đang theo điện thoại (sáng).</div>
+        </div>
+        <div class="btn dan">Đăng xuất</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    var phone = document.getElementById('thmPhone'), note = document.getElementById('thmNote');
+    var notes = { system: 'Đang theo điện thoại (sáng).', light: 'Luôn dùng giao diện sáng.', dark: 'Luôn dùng giao diện tối.' };
+    phone.querySelectorAll('.thm').forEach(function (el) {
+      el.addEventListener('click', function () {
+        phone.querySelectorAll('.thm').forEach(function (o) { o.classList.remove('sel'); });
+        el.classList.add('sel');
+        phone.classList.toggle('dark', el.dataset.v === 'dark');
+        note.textContent = notes[el.dataset.v];
+      });
+    });
+  })();
+</script>
+
+<!-- ============ PALETTE ============ -->
+<h2 class="group">4. Bảng màu nhãn (R21)</h2>
+<div class="legend">
+  <p>Thêm vào front matter của DESIGN.md dưới <code>labelColors</code> và vào <code>theme/tokens.ts</code>. Server chỉ lưu khoá màu (<code>gray</code>…<code>purple</code>), nên chỉnh sắc độ sau này không cần migration. Mọi cặp chữ/nền đạt ≥ 4.5:1 (kiểm bằng test khi Build). Không màu nào trùng màu accent <code>#F4511E</code>.</p>
+  <table class="pal">
+    <tr><th>Khoá</th><th>Sáng: nền / chữ</th><th>Mẫu</th><th>Tối: nền / chữ</th><th>Mẫu</th></tr>
+    <tr><td>gray · Xám</td><td>#EEEEEE / #3F3F3F</td><td><span class="chip lg c-gray">Giấy tờ</span></td><td>#2C2C2C / #D6D6D6</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-gray">Giấy tờ</span></td></tr>
+    <tr><td>red · Đỏ</td><td>#FBE4E2 / #8C1D18</td><td><span class="chip lg c-red">Gấp</span></td><td>#3A1D1B / #F2B8B5</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-red">Gấp</span></td></tr>
+    <tr><td>orange · Cam</td><td>#FDE8D7 / #8A3A0B</td><td><span class="chip lg c-orange">Mua sắm</span></td><td>#3A2414 / #F5C29A</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-orange">Mua sắm</span></td></tr>
+    <tr><td>yellow · Vàng</td><td>#FBF0C9 / #6B5200</td><td><span class="chip lg c-yellow">Chờ duyệt</span></td><td>#352C10 / #EBD58A</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-yellow">Chờ duyệt</span></td></tr>
+    <tr><td>green · Lục</td><td>#DFF1E6 / #1B5E3A</td><td><span class="chip lg c-green">Pha chế</span></td><td>#17301F / #9ED8B4</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-green">Pha chế</span></td></tr>
+    <tr><td>teal · Ngọc</td><td>#DCEFEE / #155E5A</td><td><span class="chip lg c-teal">Khai trương</span></td><td>#133130 / #93D4CF</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-teal">Khai trương</span></td></tr>
+    <tr><td>blue · Lam</td><td>#E1EAF8 / #1E4A8A</td><td><span class="chip lg c-blue">Thử nghiệm</span></td><td>#172639 / #A9C4EE</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-blue">Thử nghiệm</span></td></tr>
+    <tr><td>purple · Tím</td><td>#ECE4F6 / #5B2E8C</td><td><span class="chip lg c-purple">Thiết bị</span></td><td>#2A1E3A / #CDB6EE</td><td class="dark" style="background:#1C1C1C"><span class="chip lg c-purple">Thiết bị</span></td></tr>
+  </table>
+  <p style="margin-bottom:40px">Lưu ý: icon trong mockup là ký tự thay thế; app dùng Ionicons outline như các màn #6.</p>
+</div>
+</body>
+</html>

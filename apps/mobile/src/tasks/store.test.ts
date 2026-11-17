@@ -7,6 +7,7 @@ import {
   applyTaskOverlay,
   clearTaskCache,
   emptyTaskCache,
+  isTask,
   loadTaskCache,
   openTaskCache,
   pruneTaskCache,
@@ -140,7 +141,45 @@ describe("task cache", () => {
       filters: { p1: { status: "doing", mine: true, dueSoon: true } },
     });
     const loaded = await loadTaskCache(store, "u1");
-    expect(loaded?.filters.p1).toEqual({ status: "doing", mine: true, onlyMe: false, dueSoon: true });
+    expect(loaded?.filters.p1).toEqual({ status: "doing", mine: true, onlyMe: false, dueSoon: true, labelIds: [] });
+  });
+
+  it("tasks and filters saved before labels existed load with none", async () => {
+    const store = createMemoryStore();
+    const { labelIds: _l, checklists: _c, ...old } = makeTask();
+    await store.setJSON("tasks.cache.v1", {
+      ownerId: "u1",
+      byProject: { p1: [old] },
+      filters: { p1: { status: "all", mine: false, onlyMe: false, dueSoon: false } },
+    });
+    const loaded = await loadTaskCache(store, "u1");
+    expect(loaded?.byProject.p1[0].labelIds).toEqual([]);
+    expect(loaded?.byProject.p1[0].checklists).toEqual([]);
+    expect(loaded?.filters.p1.labelIds).toEqual([]);
+  });
+
+  it("a cached task with a malformed checklist makes the whole copy untrusted", async () => {
+    const store = createMemoryStore();
+    const bad = { ...makeTask(), checklists: [{ id: "c1", name: "List" }] };
+    await store.setJSON("tasks.cache.v1", { ownerId: "u1", byProject: { p1: [bad] }, filters: {} });
+    expect(await loadTaskCache(store, "u1")).toBeNull();
+    const badItem = { ...makeTask(), checklists: [{ id: "c1", name: "List", items: [{ id: "i1", text: "x" }] }] };
+    await store.setJSON("tasks.cache.v1", { ownerId: "u1", byProject: { p1: [badItem] }, filters: {} });
+    expect(await loadTaskCache(store, "u1")).toBeNull();
+  });
+
+  it("a cached task with a well-formed checklist loads", async () => {
+    const store = createMemoryStore();
+    const checklists = [
+      { id: "c1", name: "List", createdAt: "2026-11-01T00:00:00.000Z", items: [{ id: "i1", text: "x", done: true, createdAt: "2026-11-01T00:00:00.000Z" }] },
+    ];
+    await saveTaskCache(store, setProjectTasks(emptyTaskCache("u1"), "p1", [makeTask({ checklists })]));
+    expect((await loadTaskCache(store, "u1"))?.byProject.p1[0].checklists).toEqual(checklists);
+  });
+
+  it("isTask rejects a server task whose checklist lacks items", () => {
+    expect(isTask({ ...makeTask(), checklists: [{ id: "c1", name: "List" }] })).toBe(false);
+    expect(isTask({ ...makeTask(), checklists: [{ id: "c1", name: "List", items: [] }] })).toBe(true);
   });
 
   it("clear removes it", async () => {
@@ -158,6 +197,7 @@ describe("openTaskCache: the decision is acted on, not just returned", () => {
       mine: true,
       onlyMe: false,
       dueSoon: false,
+      labelIds: [],
     });
 
   it("returns the saved copy for the same owner", async () => {
@@ -190,7 +230,7 @@ describe("cache helpers", () => {
   it("setProjectTasks and setProjectFilters do not change their input", () => {
     const base = emptyTaskCache("u1");
     setProjectTasks(base, "p1", [makeTask()]);
-    setProjectFilters(base, "p1", { status: "all", mine: false, onlyMe: false, dueSoon: true });
+    setProjectFilters(base, "p1", { status: "all", mine: false, onlyMe: false, dueSoon: true, labelIds: [] });
     expect(base).toEqual(emptyTaskCache("u1"));
   });
 
@@ -198,7 +238,7 @@ describe("cache helpers", () => {
     let cache = emptyTaskCache("u1");
     cache = setProjectTasks(cache, "p1", [makeTask()]);
     cache = setProjectTasks(cache, "p2", [makeTask({ id: "x", projectId: "p2" })]);
-    cache = setProjectFilters(cache, "p2", { status: "all", mine: true, onlyMe: false, dueSoon: false });
+    cache = setProjectFilters(cache, "p2", { status: "all", mine: true, onlyMe: false, dueSoon: false, labelIds: [] });
     const pruned = pruneTaskCache(cache, ["p1"]);
     expect(Object.keys(pruned.byProject)).toEqual(["p1"]);
     expect(pruned.filters).toEqual({});

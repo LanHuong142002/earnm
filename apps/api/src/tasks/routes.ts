@@ -38,6 +38,11 @@ const assigneeIdsSchema = z
   .max(20)
   .refine((ids) => new Set(ids).size === ids.length, "Each person can be listed once.");
 
+const labelIdsSchema = z
+  .array(z.uuid())
+  .max(10)
+  .refine((ids) => new Set(ids).size === ids.length, "Each label can be listed once.");
+
 const dueValueSchema = z
   .object({ date: realDate, time: timeSchema.nullable().default(null) })
   .strict()
@@ -73,6 +78,7 @@ const patchSchema = z
         status: change(statusSchema).optional(),
         due: change(dueValueSchema).optional(),
         assignees: change(assigneeIdsSchema).optional(),
+        labels: change(labelIdsSchema).optional(),
       })
       .strict()
       .refine((f) => Object.keys(f).length > 0, "At least one field is required."),
@@ -85,6 +91,12 @@ const taskInclude = {
   assignees: {
     include: { user: { select: { id: true, displayName: true } } },
     orderBy: [{ user: { displayName: "asc" } }, { userId: "asc" }],
+  },
+  // Label ids come back sorted by id, so the order is stable.
+  labels: { orderBy: [{ labelId: "asc" }] },
+  checklists: {
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    include: { items: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] } },
   },
 } satisfies Prisma.TaskInclude;
 
@@ -101,6 +113,18 @@ function toResponse(task: TaskRow) {
     dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null,
     dueTime: task.dueTime,
     assignees: task.assignees.map((a) => ({ id: a.user.id, displayName: a.user.displayName })),
+    labelIds: task.labels.map((l) => l.labelId),
+    checklists: task.checklists.map((c) => ({
+      id: c.id,
+      name: c.name,
+      createdAt: c.createdAt.toISOString(),
+      items: c.items.map((i) => ({
+        id: i.id,
+        text: i.text,
+        done: i.done,
+        createdAt: i.createdAt.toISOString(),
+      })),
+    })),
     createdById: task.createdById,
     createdAt: task.createdAt.toISOString(),
   };
@@ -230,6 +254,7 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
               statusEditedAt: editedAt,
               dueEditedAt: editedAt,
               assigneesEditedAt: editedAt,
+              labelsEditedAt: editedAt,
               createdById: userId,
               assignees: { create: body.assigneeIds.map((id) => ({ userId: id })) },
             },
@@ -299,6 +324,23 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
             await tx.taskAssignee.createMany({
               data: ids.map((id) => ({ taskId, userId: id })),
             });
+            return;
+          }
+          if ("labels" in data) {
+            // Claim the field's time first. Only the request that wins checks and replaces the rows.
+            const claimed = await tx.task.updateMany({
+              where: scope,
+              data: { labelsEditedAt: data["labelsEditedAt"] as Date },
+            });
+            if (claimed.count !== 1) return;
+            const ids = data["labels"] as string[];
+            const count = await tx.label.count({ where: { projectId, id: { in: ids } } });
+            // Throwing rolls the claim back too, so a refused set changes nothing.
+            if (count !== ids.length) {
+              throw new AppError(400, "validation_failed", "Invalid fields: labels.");
+            }
+            await tx.taskLabel.deleteMany({ where: { taskId } });
+            await tx.taskLabel.createMany({ data: ids.map((labelId) => ({ taskId, labelId })) });
             return;
           }
           await tx.task.updateMany({ where: scope, data } as Prisma.TaskUpdateManyArgs);

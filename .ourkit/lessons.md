@@ -15,3 +15,7 @@
 - [quality] Before hand-testing on a phone, run db:deploy on the dev database; a missing migration made every new endpoint 500, which the app showed as offline and hid the real bugs.
 - [quality] Screens that need the signed-in user must fall back to the stored identity while the profile request is pending; gating on the live profile hid the Owner's delete control and emptied the assignee picker.
 - [cost] Reviewing each fix with full fresh reviews produced four rounds of new findings; after the first round, review only the fix commits and agree up front that new non-blocking nits go to the report.
+- [quality] On the phone queue, send a set field that depends on another item's create (task labels) as its own change; folding it into the task change caused three blocking findings.
+- [quality] Migrations run before the new server starts (render.yaml), so never DROP DEFAULT on a new NOT NULL column in the same release; the running server's inserts would fail.
+- [quality] Tests that poll pg_stat_activity inside a transaction must call pg_stat_clear_snapshot() each poll; the cached snapshot made a lock test fail once the request got 50ms slower.
+- [cost] When running implementers in parallel, let only one run the API suite at a time; two on the shared test DB gave false failures again.

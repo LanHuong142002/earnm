@@ -5,7 +5,8 @@ const path = require('path');
 
 const BASELINE_PATH = path.join('.ourkit', 'baseline.json');
 // The kit's own folders aren't the project's code, and installing them mustn't count as a change.
-const KIT_FOLDERS = ['.ourkit', '.claude'];
+// .gitattributes holds the block that marks the kit's files as generated (ADR 0015).
+const KIT_FOLDERS = ['.ourkit', '.claude', '.gitattributes'];
 
 function git(projectDir, args) {
   const result = spawnSync('git', args, { cwd: projectDir, encoding: 'utf8' });

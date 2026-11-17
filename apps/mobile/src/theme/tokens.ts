@@ -57,6 +57,33 @@ export const colors: { light: ColorSet; dark: ColorSet } = {
   },
 };
 
+export type LabelColour = "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+
+export type LabelColourPair = { bg: string; text: string };
+
+export const labelColors: { light: Record<LabelColour, LabelColourPair>; dark: Record<LabelColour, LabelColourPair> } = {
+  light: {
+    gray: { bg: "#EEEEEE", text: "#3F3F3F" },
+    red: { bg: "#FBE4E2", text: "#8C1D18" },
+    orange: { bg: "#FDE8D7", text: "#8A3A0B" },
+    yellow: { bg: "#FBF0C9", text: "#6B5200" },
+    green: { bg: "#DFF1E6", text: "#1B5E3A" },
+    teal: { bg: "#DCEFEE", text: "#155E5A" },
+    blue: { bg: "#E1EAF8", text: "#1E4A8A" },
+    purple: { bg: "#ECE4F6", text: "#5B2E8C" },
+  },
+  dark: {
+    gray: { bg: "#2C2C2C", text: "#D6D6D6" },
+    red: { bg: "#3A1D1B", text: "#F2B8B5" },
+    orange: { bg: "#3A2414", text: "#F5C29A" },
+    yellow: { bg: "#352C10", text: "#EBD58A" },
+    green: { bg: "#17301F", text: "#9ED8B4" },
+    teal: { bg: "#133130", text: "#93D4CF" },
+    blue: { bg: "#172639", text: "#A9C4EE" },
+    purple: { bg: "#2A1E3A", text: "#CDB6EE" },
+  },
+};
+
 export const fontFamily = {
   regular: "PlusJakartaSans_400Regular",
   semiBold: "PlusJakartaSans_600SemiBold",

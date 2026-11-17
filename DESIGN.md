@@ -35,6 +35,25 @@ colors:
     dangerBg: "#3A1715"
     success: "#6FCF97"
   heroGradient: ["#C2410C", "#7A2A12"]   # optional; the banner uses accentStrong flat. White text only, both modes
+labelColors:                  # label chips: tinted bg + dark text, never accent
+  light:
+    gray: { bg: "#EEEEEE", text: "#3F3F3F" }
+    red: { bg: "#FBE4E2", text: "#8C1D18" }
+    orange: { bg: "#FDE8D7", text: "#8A3A0B" }
+    yellow: { bg: "#FBF0C9", text: "#6B5200" }
+    green: { bg: "#DFF1E6", text: "#1B5E3A" }
+    teal: { bg: "#DCEFEE", text: "#155E5A" }
+    blue: { bg: "#E1EAF8", text: "#1E4A8A" }
+    purple: { bg: "#ECE4F6", text: "#5B2E8C" }
+  dark:
+    gray: { bg: "#2C2C2C", text: "#D6D6D6" }
+    red: { bg: "#3A1D1B", text: "#F2B8B5" }
+    orange: { bg: "#3A2414", text: "#F5C29A" }
+    yellow: { bg: "#352C10", text: "#EBD58A" }
+    green: { bg: "#17301F", text: "#9ED8B4" }
+    teal: { bg: "#133130", text: "#93D4CF" }
+    blue: { bg: "#172639", text: "#A9C4EE" }
+    purple: { bg: "#2A1E3A", text: "#CDB6EE" }
 typography:
   family: "Plus Jakarta Sans"   # bundled with the app, weights 400, 600, 800 only
   screenTitle: { size: 24, weight: 800, lineHeight: 30 }
@@ -99,6 +118,8 @@ A small, warm tool. Orange is the one accent. Rounded corners, bold short headin
 - **Header back:** the platform chevron at `iconSize.md`, inset by `header.backInset` so it lines up with `screenPadding`, with a 44×44 touch area and an accessible label.
 - **Section header:** `sectionTitle` on the left, an optional "see all" link on the right. An `overline` in `accent` is allowed above the current project name.
 - **Choice (radio or checkbox):** a row inside a card. The selected row shows a ✓ icon in `accent`, never colour alone. A checkbox is 20px, `radius.checkbox`, and filled `accent` with an `onAccent` tick when done. Done text uses `textSecondary` with a line through it.
+- **Label chip:** a `radius.pill` tint from `labelColors`, with the label's name always shown in `label`/`caption` weight 600 on that tint. Sizes: sm 12px with 2×9 padding, md 13px with 4×11. Never `accent`. Colour is never the only sign, so the name stays visible.
+- **Checklist:** one Card per checklist. The name in `bodyStrong` with its own progress count, then a 4px progress bar in `accent` on `field`. Item rows are at least 44pt high with the 20px checkbox; done text is struck through in `textSecondary`. A "＋ Thêm mục" text link ends the card.
 - **Icons:** one outline icon set, 20–22px, in `accent` or `textSecondary`.
 
 ## States

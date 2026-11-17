@@ -13,6 +13,8 @@ export function makeTask(overrides: Partial<Task> = {}): Task {
     assignees: [],
     createdById: "u1",
     createdAt: "2026-11-01T08:00:00.000Z",
+    labelIds: [],
+    checklists: [],
     ...overrides,
   };
 }

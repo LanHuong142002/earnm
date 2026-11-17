@@ -35,7 +35,7 @@ export default function TaskListScreen() {
   const { identity } = useAuth();
   const { status, projects } = useProjects();
   const tasks = useTasks();
-  const { ready, refresh, tasksFor, filtersFor, setFilters, setStatus } = tasks;
+  const { ready, refresh, tasksFor, labelsFor, filtersFor, setFilters, setStatus } = tasks;
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
 
@@ -80,9 +80,10 @@ export default function TaskListScreen() {
 
   const all = tasksFor(project.id);
   const filters = ready ? filtersFor(project.id) : DEFAULT_FILTERS;
-  const shown = visibleTasks(all, filters, identity?.id ?? "", now);
+  const labels = labelsFor(project.id);
+  const shown = visibleTasks(all, filters, identity?.id ?? "", now, labels);
   const listState = taskListState({ ready, cachedCount: all.length, loaded: load.loaded, failed: load.failed });
-  const filtered = filters.status !== "all" || filters.mine || filters.onlyMe || filters.dueSoon;
+  const filtered = filters.status !== "all" || filters.mine || filters.onlyMe || filters.dueSoon || filters.labelIds.length > 0;
 
   const open = (task: Task) =>
     once(() =>
@@ -93,6 +94,7 @@ export default function TaskListScreen() {
       key={task.id}
       task={task}
       now={now}
+      labels={labels}
       onOpen={() => open(task)}
       onChangeStatus={() => showStatusPicker(t, task.status, (next) => void setStatus(project.id, task.id, next))}
     />
@@ -118,7 +120,7 @@ export default function TaskListScreen() {
       <OfflineNote />
       <TaskRejectedNotice />
       <Enter index={2}>
-        <FilterBar filters={filters} onChange={(next) => void setFilters(project.id, next)} />
+        <FilterBar filters={filters} projectId={project.id} labels={labels} onChange={(next) => void setFilters(project.id, next)} />
       </Enter>
       <Enter index={3}>
         {listState === "error" ? (
