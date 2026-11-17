@@ -58,6 +58,7 @@ model User {
   invitesUsed    Invite[]        @relation("InviteUsedBy")
   createdTasks   Task[]          @relation("TaskCreator")
   assignments    TaskAssignee[]
+  taskComments   TaskComment[]
 }
 
 model ProjectMember {
@@ -113,7 +114,7 @@ model Task {
   statusEditedAt      DateTime
   dueEditedAt         DateTime
   assigneesEditedAt   DateTime
-  labelsEditedAt      DateTime @default(now())
+  labelsEditedAt      DateTime       @default(now())
   createdById         String?
   createdBy           User?          @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt           DateTime       @default(now())
@@ -121,8 +122,25 @@ model Task {
   assignees           TaskAssignee[]
   checklists          Checklist[]
   labels              TaskLabel[]
+  comments            TaskComment[]
 
   @@index([projectId])
+}
+
+model TaskComment {
+  id                 String   @id
+  taskId             String
+  task               Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId           String?
+  author             User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  text               String
+  textEditedAt       DateTime @default(now())
+  edited             Boolean  @default(false)
+  remindWith         Boolean  @default(false)
+  remindWithEditedAt DateTime @default(now())
+  createdAt          DateTime @default(now())
+
+  @@index([taskId, createdAt, id])
 }
 
 model TaskAssignee {
