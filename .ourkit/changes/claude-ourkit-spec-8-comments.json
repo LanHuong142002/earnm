@@ -312,5 +312,22 @@
       "what": "#8 comments: appearance and accessibility (AC26)",
       "steps": "Switch the app between light and dark, and between VI and EN: text fits, colours follow DESIGN.md. Turn on VoiceOver: the bell, send button, sort button and Sửa/Xoá read meaningful names."
     }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#8: 'Người liên quan' is read as the task's creator plus its assignees, since the app has no 'invite to a task'. Is that what you meant? Recommendation: yes; an explicit 'follow task' could come later.",
+      "answer": null
+    },
+    {
+      "id": 2,
+      "question": "#8: 'Đã xem hết bình luận' shows only when a task has more than 5 comments (spec says whenever all are shown). Keep? Recommendation: keep.",
+      "answer": null
+    },
+    {
+      "id": 3,
+      "question": "#8: Owners can't delete other people's comments (author-only, as chosen at the mockup review). Keep, or let Owners moderate? Recommendation: keep for now.",
+      "answer": null
+    }
   ]
 }
