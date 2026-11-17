@@ -329,5 +329,7 @@
       "question": "#8: Owners can't delete other people's comments (author-only, as chosen at the mockup review). Keep, or let Owners moderate? Recommendation: keep for now.",
       "answer": null
     }
-  ]
+  ],
+  "shipApproval": "23d412a635f181991e867036c6eb315a95c33d076f5004452fd0ed4282f8b35c",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/40"
 }

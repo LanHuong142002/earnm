@@ -8,3 +8,4 @@
 | 2026-11-12 | Owners can invite people with a single-use link (#5) | feature | Single-use HMAC-stored invite codes with an API-served invite page, member list and role changes under a project row lock, and phone avatar row, Members, Join and profile screens. | https://github.com/LanHuong142002/earnm/pull/29 |
 | 2026-11-12 | #6 Tasks | feature | Tasks in a project with status, assignees, due date, filters and offline sync on the shared queue; reuses #5's members. | https://github.com/LanHuong142002/earnm/pull/30 |
 | 2026-11-17 | #7 checklists and colour labels | feature | Tasks get named checklists with x/y progress and project colour labels with a label filter; Settings gets an Appearance choice. | https://github.com/LanHuong142002/earnm/pull/37 |
+| 2026-11-17 | Comments on tasks (#8) | feature | Members comment on tasks in bubbles, 5 at a time, with a remind-with bell for involved people; works offline. | https://github.com/LanHuong142002/earnm/pull/40 |
