@@ -28,11 +28,23 @@
         }
       ],
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Earnm needs your photo library so you can attach photos to tasks.",
+          "cameraPermission": "Earnm needs your camera so you can take photos to attach to tasks.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "locales": {
+      "vi": "./locales/vi.json",
+      "en": "./locales/en.json"
     }
   }
 }

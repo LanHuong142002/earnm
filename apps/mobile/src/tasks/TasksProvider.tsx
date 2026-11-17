@@ -52,6 +52,9 @@ import {
 } from "./store";
 import { clearCommentCache, pruneCommentCache, updateCommentCache } from "./comments/store";
 import { registerCommentEntity } from "./comments/sync";
+import { clearPhotoCache, prunePhotoCache, updatePhotoCache } from "./photos/store";
+import { clearPendingFiles, photoDeps } from "./photos/realDeps";
+import { registerPhotoEntities } from "./photos/uploads";
 import { ITEM_ENTITY, TASK_LABELS_ENTITY, registerChecklistEntities, registerTaskEntity } from "./sync";
 import { createTaskSyncCycle, type RefreshResult } from "./syncCycle";
 import type { Label, Task, TaskAssignee, TaskStatus } from "./types";
@@ -241,6 +244,8 @@ export function TasksProvider({ children, members }: Props) {
     registerChecklistEntities(queue, c.handlers);
     // Comments keep their own refusals (retry or discard per comment), not the task-wide notice.
     registerCommentEntity(queue, asyncStorageStore);
+    // Photos too: an upload that is refused for good stays on its thumbnail to retry or discard.
+    registerPhotoEntities(queue, asyncStorageStore, photoDeps);
     return c;
   });
 
@@ -320,6 +325,9 @@ export function TasksProvider({ children, members }: Props) {
       try {
         await clearTaskCache(asyncStorageStore);
         await clearCommentCache(asyncStorageStore);
+        await clearPhotoCache(asyncStorageStore);
+        // Pictures waiting to upload belong to the person who took them.
+        clearPendingFiles();
       } catch {
         // Best effort.
       }
@@ -341,11 +349,12 @@ export function TasksProvider({ children, members }: Props) {
       Object.keys(pruned.labelsByProject).length === Object.keys(current.labelsByProject).length &&
       Object.keys(pruned.filters).length === Object.keys(current.filters).length;
     if (!same) void publish(pruned);
-    // The comments of those projects go too.
+    // The comments and photos of those projects go too.
     const owner = loadedOwnerRef.current;
     if (owner) {
       const ids = projects.map((p) => p.id);
       void updateCommentCache(asyncStorageStore, owner, (c) => pruneCommentCache(c, ids)).catch(() => {});
+      void updatePhotoCache(asyncStorageStore, owner, (c) => prunePhotoCache(c, ids)).catch(() => {});
     }
   }, [ready, projectsStatus, projects, publish]);
 

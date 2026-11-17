@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSPhotoLibraryUsageDescription": "Earnm needs your photo library so you can attach photos to tasks.",
+    "NSCameraUsageDescription": "Earnm needs your camera so you can take photos to attach to tasks."
+  }
+}
