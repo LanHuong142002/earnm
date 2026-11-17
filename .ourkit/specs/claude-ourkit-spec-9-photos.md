@@ -76,8 +76,19 @@ Tasks, checklists and (in #8) comments already follow these conventions: phone-c
 12. API test: a signed-out request gets `401`; a non-member gets `404` for every photo endpoint.
 13. API test: an older caption edit doesn't overwrite a newer one; changing a deleted photo gets `404`.
 14. API test: recording the same id twice on one task gives one photo; the same id on another task gets `409`.
-15–19. Unit test: the upload queue keeps a waiting photo across a reload, moves it through waiting, uploading, done or failed, and offers retry and discard. By hand: add a photo offline, see "Chờ mạng", go online, it uploads.
-20–27. By hand, against the mockup: section placement, the grid and "+N", the add choice, the limit line, the empty state for involved and non-involved members, the permission message, the viewer, captions, delete.
+15. By hand: photos seen on a task still show with the phone offline.
+16. Unit test: a waiting photo survives a reload of the upload queue. By hand: add a photo offline, see "Chờ mạng", restart the app, go online, it uploads.
+17. Unit test: the upload moves through waiting, uploading and done. By hand: "Đang tải" with a spinner while uploading.
+18. Unit test: a failed upload offers retry and discard, and discard deletes the local file. By hand: the failed thumbnail and its sheet.
+19. Unit test: an offline delete and caption change are queued and sent later.
+20. By hand, against the mockup: the Ảnh section sits below Checklist and above Bình luận, with "x/10" and "＋ Thêm" for involved people.
+21. By hand: thumbnails four per row, at most 8, "+N" on the 8th; tapping opens the viewer at that photo. Unit test: the grid.
+22. By hand: "＋ Thêm" offers "Chụp ảnh" and "Chọn từ thư viện" with the places left.
+23. By hand: with 10 photos "＋ Thêm" is disabled with the explaining line.
+24. By hand: the empty state for an involved member, and no section for a member who isn't involved.
+25. By hand: after refusing camera access, the message and the button that opens Settings.
+26. By hand: the viewer swipes, shows "n / total", caption, who and when; involved people see caption and delete controls; after a delete it moves on or closes.
+27. By hand: the caption sheet with Huỷ, Chú thích, Lưu and the 200-character limit; saving empty clears it.
 28. By hand: light and dark mode, VI and EN, VoiceOver names on thumbnails and buttons.
 29. Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing tasks, after #8's migration.
 30. API test: without the Cloudinary variables, photo endpoints answer `photos_unavailable` (503) and task endpoints still work.

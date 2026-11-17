@@ -48,6 +48,11 @@
       "id": 7,
       "decision": "Build #9 only after #8 is merged",
       "why": "Migration order (lesson) and the task screen's section order depend on #8"
+    },
+    {
+      "id": 8,
+      "decision": "Stacked #9 on the #8 branch instead of waiting for #8 to merge",
+      "why": "The user asked for both in one hands-off run; the photos migration then sorts after the comments migration and the task screen already has Bình luận. Merge #8 first."
     }
   ],
   "serviceActions": [
@@ -57,5 +62,6 @@
     "needed": true,
     "reason": null
   },
-  "mockupApproval": "cde022f51aeb1d4c420ec8abb6d067665d71b9ca194a16a673483bd6c30b95de"
+  "mockupApproval": "cde022f51aeb1d4c420ec8abb6d067665d71b9ca194a16a673483bd6c30b95de",
+  "planApproval": "df97d7843ea1c7150d4541259d466aa9e157c5a9a5f3bdd85a96b4eca70f94ce"
 }
