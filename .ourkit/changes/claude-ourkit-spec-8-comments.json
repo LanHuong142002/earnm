@@ -1,0 +1,58 @@
+{
+  "tier": "feature",
+  "tierReason": "Comments on tasks add a new table, sync data and API endpoints; fits one cycle",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "8",
+    "accepted": true
+  },
+  "ticket": "8",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature for #8, Sensitive Areas data, schema, api",
+      "why": "Comments add a new table, synced writes and API endpoints with permission checks; fits one cycle"
+    },
+    {
+      "id": 2,
+      "decision": "Involved people of a task are its creator plus its assignees",
+      "why": "The app has no 'invite to a task' yet; this matches Decision 13's 'people involved' and the user's answer at the mockup review"
+    },
+    {
+      "id": 3,
+      "decision": "Comments load per task from their own endpoint and are cached per task; the phone shows them 5 at a time",
+      "why": "Keeps the task list payload small while staying simple offline; a cap of 500 per task bounds one response"
+    },
+    {
+      "id": 4,
+      "decision": "At most 500 comments per task",
+      "why": "Bounds the per-task response and cache for a small team; easy to raise later"
+    },
+    {
+      "id": 5,
+      "decision": "Only the author edits or deletes a comment, Owners included",
+      "why": "The user chose author-only at the mockup review; moderation is out of scope"
+    },
+    {
+      "id": 6,
+      "decision": "Comments use their own router and table, copying the checklist router's pattern instead of refactoring it",
+      "why": "Keeps the change small; prior art reused: applyLastWriteWins, access helpers, the phone queue"
+    },
+    {
+      "id": 7,
+      "decision": "A permanently refused comment change stays on that comment as 'Couldn't send' with Retry/Discard, not the task-wide notice",
+      "why": "The mockup shows the failure on the comment itself"
+    }
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "c0b72c55cb4ead3c4530ae947869b8039f3103aba5a117f76cf8621cc4218921"
+}
