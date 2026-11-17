@@ -10,6 +10,7 @@ import { OfflineNote } from "../../../../../../../projects/OfflineNote";
 import { canAddChecklist, checklistSummary } from "../../../../../../../tasks/checklistView";
 import { ChecklistCard } from "../../../../../../../tasks/ChecklistCard";
 import { CommentsSection } from "../../../../../../../tasks/comments/CommentsSection";
+import { PhotosSection } from "../../../../../../../tasks/photos/PhotosSection";
 import { LabelsField } from "../../../../../../../tasks/LabelsField";
 import { NewChecklistField } from "../../../../../../../tasks/NewChecklistField";
 import { formatDue, isOverdue, type DueLanguage } from "../../../../../../../tasks/dueDate";
@@ -197,10 +198,13 @@ export default function TaskDetailsScreen() {
         </View>
       </Enter>
       <Enter index={2}>
+        <PhotosSection projectId={project.id} taskId={task.id} task={task} />
+      </Enter>
+      <Enter index={3}>
         <CommentsSection projectId={project.id} taskId={task.id} task={task} />
       </Enter>
       {canDelete ? (
-        <Enter index={3}>
+        <Enter index={4}>
           {/* Set apart from Edit, with room below, so it can't be hit by mistake. */}
           <View
             style={{

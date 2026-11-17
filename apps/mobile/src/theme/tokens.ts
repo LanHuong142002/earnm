@@ -130,6 +130,9 @@ export const motion = {
 // White for text on the Home banner (both modes).
 export const onFixed = "#FFFFFF";
 
+// The photo viewer is black in both modes; a scrim darkens a thumbnail under its status text.
+export const viewer = { background: "#000000", scrim: "rgba(0,0,0,0.55)" } as const;
+
 export const disabled = { opacity: 0.5 } as const;
 
 export const header = { backInset: 4 } as const;
