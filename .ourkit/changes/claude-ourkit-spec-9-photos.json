@@ -338,5 +338,27 @@
       "what": "#9 photos: viewer, captions, delete, appearance (AC26-28)",
       "steps": "Tap a thumbnail: full-screen black viewer at that photo, swipe between photos, 'n / total', who and when. As an involved person: '＋ Thêm chú thích' opens the sheet (Huỷ / Chú thích / Lưu, 200 characters max); saving empty clears it; the trash asks, then removes the photo and moves to the next (closes when none left). As someone not involved: no caption or trash controls. Check light/dark, VI/EN and VoiceOver names on thumbnails and buttons."
     }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#9: Signed photo links never expire (expiring links need a paid Cloudinary plan), so a member could share a link outside the app. Accept for now? Recommendation: yes, revisit if the team grows.",
+      "answer": null
+    },
+    {
+      "id": 2,
+      "question": "#9: /sign has no rate limit and no format or size cap, so an involved member could fill the Cloudinary quota. Add a rate limit and allowed_formats=jpg in a follow-up ticket? Recommendation: yes, small follow-up.",
+      "answer": null
+    },
+    {
+      "id": 3,
+      "question": "#9: The viewer added a 'viewer' colour token (black, scrim 0.55) to tokens.ts. Add it to DESIGN.md too? Recommendation: yes.",
+      "answer": null
+    },
+    {
+      "id": 4,
+      "question": "#8/#9: #9 is stacked on #8. Merge #8 first, then #9 (its PR will then show only photo changes). OK? Recommendation: yes.",
+      "answer": null
+    }
   ]
 }
