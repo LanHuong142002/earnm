@@ -64,6 +64,9 @@
   "taskStatus": {
     "1": {
       "status": "done"
+    },
+    "2": {
+      "status": "done"
     }
   }
 }
