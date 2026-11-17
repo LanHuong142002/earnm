@@ -167,6 +167,176 @@
         "text": "Re-review: fire-and-forget destroys can be lost if the server exits right after answering; the image is then orphaned but unreachable by link",
         "resolved": false
       }
-    ]
-  }
+    ],
+    "reviewed": "4a1d48e923556ccf149ee1fedcbdb5883e74dada832f2122c964189a986d2bc6"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "manual",
+        "evidence": "Needs a device: camera and multi-pick; pickerOptions unit tests (selectionLimit = free places) passed",
+        "criterion": "By hand: take a photo and pick 3 from the library; all appear. The library picker can't select more than the free places."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API test 'refuses signing and recording once a task holds 10 photos, with photo_limit_reached' passed; mobile 'full at 10 even when some are waiting' passed",
+        "criterion": "API test: signing and recording are refused once a task has 10 photos, with a distinct error code. Unit test: the phone counts waiting photos toward 10."
+      },
+      "3": {
+        "result": "manual",
+        "evidence": "prepare.test.ts passed (1600 px longer side, JPEG 0.7); the under-1 MB size needs a real upload",
+        "criterion": "Unit test: the resize settings keep the longer side at 1600 px and use JPEG. By hand: an uploaded photo is under 1 MB."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API record test passed: the photo comes back with who added it and when",
+        "criterion": "API test: a recorded photo comes back with who added it and when."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API delete test passed: no longer listed, destroy called; 204 even when destroy fails",
+        "criterion": "API test: an involved person deletes a photo; it's no longer listed and the Cloudinary delete is called for its image."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API caption test passed: set, change, clear; 201 characters refused with validation_failed",
+        "criterion": "API test: set, change and clear a caption; 201 characters is refused with `validation_failed`."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API test 'refuses sign/record/caption/delete to an uninvolved member' passed (403)",
+        "criterion": "API test: a member who isn't involved gets `403` for signing, recording, deleting and captioning."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API test 'task delete removes rows and destroys images' passed; project delete also destroys (review fix)",
+        "criterion": "API test: deleting a task removes its photo rows and calls the Cloudinary delete for each image."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "API 'never returns the secret' and signature field tests passed; grep: no Cloudinary secret in apps/mobile, app.json or package.json",
+        "criterion": "API test: the signature is valid for the fixed name, folder and type, and is refused (`403`) for someone not involved. Check: the secret appears nowhere in the phone app's code or responses."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "API list test passed with signed thumbUrl/url from the store; non-member gets 404",
+        "criterion": "API test: the photo list returns signed image addresses; a non-member gets `404`."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API test 'listing shows only recorded photos' passed",
+        "criterion": "API test: listing shows only recorded photos."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API tests: 401 signed out, 404 for a non-member on every photo route, passed",
+        "criterion": "API test: a signed-out request gets `401`; a non-member gets `404` for every photo endpoint."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API tests: an older caption edit doesn't overwrite a newer one; 404 on a deleted photo; passed",
+        "criterion": "API test: an older caption edit doesn't overwrite a newer one; changing a deleted photo gets `404`."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "API tests: same id twice on one task gives one photo; same id on another task gets 409; passed",
+        "criterion": "API test: recording the same id twice on one task gives one photo; the same id on another task gets `409`."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "Needs a device: offline display from the expo-image disk cache",
+        "criterion": "By hand: photos seen on a task still show with the phone offline."
+      },
+      "16": {
+        "result": "manual",
+        "evidence": "Unit: a waiting upload survives a new queue on the same storage (passed); restart on a real phone needs a device",
+        "criterion": "Unit test: a waiting photo survives a reload of the upload queue. By hand: add a photo offline, see \"Chờ mạng\", restart the app, go online, it uploads."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "Unit: waiting → uploading → done passed; the 'Đang tải' spinner needs a device",
+        "criterion": "Unit test: the upload moves through waiting, uploading and done. By hand: \"Đang tải\" with a spinner while uploading."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Unit: retry, discard (deletes the local file) passed; the failed thumbnail and its sheet need a device",
+        "criterion": "Unit test: a failed upload offers retry and discard, and discard deletes the local file. By hand: the failed thumbnail and its sheet."
+      },
+      "19": {
+        "result": "pass",
+        "evidence": "Mobile tests: queued delete and caption edit sent later with their edit time, passed",
+        "criterion": "Unit test: an offline delete and caption change are queued and sent later."
+      },
+      "20": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; related unit tests (addState, pickerProblem, viewerStart, afterDelete, captionCounter) passed",
+        "criterion": "By hand, against the mockup: the Ảnh section sits below Checklist and above Bình luận, with \"x/10\" and \"＋ Thêm\" for involved people."
+      },
+      "21": {
+        "result": "manual",
+        "evidence": "Unit 'with 10 photos shows 8 tiles and +3 on the 8th' passed; four per row and opening the viewer need a device",
+        "criterion": "By hand: thumbnails four per row, at most 8, \"+N\" on the 8th; tapping opens the viewer at that photo. Unit test: the grid."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; related unit tests (addState, pickerProblem, viewerStart, afterDelete, captionCounter) passed",
+        "criterion": "By hand: \"＋ Thêm\" offers \"Chụp ảnh\" and \"Chọn từ thư viện\" with the places left."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; related unit tests (addState, pickerProblem, viewerStart, afterDelete, captionCounter) passed",
+        "criterion": "By hand: with 10 photos \"＋ Thêm\" is disabled with the explaining line."
+      },
+      "24": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; related unit tests (addState, pickerProblem, viewerStart, afterDelete, captionCounter) passed",
+        "criterion": "By hand: the empty state for an involved member, and no section for a member who isn't involved."
+      },
+      "25": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; related unit tests (addState, pickerProblem, viewerStart, afterDelete, captionCounter) passed",
+        "criterion": "By hand: after refusing camera access, the message and the button that opens Settings."
+      },
+      "26": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; related unit tests (addState, pickerProblem, viewerStart, afterDelete, captionCounter) passed",
+        "criterion": "By hand: the viewer swipes, shows \"n / total\", caption, who and when; involved people see caption and delete controls; after a delete it moves on or closes."
+      },
+      "27": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; related unit tests (addState, pickerProblem, viewerStart, afterDelete, captionCounter) passed",
+        "criterion": "By hand: the caption sheet with Huỷ, Chú thích, Lưu and the 200-character limit; saving empty clears it."
+      },
+      "28": {
+        "result": "manual",
+        "evidence": "Needs a device: light/dark, VI/EN, VoiceOver; thumbLabelKey unit tests passed",
+        "criterion": "By hand: light and dark mode, VI and EN, VoiceOver names on thumbnails and buttons."
+      },
+      "29": {
+        "result": "pass",
+        "evidence": "Applied all 9 migration SQL files to a fresh scratch DB, and to a second one where a project and task were inserted before the photos migration; TaskPhoto created, task kept; both DBs dropped",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing tasks, after #8's migration."
+      },
+      "30": {
+        "result": "pass",
+        "evidence": "API test 'answers photos_unavailable (503) without Cloudinary while task routes still work' passed",
+        "criterion": "API test: without the Cloudinary variables, photo endpoints answer `photos_unavailable` (503) and task endpoints still work."
+      }
+    },
+    "checked": "4a1d48e923556ccf149ee1fedcbdb5883e74dada832f2122c964189a986d2bc6"
+  },
+  "testHandoff": [
+    {
+      "what": "#9 photos: add, upload, limits (AC1-3, 20-25)",
+      "steps": "First set up Cloudinary (free account; set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in apps/api/.env), run db:deploy on the dev database, then npm run dev:phone from this branch. As the task's creator or an assignee: the Ảnh section sits between Checklist and Bình luận with 'x/10' and '＋ Thêm'. Take a photo, then pick 3 from the library: they appear with 'Đang tải' then the image. In Cloudinary's Media Library each image is under 1 MB. With 9 photos, the library lets you pick only 1. At 10, '＋ Thêm' is greyed with 'Đủ 10 ảnh…'. The 8th tile shows '+N'. Refuse camera access in iOS Settings, tap Chụp ảnh: the message and 'Mở Cài đặt' appear. As a member who isn't involved: no '＋ Thêm'; with no photos the section is hidden. Compare with .ourkit/mockups/claude-ourkit-spec-9-photos.html."
+    },
+    {
+      "what": "#9 photos: offline and failures (AC15-18)",
+      "steps": "Turn on airplane mode, add a photo: it shows 'Chờ mạng'. Kill and reopen the app, turn airplane mode off: it uploads by itself. Photos already seen still show offline. To see a failure: fill a task to 10 from another phone while one phone has a waiting photo, then let it upload: it shows 'Lỗi · chạm để thử lại'; tap → Thử lại / Bỏ ảnh này."
+    },
+    {
+      "what": "#9 photos: viewer, captions, delete, appearance (AC26-28)",
+      "steps": "Tap a thumbnail: full-screen black viewer at that photo, swipe between photos, 'n / total', who and when. As an involved person: '＋ Thêm chú thích' opens the sheet (Huỷ / Chú thích / Lưu, 200 characters max); saving empty clears it; the trash asks, then removes the photo and moves to the next (closes when none left). As someone not involved: no caption or trash controls. Check light/dark, VI/EN and VoiceOver names on thumbnails and buttons."
+    }
+  ]
 }
