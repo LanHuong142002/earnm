@@ -1,0 +1,61 @@
+{
+  "tier": "feature",
+  "tierReason": "Photos add a table, signed Cloudinary uploads, synced writes and API endpoints; fits one cycle",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mode": "hands-off",
+  "ticket": "9",
+  "intake": {
+    "ticket": "9",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature for #9, Sensitive Areas data, schema, api",
+      "why": "New table, server-signed uploads holding a secret, and API endpoints with permission checks"
+    },
+    {
+      "id": 2,
+      "decision": "Involved people of a task are its creator plus its assignees",
+      "why": "Same group as #8 and Decision 13; the user chose it at the mockup review"
+    },
+    {
+      "id": 3,
+      "decision": "Images use Cloudinary 'authenticated' delivery with signed URLs handed out only in the members-only photo list; links don't expire",
+      "why": "Meets Decision 7 on the free plan; expiring token links need a paid Cloudinary plan"
+    },
+    {
+      "id": 4,
+      "decision": "Photos are resized to 1600 px on the longer side, JPEG, before upload",
+      "why": "Keeps uploads small on mobile data while staying sharp enough for receipts"
+    },
+    {
+      "id": 5,
+      "decision": "The API answers 503 photos_unavailable when Cloudinary variables are missing, instead of failing at startup",
+      "why": "Local dev and tests keep working before the user sets up Cloudinary"
+    },
+    {
+      "id": 6,
+      "decision": "Use Cloudinary's official Node SDK on the server and Expo's picker/manipulator modules on the phone",
+      "why": "Prior art: official libraries avoid hand-written signature bugs; all Expo modules run in Expo Go"
+    },
+    {
+      "id": 7,
+      "decision": "Build #9 only after #8 is merged",
+      "why": "Migration order (lesson) and the task screen's section order depend on #8"
+    }
+  ],
+  "serviceActions": [
+    "Create a Cloudinary account (free plan), then set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in Render and in apps/api/.env"
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "cde022f51aeb1d4c420ec8abb6d067665d71b9ca194a16a673483bd6c30b95de"
+}
