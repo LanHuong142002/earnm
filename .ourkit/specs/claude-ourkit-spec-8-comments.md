@@ -65,15 +65,25 @@ Today a task has a title, description, status, due date, assignees, labels and c
 4. API test: another member and an Owner each get `403` when editing or deleting someone else's comment.
 5. API test: the 501st comment on a task is refused with a distinct error code.
 6. API test: deleting a task removes its comments. Unit test: a comment with no author maps to the neutral name.
-7–8. API test: the creator and an assignee can set and clear the flag on another member's comment, and can create a comment with the flag on. A member who isn't involved gets `403` for both.
+7. API test: the creator and an assignee can set and clear the flag on another member's comment, and can create a comment with the flag on.
+8. API test: a member who isn't involved gets `403` when setting the flag on create and on edit.
 9. API test: listing comments returns the flag for every comment.
 10. API test: after an assignee is removed from the task, a flag they set stays on.
 11. API test: a signed-out request gets `401`; a non-member gets `404` for list, create, edit and delete.
 12. API test: an older edit than the stored one doesn't overwrite it, for text and for the flag. Editing a deleted comment gets `404`.
 13. API test: creating the same id twice on one task gives one comment; the same id on another task gets `409`.
-14–15. Unit test: queued comment changes merge per comment (create then delete leaves nothing; two edits leave one) and survive a reload of the queue. By hand: offline, add a comment, see "Chờ gửi", go online, it sends.
+14. By hand: comments seen on a task stay readable with the phone offline.
+15. Unit test: queued comment changes merge per comment (create then delete leaves nothing; two edits leave one). By hand: offline, add a comment, see "Chờ gửi", restart the app, go online, it sends.
 16. Unit test: a permanently refused comment change produces the "Couldn't send" state with retry and discard.
-17–25. By hand, against the mockup: section placement, batches of 5 with "Xem thêm", sort switch remembered after restarting the app, bubble layout, bell states for an involved and a non-involved member, write field and toggle, inline edit, the 1000-character message, the empty state.
+17. By hand, against the mockup: the Bình luận section sits below Checklist with the count, and there is no separate screen.
+18. By hand: comments come 5 at a time; "Xem thêm bình luận (N)" loads 5 more; "Đã xem hết bình luận" appears when all are shown. Unit test: batching.
+19. By hand: switching Mới nhất / Cũ nhất goes back to the first 5 and is remembered after restarting the app. Unit test: sorting.
+20. By hand: bubble layout with avatar, name, text, time and "Sửa · Xoá" on one's own comments only, 16pt apart.
+21. By hand: bell states for an involved member (grey outline tappable, orange "Nhắc" when on) and a non-involved member (nothing when off, not tappable when on). Unit test: bell states.
+22. By hand: the write field stays above the keyboard; the "Nhắc kèm" toggle shows only for involved people and resets after sending; a new comment lands in the current order.
+23. By hand: inline edit with Huỷ · Lưu; Lưu is disabled while empty.
+24. By hand: over 1000 characters disables sending and shows how many characters to remove. Unit test: length check.
+25. By hand: with no comments, one inviting line and the write field.
 26. By hand: light and dark mode, VI and EN, VoiceOver names on the bell and send button.
 27. Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing tasks.
 
