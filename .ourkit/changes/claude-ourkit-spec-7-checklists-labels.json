@@ -195,5 +195,130 @@
       }
     ],
     "reviewed": "6cb0f59bac9efec1677a75e1b168e6e27a706c814abbb1ce608c82bce30a3b1c"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API tests in apps/api/src/checklists/routes.test.ts: name 0/60/61, text 0/200/201, control chars, 11th checklist and 51st item refused, new item not done (gate test: API 422/422).",
+        "criterion": "API tests: checklist name and item text of 0 and over the limit after trimming, or with control characters, are refused with `validation_failed`; 60 and 200 characters are accepted; an 11th checklist on a task and a 51st item in a checklist are refused with a clear error; a new item is not done."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API tests 'keeps creation order after edits' and repeated-create in checklists/routes.test.ts.",
+        "criterion": "API test: checklists and items are returned in creation order, whatever order they were last edited in."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API tests: Member does everything on an Owner's task; checklist delete removes items; task delete cascades.",
+        "criterion": "API tests: a Member can add, rename and delete a checklist and add, edit, tick and delete items on a task created by the Owner; deleting a checklist removes its items; deleting the task removes its checklists and items."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API tests: repeat create returns 200 with stored copy; concurrent double create makes one; id under another task/project gives id_conflict and leaves the original unchanged.",
+        "criterion": "API tests: a checklist and an item created with phone-chosen UUIDs keep them; sending the same create twice leaves one; reusing an id from another task is refused and doesn't change the original."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "Unit test apps/mobile/src/tasks/progress.test.ts: null with no items; 3 of 7 across two checklists; per-checklist counts.",
+        "criterion": "Unit test of progress: 0 items gives no progress; items across two checklists with 3 of 7 done give `3/7` for the task and the right count per checklist."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API tests apps/api/src/labels/routes.test.ts: name length, unknown colour, 51st label, case/space/diacritics duplicate refused with label_name_taken.",
+        "criterion": "API tests: label names of 0 and 31 characters, an unknown colour key, and a 51st label are refused; a name equal to an existing one apart from case and spaces is refused with a clear duplicate error."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API tests: Member create/rename/recolour allowed; Member delete 403; Owner delete removes the label from tasks; project delete removes labels.",
+        "criterion": "API tests: a Member can create, rename and recolour a label; a Member deleting one gets `403`; an Owner deleting one removes it from every task that had it; deleting a project removes its labels."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API tests apps/api/src/tasks/routes.test.ts: setting labels; another project's label, unknown id, duplicate and 11th label refused with nothing changed.",
+        "criterion": "API tests: putting a label on a task works; a label from another project, an unknown label id, the same label twice, or an 11th label are refused with `validation_failed`."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "API tests: tasks return labelIds and checklists with items in order; labels list returns only the project's labels (id, name, colour).",
+        "criterion": "API test: reading tasks returns each task's label ids and checklists with items in order; reading labels returns id, name and colour for that project only."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "API tests: 401 not_signed_in without token and with an expired one on every checklist and label route; identical 404 body for non-member, cross-task, cross-project and malformed ids.",
+        "criterion": "API tests: every new or changed endpoint without a token, or with an expired one, gives `401 not_signed_in`; a project the caller isn't in, and a checklist, item or label from another task or project, give `404` with the same body."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API tests: older done ignored while newer text accepted; same for label colour vs name; future time capped; label set replaced as a whole by the newer one; ignored change returns 200 with current state.",
+        "criterion": "API tests: an older change to an item's done state is ignored while a newer change to its text in the same request is accepted; the same for a label's colour and name; a future time is stored as the server's time; a task's labels are replaced as a whole set by the newer change; an ignored change returns `200` with the current state."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API tests: change to a deleted item, checklist or label gives 404.",
+        "criterion": "API test: a change to a deleted item, checklist or label gives `404`."
+      },
+      "13": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Mở một công việc có checklist và nhãn. 2. Bật chế độ máy bay, tắt hẳn app rồi mở lại. - Mong đợi: thẻ công việc và màn Công việc vẫn hiện checklist và nhãn, có dòng \"Đang ngoại tuyến\".",
+        "criterion": "By hand: open a task with checklists and labels, turn on airplane mode, close and reopen the app: the task card and details show them with the offline note."
+      },
+      "14": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Bật chế độ máy bay. 2. Tạo nhãn mới, gắn nó vào một công việc, thêm một checklist và tick một mục. 3. Tắt chế độ máy bay, đợi vài giây. - Mong đợi: trên máy thứ hai (hoặc sau khi kéo làm mới), nhãn, checklist và mục đã tick đều có. Không hiện \"Không lưu được\".",
+        "criterion": "Tests of the queue: two ticks of the same item leave one waiting change; creating then editing a checklist leaves one create; creating then deleting an item sends nothing. Code check: the shared queue code has no reference to checklists or labels. By hand: in airplane mode, create a label, put it on a task, add a checklist and tick an item; reconnect and see all of it on a second phone or in the API."
+      },
+      "15": {
+        "result": "pass",
+        "evidence": "Unit tests apps/mobile/src/tasks/checklistSync.test.ts: refused change restores server version with notice; 404 removes it; a duplicate label is removed from the label list, the task and waiting label sets.",
+        "criterion": "Tests of the outcomes: a refused checklist or item change puts back the server's version (or removes it on `404`) and shows the \"couldn't be saved\" message; a label refused as a duplicate disappears from the local copy and from the task it was put on."
+      },
+      "16": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Xem thẻ có 0, 1, 3 và từ 4 nhãn trở lên; xem công việc có và không có mục checklist. - Mong đợi: tối đa 3 chip nhãn rồi `+n`; `x/y mục` chỉ hiện khi công việc có mục.",
+        "criterion": "By hand: a card shows up to three label chips then `+n`, and `x/y` only when the task has items."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Chạm ô vuông một lần để tick, chạm lần nữa để bỏ tick. 2. \"＋ Thêm mục\": gõ rồi Return vài lần liên tiếp. 3. ⋯ → Đổi tên checklist; ⋯ → Xóa checklist. - Mong đợi: hai số tiến độ (của checklist và tổng) đổi ngay; bàn phím vẫn mở khi thêm liên tiếp; hộp xác nhận xoá nêu tên checklist.",
+        "criterion": "By hand: tick and untick an item with one tap and see both progress counts change at once; add several items in a row with the keyboard staying open; rename and delete a checklist, with the delete confirmation naming it."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Ở màn Công việc, chạm \"Sửa\"/\"Thêm\" cạnh Nhãn; chạm để gắn và bỏ nhãn. 2. Chọn \"＋ Nhãn mới\", đặt tên và màu, tạo. - Mong đợi: gắn/bỏ có hiệu lực ngay; nhãn mới được tạo và gắn luôn vào công việc. Sheet vuốt xuống thì đóng.",
+        "criterion": "By hand: the label picker adds and removes labels on a task, and \"New label\" creates one and puts it on the task."
+      },
+      "19": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Bằng tài khoản Member: Quản lý nhãn → thử tạo, đổi tên, đổi màu. 2. Bằng tài khoản Owner: mở một nhãn → Xóa nhãn. - Mong đợi: Member không thấy nút xoá; Owner thấy hộp xác nhận nêu tên nhãn và nói nhãn bị gỡ khỏi mọi công việc; sau khi xoá, nhãn biến mất khỏi các công việc.",
+        "criterion": "By hand: as a Member, the Labels screen offers create, rename and recolour but no delete; as an Owner, delete asks for confirmation naming the label and the label disappears from its tasks."
+      },
+      "20": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Ở danh sách công việc, hàng \"Nhãn\" → chọn một hoặc hai nhãn. 2. Tắt hẳn app rồi mở lại. 3. Chạm \"Bỏ bộ lọc\" (khi không còn công việc phù hợp) hoặc bỏ chọn hết. - Mong đợi: lọc vẫn còn sau khi mở lại; bỏ bộ lọc thì xoá cả lọc nhãn.",
+        "criterion": "Unit tests of the filters: one label, two labels (a task with either matches), and a label combined with a status and \"Assigned to me\" select the right tasks; a remembered deleted label is ignored. By hand: the label choice survives closing and reopening the app and clears with the other filters."
+      },
+      "21": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Mở \"Nhãn mới\", xem 8 ô màu ở chế độ sáng và tối. - Mong đợi: đọc rõ tên trên mọi màu; không màu nào giống màu cam chính của app.",
+        "criterion": "By hand, in light and dark mode: all 8 label colours show their names readably, and no label uses the accent colour. Check: each colour's text contrast is at least 4.5:1."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Đổi giữa Tiếng Việt và English, đi qua mọi màn mới. - Mong đợi: không còn chữ chưa dịch; màn hình giống mockup đã duyệt và DESIGN.md.",
+        "criterion": "By hand, in both languages: no untranslated text, and the new screens follow `DESIGN.md` and Decision 10."
+      },
+      "23": {
+        "result": "pass",
+        "evidence": "Migration applied cleanly to the empty test DB; apps/api/src/tasks/schema.test.ts applies it to a schema with an existing task (labelsEditedAt = createdAt) and checks an old-style insert works after the default migration.",
+        "criterion": "The migration applies cleanly to an empty database and to one with existing users, projects and tasks."
+      },
+      "24": {
+        "result": "manual",
+        "evidence": "Needs a phone; not checked yet. Unit/API parts pass where they exist. Steps in .ourkit/reports/qa-7-phone-checklist.md: 1. Cài đặt → Giao diện → chọn Tối khi điện thoại đang sáng; rồi Sáng; rồi Theo hệ thống. 2. Tắt app mở lại; đăng xuất rồi đăng nhập lại. 3. Mở một công việc. - Mong đợi: mọi màn, header, sheet, hộp thoại đổi theo ngay, có animation; lựa chọn còn sau khi mở lại và sau khi đăng xuất; \"Sửa\" nằm trên header, \"＋ Thêm\" cạnh tiêu đề Checklist, không cần cuộn.",
+        "criterion": "Unit test of the stored appearance choice: a missing or unknown stored value reads as System. By hand: choosing Dark with the phone in light mode turns every screen, header, sheet and alert dark at once; System follows the phone again; the choice survives closing the app and signing out; the Task screen shows \"Edit\" in the header and \"Add\" beside the Checklist heading without scrolling."
+      }
+    },
+    "checked": "6cb0f59bac9efec1677a75e1b168e6e27a706c814abbb1ce608c82bce30a3b1c"
   }
 }
