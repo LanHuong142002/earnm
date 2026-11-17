@@ -54,6 +54,9 @@ describe("/projects/:projectId/tasks/:taskId/photos", () => {
     store.failDestroy = false;
   });
 
+  /** Destroys run in the background after the answer: wait until the fake has been asked. */
+  const destroyedCount = (n: number) => vi.waitFor(() => expect(destroyed.length).toBeGreaterThanOrEqual(n));
+
   const bearer = (token: string): [string, string] => ["Authorization", `Bearer ${token}`];
   const iso = (offsetMs = 0) => new Date(clock.now().getTime() + offsetMs).toISOString();
   type User = { id: string; token: string };
@@ -287,6 +290,29 @@ describe("/projects/:projectId/tasks/:taskId/photos", () => {
     expect(await prisma.taskPhoto.count({ where: { taskId: w.t } })).toBe(10);
   });
 
+  it("destroys the uploaded image when a record is refused for the limit or because the task is gone", async () => {
+    const w = await world();
+    await fillTask(w, MAX_PHOTOS_PER_TASK);
+    const id = randomUUID();
+    expectError(await record(w.creator, w.p, w.t, { id }), 409, "photo_limit_reached");
+    await destroyedCount(1);
+    expect(destroyed).toEqual([publicIdOf(w.p, w.t, id)]);
+
+    destroyed.length = 0;
+    const w2 = await world();
+    const id2 = randomUUID();
+    expect((await sign(w2.creator, w2.p, w2.t, { id: id2 })).status).toBe(200);
+    await prisma.task.delete({ where: { id: w2.t } });
+    expectError(await record(w2.creator, w2.p, w2.t, { id: id2 }), 404, "not_found");
+    await destroyedCount(1);
+    expect(destroyed).toEqual([publicIdOf(w2.p, w2.t, id2)]);
+
+    // A person who is not a member can't make the server destroy anything.
+    destroyed.length = 0;
+    expectError(await record(w2.stranger, w2.p, w2.t, { id: id2 }), 404, "not_found");
+    expect(destroyed).toEqual([]);
+  });
+
   it("still answers a retried record of an existing photo when the task is full", async () => {
     const w = await world();
     await fillTask(w, MAX_PHOTOS_PER_TASK - 1);
@@ -349,6 +375,7 @@ describe("/projects/:projectId/tasks/:taskId/photos", () => {
     const photo = (await record(w.creator, w.p, w.t)).body;
     const other = (await record(w.creator, w.p, w.t)).body;
     expect((await del(w.assignee, w.p, w.t, photo.id)).status).toBe(204);
+    await destroyedCount(1);
     expect(destroyed).toEqual([publicIdOf(w.p, w.t, photo.id)]);
     const left = (await list(w.creator, w.p, w.t)).body.photos.map((x: { id: string }) => x.id);
     expect(left).toEqual([other.id]);
@@ -364,10 +391,29 @@ describe("/projects/:projectId/tasks/:taskId/photos", () => {
       expect(res.status).toBe(204);
       expect(res.text).toBe("");
       expect(await prisma.taskPhoto.count({ where: { taskId: w.t } })).toBe(0);
-      expect(log).toHaveBeenCalled();
+      await vi.waitFor(() => expect(log).toHaveBeenCalled());
       expect(JSON.stringify(log.mock.calls)).not.toContain(SECRET);
     } finally {
       log.mockRestore();
+    }
+  });
+
+  it("answers 204 before the Cloudinary destroy finishes", async () => {
+    const w = await world();
+    const photo = (await record(w.creator, w.p, w.t)).body;
+    let release!: () => void;
+    const slow = new Promise<void>((resolve) => (release = resolve));
+    const original = store.destroy;
+    store.destroy = async (publicId) => {
+      await original(publicId);
+      await slow;
+    };
+    try {
+      expect((await del(w.creator, w.p, w.t, photo.id)).status).toBe(204);
+      await destroyedCount(1);
+    } finally {
+      release();
+      store.destroy = original;
     }
   });
 
@@ -379,6 +425,7 @@ describe("/projects/:projectId/tasks/:taskId/photos", () => {
     const res = await request(app).delete(`/projects/${w.p}/tasks/${w.t}`).set(...bearer(w.creator.token));
     expect(res.status).toBe(204);
     expect(await prisma.taskPhoto.count()).toBe(0);
+    await destroyedCount(2);
     expect([...destroyed].sort()).toEqual([publicIdOf(w.p, w.t, a.id), publicIdOf(w.p, w.t, b.id)].sort());
   });
 
@@ -397,10 +444,49 @@ describe("/projects/:projectId/tasks/:taskId/photos", () => {
     try {
       const res = await request(app).delete(`/projects/${w.p}/tasks/${w.t}`).set(...bearer(w.creator.token));
       expect(res.status).toBe(204);
+      await vi.waitFor(() => expect(log).toHaveBeenCalled());
       expect(JSON.stringify(log.mock.calls)).not.toContain(SECRET);
     } finally {
       log.mockRestore();
     }
+  });
+
+  it("deleting a project destroys the images of all its tasks, and a refused delete destroys nothing", async () => {
+    const w = await world();
+    const t2 = await seedTask(w.p, w.creator.id);
+    const a = (await record(w.creator, w.p, w.t)).body;
+    const b = (await record(w.creator, w.p, t2)).body;
+    expectError(
+      await request(app).delete(`/projects/${w.p}`).set(...bearer(w.creator.token)),
+      403,
+      "forbidden",
+    );
+    expect(destroyed).toEqual([]);
+    expect(await prisma.taskPhoto.count()).toBe(2);
+    const res = await request(app).delete(`/projects/${w.p}`).set(...bearer(w.owner.token));
+    expect(res.status).toBe(204);
+    expect(await prisma.taskPhoto.count()).toBe(0);
+    await destroyedCount(2);
+    expect([...destroyed].sort()).toEqual([publicIdOf(w.p, w.t, a.id), publicIdOf(w.p, t2, b.id)].sort());
+  });
+
+  it("deleting a project still succeeds when a destroy fails, and without a store", async () => {
+    const w = await world();
+    await record(w.creator, w.p, w.t);
+    store.failDestroy = true;
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const res = await request(app).delete(`/projects/${w.p}`).set(...bearer(w.owner.token));
+      expect(res.status).toBe(204);
+      await vi.waitFor(() => expect(log).toHaveBeenCalled());
+      expect(JSON.stringify(log.mock.calls)).not.toContain(SECRET);
+    } finally {
+      log.mockRestore();
+    }
+    const w2 = await world();
+    await fillTask(w2, 2);
+    const off = await request(appOff).delete(`/projects/${w2.p}`).set(...bearer(w2.owner.token));
+    expect(off.status).toBe(204);
   });
 
   // AC30

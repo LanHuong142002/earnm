@@ -219,9 +219,10 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
         await readLocal();
         return { ok: true };
       }
-      // Refused changes of this photo are moot once it is deleted.
-      await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles);
+      // The delete is queued first, so a storage error while tidying up can't lose both. Refused
+      // changes of this photo are moot once it is deleted.
       await record(photoDeleteChange({ projectId, taskId, id: photoId }));
+      await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles);
       return { ok: true };
     },
     [photos, ready, ownerId, involved, queue, readLocal, record, projectId, taskId],

@@ -93,6 +93,16 @@ function checkedSignature(s: UploadSignature): UploadSignature {
   return s;
 }
 
+async function saysAlreadyExists(response: Response): Promise<boolean> {
+  try {
+    const body = (await response.json()) as { error?: { message?: unknown } } | null;
+    const message = body?.error?.message;
+    return typeof message === "string" && /already exists/i.test(message);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Sends the prepared file to Cloudinary with exactly the fields the API signed. A refusal that no resend will
  * change (a 4xx other than 408 and 429) is permanent; a busy or failing Cloudinary, or no network, is tried again.
@@ -105,6 +115,8 @@ async function uploadToCloudinary(sig: UploadSignature, uri: string, doFetch: ty
   form.append("signature", sig.signature);
   form.append("public_id", sig.publicId);
   form.append("type", sig.type);
+  // Signed too: an image that is already there can never be replaced.
+  form.append("overwrite", "false");
   let response: Response;
   try {
     response = await doFetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(sig.cloudName)}/image/upload`, { method: "POST", body: form });
@@ -112,6 +124,8 @@ async function uploadToCloudinary(sig: UploadSignature, uri: string, doFetch: ty
     throw new ApiError("network");
   }
   if (response.ok) return;
+  // A retry after a lost answer meets the image it already uploaded: that is the outcome we wanted.
+  if (response.status === 400 && (await saysAlreadyExists(response))) return;
   const retryable = response.status >= 500 || response.status === 408 || response.status === 429;
   throw new ApiError(retryable ? "upload_unavailable" : "upload_refused", response.status);
 }

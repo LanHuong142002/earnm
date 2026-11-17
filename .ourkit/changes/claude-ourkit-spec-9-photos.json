@@ -53,6 +53,11 @@
       "id": 8,
       "decision": "Stacked #9 on the #8 branch instead of waiting for #8 to merge",
       "why": "The user asked for both in one hands-off run; the photos migration then sorts after the comments migration and the task screen already has Bình luận. Merge #8 first."
+    },
+    {
+      "id": 9,
+      "decision": "Photos UI departures: viewer token (black, scrim 0.55) added to tokens.ts, spinner instead of ring, viewer time uses the comment time format, caption sheet is a page-sheet modal",
+      "why": "DESIGN.md has no black/scrim token; readability of white text; reuse of existing helpers and patterns"
     }
   ],
   "serviceActions": [
@@ -70,6 +75,74 @@
     },
     "2": {
       "status": "done"
+    },
+    "3": {
+      "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "projects/routes.ts:179 deleting a project cascades photo rows but doesn't destroy their Cloudinary images (orphans; spec R8 covers task delete only)",
+        "resolved": false
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "photos/routes.ts:209 vs :251 the 10-limit at sign is advisory; an image uploaded then refused at record (409) stays on Cloudinary",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "uploads.ts:75 vs :152 caption trimmed on upload but not on photoCaptionChange (server trims, likely harmless)",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "uploads.ts:115 every 5xx is retried while the comment at :122-123 mentions only 503",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "useTaskPhotos.ts:222-224 remove calls discardFailed before enqueueing the delete; a storage error loses the failed marker and the delete",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "Mobile: deleting a task doesn't remove its pending local photo files or queued uploads; a leftover upload would end as a failed item",
+        "resolved": false
+      },
+      {
+        "id": 7,
+        "severity": "blocking",
+        "text": "Sensitive: projects/routes.ts:170-185 deleting a project cascades photo rows without destroying their Cloudinary images; non-expiring signed URLs keep working for former members (R5, R8, R10 intent)",
+        "resolved": false,
+        "attempts": 1
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "Sensitive: /sign holds no place and isn't rate-limited; images uploaded but refused at record (limit, 404) or signed in bulk stay on Cloudinary; no format/size cap in the signature",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "Sensitive: /sign for an already-recorded id lets an involved person overwrite another person's image (Cloudinary overwrites by default)",
+        "resolved": false
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "Sensitive: task and photo DELETE await Cloudinary destroy (60s default timeout each) before answering 204",
+        "resolved": false
+      }
+    ]
   }
 }

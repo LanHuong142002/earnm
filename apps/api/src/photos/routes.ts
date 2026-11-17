@@ -35,8 +35,7 @@ const recordSchema = z
   .strict();
 
 /** One field change from the phone: the new value and when the person made it. */
-const change = <T extends z.ZodType>(value: T) =>
-  z.object({ value, editedAt: editedAtSchema }).strict();
+const change = <T extends z.ZodType>(value: T) => z.object({ value, editedAt: editedAtSchema }).strict();
 
 const patchSchema = z.object({ caption: change(captionSchema) }).strict();
 
@@ -83,11 +82,7 @@ function forbidden(message: string): AppError {
 }
 
 function limitReached(): AppError {
-  return new AppError(
-    409,
-    "photo_limit_reached",
-    `A task can hold at most ${MAX_PHOTOS_PER_TASK} photos.`,
-  );
+  return new AppError(409, "photo_limit_reached", `A task can hold at most ${MAX_PHOTOS_PER_TASK} photos.`);
 }
 
 type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
@@ -122,6 +117,33 @@ export function createPhotosRouter(deps: {
     });
     if (!task) throw notFound();
     return { projectId: projectId.data, taskId: task.id };
+  }
+
+  /**
+   * `requireTask` for the record route. When the caller is a member and only the task is gone, the
+   * image they uploaded after signing can never be recorded, so it is removed in the background.
+   */
+  async function requireTaskOrDestroyUpload(req: Request, userId: string, store: PhotoStore) {
+    try {
+      return await requireTask(req, userId);
+    } catch (err) {
+      const projectId = idSchema.safeParse(param(req, "projectId"));
+      const taskId = idSchema.safeParse(param(req, "taskId"));
+      const photoId = idSchema.safeParse((req.body as { id?: unknown } | undefined)?.id);
+      if (projectId.success && taskId.success && photoId.success) {
+        const member = await findForMember(prisma, projectId.data, userId);
+        const task = member
+          ? await prisma.task.findFirst({
+              where: { id: taskId.data, projectId: projectId.data },
+              select: { id: true },
+            })
+          : null;
+        if (member && !task) {
+          void destroyImages(store, [photoPublicId(projectId.data, taskId.data, photoId.data)]);
+        }
+      }
+      throw err;
+    }
   }
 
   /** The photo on this task, or a 404 that looks the same whether it's missing or elsewhere. */
@@ -180,7 +202,11 @@ export function createPhotosRouter(deps: {
       const userId = getAuth(res.locals).userId;
       const store = requireStore();
       const { taskId } = await requireTask(req, userId);
-      const rows = await prisma.taskPhoto.findMany({ where: { taskId }, include, orderBy: order });
+      const rows = await prisma.taskPhoto.findMany({
+        where: { taskId },
+        include,
+        orderBy: order,
+      });
       res.json({ photos: rows.map((p) => photoResponse(store, p)) });
     } catch (err) {
       next(err);
@@ -230,46 +256,66 @@ export function createPhotosRouter(deps: {
     try {
       const userId = getAuth(res.locals).userId;
       const store = requireStore();
-      const { projectId, taskId } = await requireTask(req, userId);
+      const { projectId, taskId } = await requireTaskOrDestroyUpload(req, userId, store);
       const body = recordSchema.parse(req.body);
       // The phone can only record the exact image that was signed for this task and id.
       if (body.publicId !== photoPublicId(projectId, taskId, body.id)) {
         throw new AppError(400, "validation_failed", "Invalid fields: publicId.");
       }
 
-      const result = await withRetry(() =>
-        prisma.$transaction(async (tx) => {
-          await lockedInvolvedTask(tx, projectId, taskId, userId);
-          const existing = await tx.taskPhoto.findUnique({ where: { id: body.id }, include });
-          if (existing) {
-            if (existing.taskId !== taskId) {
-              throw new AppError(409, "id_conflict", "That photo id is already taken.");
+      // Set when the upload can no longer be recorded, so the image is removed instead of orphaned.
+      let orphaned = false;
+      let result;
+      try {
+        result = await withRetry(() =>
+          prisma.$transaction(async (tx) => {
+            orphaned = false;
+            await lockedMember(tx, projectId, userId);
+            const task = await lockedTask(tx, projectId, taskId).catch((err: unknown) => {
+              orphaned = true; // the task was deleted after signing
+              throw err;
+            });
+            if (!(await isInvolved(tx, task, userId))) {
+              throw forbidden("Only people involved in the task can do this.");
             }
-            return { status: 200, photo: existing };
-          }
-          // Counted under the project lock, so concurrent records can't pass the limit together.
-          if ((await tx.taskPhoto.count({ where: { taskId } })) >= MAX_PHOTOS_PER_TASK) {
-            throw limitReached();
-          }
-          // The caption time starts at the epoch: an edit the phone queued after recording the
-          // photo must win even though the record reached us later.
-          const photo = await tx.taskPhoto.create({
-            data: {
-              id: body.id,
-              taskId,
-              addedById: userId,
-              publicId: body.publicId,
-              width: body.width,
-              height: body.height,
-              caption: body.caption ?? "",
-              captionEditedAt: new Date(0),
-              createdAt: now(),
-            },
-            include,
-          });
-          return { status: 201, photo };
-        }),
-      );
+            const existing = await tx.taskPhoto.findUnique({
+              where: { id: body.id },
+              include,
+            });
+            if (existing) {
+              if (existing.taskId !== taskId) {
+                throw new AppError(409, "id_conflict", "That photo id is already taken.");
+              }
+              return { status: 200, photo: existing };
+            }
+            // Counted under the project lock, so concurrent records can't pass the limit together.
+            if ((await tx.taskPhoto.count({ where: { taskId } })) >= MAX_PHOTOS_PER_TASK) {
+              orphaned = true;
+              throw limitReached();
+            }
+            // The caption time starts at the epoch: an edit the phone queued after recording the
+            // photo must win even though the record reached us later.
+            const photo = await tx.taskPhoto.create({
+              data: {
+                id: body.id,
+                taskId,
+                addedById: userId,
+                publicId: body.publicId,
+                width: body.width,
+                height: body.height,
+                caption: body.caption ?? "",
+                captionEditedAt: new Date(0),
+                createdAt: now(),
+              },
+              include,
+            });
+            return { status: 201, photo };
+          }),
+        );
+      } catch (err) {
+        if (orphaned) void destroyImages(store, [body.publicId]);
+        throw err;
+      }
       res.status(result.status).json(photoResponse(store, result.photo));
     } catch (err) {
       next(err);
@@ -286,7 +332,10 @@ export function createPhotosRouter(deps: {
 
       await prisma.$transaction(async (tx) => {
         await lockedInvolvedTask(tx, projectId, taskId, userId);
-        const photo = await tx.taskPhoto.findFirst({ where: { id: photoId, taskId }, select: { id: true } });
+        const photo = await tx.taskPhoto.findFirst({
+          where: { id: photoId, taskId },
+          select: { id: true },
+        });
         if (!photo) throw notFound(); // deleted meanwhile
         await applyLastWriteWins(fields, now(), async (where, data) => {
           await tx.taskPhoto.updateMany({
@@ -297,7 +346,10 @@ export function createPhotosRouter(deps: {
       });
 
       // Always answer with the current state, even when the change lost.
-      const current = await prisma.taskPhoto.findFirst({ where: { id: photoId, taskId }, include });
+      const current = await prisma.taskPhoto.findFirst({
+        where: { id: photoId, taskId },
+        include,
+      });
       if (!current) throw notFound(); // deleted meanwhile
       res.json(photoResponse(store, current));
     } catch (err) {
@@ -318,13 +370,15 @@ export function createPhotosRouter(deps: {
           select: { publicId: true },
         });
         if (!photo) throw notFound();
-        const { count } = await tx.taskPhoto.deleteMany({ where: { id: photoId, taskId } });
+        const { count } = await tx.taskPhoto.deleteMany({
+          where: { id: photoId, taskId },
+        });
         if (count === 0) throw notFound();
         return photo.publicId;
       });
       // After the commit: the row is gone either way, and a failed destroy is only logged.
-      await destroyImages(store, [publicId]);
       res.status(204).end();
+      void destroyImages(store, [publicId]);
     } catch (err) {
       next(err);
     }

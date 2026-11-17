@@ -118,13 +118,30 @@ describe("the upload", () => {
     expect(url).toBe("https://api.cloudinary.com/v1_1/demo/image/upload");
     expect(init.method).toBe("POST");
     const keys = [...init.body.keys()].sort();
-    expect(keys).toEqual(["api_key", "file", "public_id", "signature", "timestamp", "type"]);
+    expect(keys).toEqual(["api_key", "file", "overwrite", "public_id", "signature", "timestamp", "type"]);
     expect(init.body.get("api_key")).toBe("key123");
     expect(init.body.get("signature")).toBe("sig456");
     expect(init.body.get("public_id")).toBe(signature.publicId);
     expect(init.body.get("timestamp")).toBe("1700000000");
     expect(init.body.get("type")).toBe("authenticated");
+    expect(init.body.get("overwrite")).toBe("false");
     expect(s.deps.recordPhoto).toHaveBeenCalledWith("tok", "p1", "t1", { id: ID, publicId: signature.publicId, width: 1600, height: 1200 });
+    expect(s.removed).toEqual([ID]);
+    expect(await s.queue.count()).toBe(0);
+  });
+
+  it("goes on to record when Cloudinary says the image is already there (a retry after a lost answer)", async () => {
+    const exists = vi.fn(async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: { message: "Resource already exists" } }),
+      text: async () => "",
+    }) as unknown as Response);
+    const s = setup({ deps: { fetch: exists as unknown as typeof fetch } });
+    await s.queue.setOwner("u1");
+    await s.queue.enqueue(upload());
+    await s.queue.flush("u1");
+    expect(s.calls).toEqual(["sign", "record"]);
     expect(s.removed).toEqual([ID]);
     expect(await s.queue.count()).toBe(0);
   });

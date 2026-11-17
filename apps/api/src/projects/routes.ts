@@ -6,6 +6,8 @@ import { AppError } from "../http/errors.js";
 import { multiLineText, singleLineText } from "../http/text.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
+import { destroyImages } from "../photos/destroy.js";
+import type { PhotoStore } from "../photos/cloudinary.js";
 import { findForMember, lockProject, requireOwner } from "./access.js";
 
 const nameSchema = singleLineText(80);
@@ -70,6 +72,8 @@ function notFound(): AppError {
 export function createProjectsRouter(deps: {
   prisma: PrismaClient;
   now: () => Date;
+  /** Null or absent when Cloudinary isn't configured: there is then nothing to destroy. */
+  photoStore?: PhotoStore | null;
 }): Router {
   const { prisma, now } = deps;
   const router = Router();
@@ -171,14 +175,21 @@ export function createProjectsRouter(deps: {
     try {
       const userId = getAuth(res.locals).userId;
       const id = await requireOwner(prisma, req.params["id"], userId);
+      let publicIds: string[] = [];
       await prisma.$transaction(async (tx) => {
         if (!(await lockProject(tx, id))) throw notFound(); // someone else deleted it first
         // The caller may have been demoted or removed since the check above.
         await requireOwner(tx, id, userId);
+        // Collected before the delete: the photo rows go with the project by the database cascade.
+        publicIds = (
+          await tx.taskPhoto.findMany({ where: { task: { projectId: id } }, select: { publicId: true } })
+        ).map((p) => p.publicId);
         // Memberships are removed by the database cascade.
         await tx.project.deleteMany({ where: { id } });
       });
+      // After the commit, and after the answer: a slow Cloudinary must not hold the request.
       res.status(204).end();
+      void destroyImages(deps.photoStore, publicIds);
     } catch (err) {
       next(err);
     }

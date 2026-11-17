@@ -387,9 +387,10 @@ export function createTasksRouter(deps: {
         const { count } = await tx.task.deleteMany({ where: { id: task.id, projectId } });
         if (count === 0) throw notFound(); // someone else deleted it first
       });
-      // After the commit, so a refused or rolled-back delete never touches an image.
-      await destroyImages(deps.photoStore, publicIds);
+      // After the commit, so a refused or rolled-back delete never touches an image. Answered first:
+      // Cloudinary being slow must not hold the request (destroyImages logs and never throws).
       res.status(204).end();
+      void destroyImages(deps.photoStore, publicIds);
     } catch (err) {
       next(err);
     }

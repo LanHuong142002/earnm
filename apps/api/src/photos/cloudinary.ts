@@ -5,7 +5,7 @@ export interface PhotoStore {
   /** Cloud name and API key: public values the phone needs to upload. */
   readonly cloudName: string;
   readonly apiKey: string;
-  /** Signature for uploading one image with exactly this public id and `type: authenticated`. */
+  /** Signature for uploading one image with exactly this public id, `type: authenticated` and `overwrite: false`. */
   sign(publicId: string, timestamp: number): string;
   /** Signed delivery URL of the 240 px square thumbnail. */
   thumbUrl(publicId: string): string;
@@ -16,6 +16,9 @@ export interface PhotoStore {
 }
 
 export const UPLOAD_TYPE = "authenticated";
+
+/** A destroy that hangs must not hold a connection forever. */
+const DESTROY_TIMEOUT_MS = 10_000;
 
 /** The real store. The secret lives only in this closure and is never returned or logged. */
 export function createCloudinaryStore(account: {
@@ -41,7 +44,7 @@ export function createCloudinaryStore(account: {
     apiKey,
     sign: (publicId, timestamp) =>
       cloudinary.utils.api_sign_request(
-        { public_id: publicId, timestamp, type: UPLOAD_TYPE },
+        { overwrite: false, public_id: publicId, timestamp, type: UPLOAD_TYPE },
         apiSecret,
       ),
     thumbUrl: (publicId) => deliver(publicId, { width: 240, height: 240, crop: "fill" }),
@@ -55,6 +58,7 @@ export function createCloudinaryStore(account: {
         type: UPLOAD_TYPE,
         resource_type: "image",
         invalidate: true,
+        timeout: DESTROY_TIMEOUT_MS,
       } as const;
       const result = (await cloudinary.uploader.destroy(publicId, options)) as { result?: string };
       // "not found" means it is already gone, which is what we wanted.
