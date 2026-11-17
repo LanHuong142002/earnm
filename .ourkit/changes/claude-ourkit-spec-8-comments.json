@@ -48,11 +48,17 @@
       "id": 7,
       "decision": "A permanently refused comment change stays on that comment as 'Couldn't send' with Retry/Discard, not the task-wide notice",
       "why": "The mockup shows the failure on the comment itself"
+    },
+    {
+      "id": 8,
+      "decision": "Treated the user's '/ourkit-handsoff cho 2 cái #8 và #9' reply to the plan-approval question as approving both plans",
+      "why": "It answered 'Duyệt plan #8?' by asking to carry both through; Ship still waits for explicit approval"
     }
   ],
   "mockup": {
     "needed": true,
     "reason": null
   },
-  "mockupApproval": "c0b72c55cb4ead3c4530ae947869b8039f3103aba5a117f76cf8621cc4218921"
+  "mockupApproval": "c0b72c55cb4ead3c4530ae947869b8039f3103aba5a117f76cf8621cc4218921",
+  "planApproval": "c99e83cecd6397bf44c385d1ef06ccb1322680bdb248afc14382a0bf25d982e4"
 }
