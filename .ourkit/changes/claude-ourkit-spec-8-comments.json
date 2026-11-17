@@ -60,5 +60,10 @@
     "reason": null
   },
   "mockupApproval": "c0b72c55cb4ead3c4530ae947869b8039f3103aba5a117f76cf8621cc4218921",
-  "planApproval": "c99e83cecd6397bf44c385d1ef06ccb1322680bdb248afc14382a0bf25d982e4"
+  "planApproval": "c99e83cecd6397bf44c385d1ef06ccb1322680bdb248afc14382a0bf25d982e4",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    }
+  }
 }
