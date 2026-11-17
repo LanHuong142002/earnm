@@ -86,13 +86,13 @@
         "id": 1,
         "severity": "non-blocking",
         "text": "projects/routes.ts:179 deleting a project cascades photo rows but doesn't destroy their Cloudinary images (orphans; spec R8 covers task delete only)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 2,
         "severity": "non-blocking",
         "text": "photos/routes.ts:209 vs :251 the 10-limit at sign is advisory; an image uploaded then refused at record (409) stays on Cloudinary",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 3,
@@ -110,7 +110,7 @@
         "id": 5,
         "severity": "non-blocking",
         "text": "useTaskPhotos.ts:222-224 remove calls discardFailed before enqueueing the delete; a storage error loses the failed marker and the delete",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 6,
@@ -122,7 +122,7 @@
         "id": 7,
         "severity": "blocking",
         "text": "Sensitive: projects/routes.ts:170-185 deleting a project cascades photo rows without destroying their Cloudinary images; non-expiring signed URLs keep working for former members (R5, R8, R10 intent)",
-        "resolved": false,
+        "resolved": true,
         "attempts": 1
       },
       {
@@ -135,12 +135,36 @@
         "id": 9,
         "severity": "non-blocking",
         "text": "Sensitive: /sign for an already-recorded id lets an involved person overwrite another person's image (Cloudinary overwrites by default)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 10,
         "severity": "non-blocking",
         "text": "Sensitive: task and photo DELETE await Cloudinary destroy (60s default timeout each) before answering 204",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "Re-review: routes.ts:273-277 any lockedTask error marked the upload orphaned (a DB error would destroy a good upload); fixed to 404 only",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "Re-review: a record refused with 403 (caller not involved) leaves the uploaded image on Cloudinary (storage leak only)",
+        "resolved": false
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "Re-review: the phone's 'already exists' upload check matches Cloudinary's message text; a wording change would make it a permanent refusal",
+        "resolved": false
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "Re-review: fire-and-forget destroys can be lost if the server exits right after answering; the image is then orphaned but unreachable by link",
         "resolved": false
       }
     ]

@@ -272,7 +272,8 @@ export function createPhotosRouter(deps: {
             orphaned = false;
             await lockedMember(tx, projectId, userId);
             const task = await lockedTask(tx, projectId, taskId).catch((err: unknown) => {
-              orphaned = true; // the task was deleted after signing
+              // Only when the task was deleted after signing; a database error keeps the upload.
+              if (err instanceof AppError && err.status === 404) orphaned = true;
               throw err;
             });
             if (!(await isInvolved(tx, task, userId))) {
