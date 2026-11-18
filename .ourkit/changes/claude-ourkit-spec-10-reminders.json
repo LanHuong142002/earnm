@@ -110,7 +110,7 @@
         "id": 2,
         "severity": "non-blocking",
         "text": "apps/api/src/push/catchUp.ts:62-82: each tick loads all non-done reminders with token-holding recipients and all their Nhac kem comments, unbounded; filter by due window in SQL or cap comments per task.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 3,
@@ -122,19 +122,19 @@
         "id": 4,
         "severity": "non-blocking",
         "text": "apps/api/src/reminders/routes.ts:365-393: project reminders list is unpaged and loads every Nhac kem comment then trims to 3 in memory.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 5,
         "severity": "non-blocking",
         "text": "apps/api/src/push/catchUp.ts:48-58: overlapping ticks can read the same lastTickAt; duplicates are prevented by the ReminderPushSent claim (note only).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 6,
         "severity": "non-blocking",
         "text": "apps/mobile/src/auth/AuthProvider.tsx registerSignOutCleanup has a single slot; ProjectsProvider overwrites TasksProvider's cleanup so the task/reminder caches may not be cleared on sign-out (existing bug, found during Build).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 7,
@@ -158,16 +158,40 @@
         "id": 10,
         "severity": "non-blocking",
         "text": "catchUp.ts sendDue: unbounded scan each tick (same as finding 2).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 11,
         "severity": "non-blocking",
         "text": "catchUp.ts: a crash between claiming and sending loses those pushes (accepted at-most-once trade-off).",
-        "resolved": false
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "catchUp.ts end of sendDue: a claim whose failures were all invalid tokens is marked sentAt though nothing arrived; comment now says so (fixed)",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "catchUp.ts: for a user with several devices a claim settles when any one message arrives, so a failed second device is not retried (fits once per user; local notification covers it; note only)",
+        "resolved": true
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "reminders/routes.ts: orphaned REMIND_WITH_LIMIT doc comment (removed)",
+        "resolved": true
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "schema.prisma: misaligned ReminderPushSent fields (prisma format applied)",
+        "resolved": true
       }
     ],
-    "reviewed": "91a38316c13d0fc006fc9a60c94559ad8fa4502cf6a6c1c181c43a046429813f"
+    "reviewed": "fc22f5f041f6f004beb26155a01854d18d4234003374548fe6e3f548666b980d"
   },
   "qa": {
     "results": {
@@ -268,7 +292,7 @@
       },
       "20": {
         "result": "pass",
-        "evidence": "catchUp.test.ts: one push per out-of-date recipient, newer Nhắc kèm counts, at most once, none for done tasks, 15-min cap, invalid tokens deleted, nothing without tokens",
+        "evidence": "catchUp.test.ts: one push per out-of-date recipient, newer Nhắc kèm counts, none for done tasks, 15-min window, invalid tokens deleted; after the review fixes: failed or crash-left sends retried up to 3 times within an hour, never twice after success, concurrent ticks serialized by an advisory lock; gate run test passed (API 543, mobile 855)",
         "criterion": "API test (push sender faked): tick sends one push per due occurrence to out-of-date recipients only (including when a \"Nhắc kèm\" comment is newer than their last sync), none twice across ticks, none for done tasks; invalid tokens are deleted; nothing is sent without configuration."
       },
       "21": {
@@ -322,7 +346,7 @@
         "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing tasks."
       }
     },
-    "checked": "91a38316c13d0fc006fc9a60c94559ad8fa4502cf6a6c1c181c43a046429813f"
+    "checked": "fc22f5f041f6f004beb26155a01854d18d4234003374548fe6e3f548666b980d"
   },
   "testHandoff": [
     {
