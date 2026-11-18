@@ -148,7 +148,22 @@
       "labelForbiddenDelete": "Chỉ Chủ dự án mới xóa được nhãn.",
       "labelNotFound": "Nhãn này không còn tồn tại.",
       "checklistNotFound": "Danh sách này không còn tồn tại.",
-      "itemNotFound": "Mục này không còn tồn tại."
+      "itemNotFound": "Mục này không còn tồn tại.",
+      "reminderLimit": "Một việc có tối đa 5 lời nhắc.",
+      "reminderNotFound": "Lời nhắc này không còn tồn tại."
+    },
+    "reminders": {
+      "once": "Một lần",
+      "daily": "Hằng ngày",
+      "monthlyOn": "Ngày {{day}} hằng tháng",
+      "until": "đến {{date}}",
+      "errors": {
+        "past": "Hãy chọn một thời điểm chưa qua.",
+        "recipients": "Hãy chọn ít nhất một người nhận.",
+        "tooManyRecipients": "Một lời nhắc có tối đa 20 người nhận.",
+        "weekdays": "Hãy chọn ít nhất một ngày trong tuần.",
+        "endBeforeStart": "Ngày kết thúc không được trước ngày bắt đầu."
+      }
     },
     "weekday": {
       "0": "CN",
@@ -287,6 +302,7 @@
     "rejectedLabel": "Không lưu được thay đổi với nhãn.",
     "rejectedChecklist": "Không lưu được thay đổi với danh sách.",
     "rejectedItem": "Không lưu được thay đổi với mục trong danh sách.",
+    "rejectedReminder": "Không lưu được thay đổi với lời nhắc.",
     "rejectedTaskLabels": "Không lưu được nhãn của công việc {{title}}. Các thay đổi khác của công việc vẫn được giữ.",
     "rejectedTaskLabelsNoTitle": "Không lưu được nhãn của một công việc. Các thay đổi khác của công việc vẫn được giữ.",
     "colours": {

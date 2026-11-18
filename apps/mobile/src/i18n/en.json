@@ -150,7 +150,22 @@
       "labelForbiddenDelete": "Only a project Owner can delete a label.",
       "labelNotFound": "That label no longer exists.",
       "checklistNotFound": "That checklist no longer exists.",
-      "itemNotFound": "That item no longer exists."
+      "itemNotFound": "That item no longer exists.",
+      "reminderLimit": "A task can have at most 5 reminders.",
+      "reminderNotFound": "That reminder no longer exists."
+    },
+    "reminders": {
+      "once": "Once",
+      "daily": "Daily",
+      "monthlyOn": "Monthly on day {{day}}",
+      "until": "until {{date}}",
+      "errors": {
+        "past": "Pick a time that hasn't passed.",
+        "recipients": "Pick at least one person.",
+        "tooManyRecipients": "A reminder can go to at most 20 people.",
+        "weekdays": "Pick at least one day of the week.",
+        "endBeforeStart": "The end date can't be before the start date."
+      }
     },
     "weekday": {
       "0": "Sun",
@@ -289,6 +304,7 @@
     "rejectedLabel": "Your change to a label couldn't be saved.",
     "rejectedChecklist": "Your change to a checklist couldn't be saved.",
     "rejectedItem": "Your change to a checklist item couldn't be saved.",
+    "rejectedReminder": "Your change to a reminder couldn't be saved.",
     "rejectedTaskLabels": "Your labels for the task {{title}} couldn't be saved. The task's other changes were kept.",
     "rejectedTaskLabelsNoTitle": "Your labels for a task couldn't be saved. The task's other changes were kept.",
     "colours": {
