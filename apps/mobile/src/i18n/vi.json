@@ -192,6 +192,17 @@
     "deleteTitle": "Xoá “{{title}}”?",
     "deleteMessage": "Ý tưởng, bình luận và ảnh sẽ bị xoá với mọi người. Không thể hoàn tác.",
     "deleteConfirm": "Xoá",
+    "fromIdeaLink": "Từ ý tưởng {{title}}",
+    "fromIdeaA11y": "Từ ý tưởng {{title}}. Mở ý tưởng",
+    "createTask": {
+      "button": "Tạo công việc",
+      "fromLine": "Từ ý tưởng “{{title}}”",
+      "needsNetwork": "Cần có mạng để tạo công việc từ ý tưởng. Hãy thử lại khi có mạng.",
+      "notAccepted": "Chỉ ý tưởng đã chọn mới tạo được công việc.",
+      "alreadyHasTask": "Ý tưởng này đã có công việc rồi.",
+      "limit": "Dự án này đã có 1000 công việc.",
+      "gone": "Ý tưởng này không còn tồn tại."
+    },
     "errors": {
       "titleRequired": "Hãy nhập tiêu đề.",
       "titleTooLong": "Tiêu đề dài tối đa 120 ký tự.",

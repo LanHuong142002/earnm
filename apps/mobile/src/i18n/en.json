@@ -194,6 +194,17 @@
     "deleteTitle": "Delete “{{title}}”?",
     "deleteMessage": "The idea, its comments and photos will be deleted for everyone. This can't be undone.",
     "deleteConfirm": "Delete",
+    "fromIdeaLink": "From idea {{title}}",
+    "fromIdeaA11y": "From idea {{title}}. Open idea",
+    "createTask": {
+      "button": "Create task",
+      "fromLine": "From idea “{{title}}”",
+      "needsNetwork": "Creating a task from an idea needs a connection. Try again when you're online.",
+      "notAccepted": "Only a chosen idea can become a task.",
+      "alreadyHasTask": "This idea already has a task.",
+      "limit": "This project already has 1000 tasks.",
+      "gone": "This idea no longer exists."
+    },
     "errors": {
       "titleRequired": "Enter a title.",
       "titleTooLong": "The title can be up to 120 characters.",

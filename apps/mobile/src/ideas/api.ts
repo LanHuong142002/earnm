@@ -1,6 +1,7 @@
 import { request } from "../lib/api";
 import type { ServerComment } from "../tasks/comments/types";
 import type { CommentsApi, PhotosApi } from "../tasks/parent";
+import type { Task } from "../tasks/types";
 import type { ServerPhoto, UploadSignature } from "../tasks/photos/types";
 import type { Idea, IdeaStatus, Vote } from "./types";
 
@@ -30,6 +31,10 @@ export const patchIdea = (token: string, projectId: string, ideaId: string, fiel
 
 export const deleteIdea = (token: string, projectId: string, ideaId: string) =>
   request<void>(one(projectId, ideaId), { method: "DELETE", token });
+
+/** Makes the task of an accepted idea, once, and links both ways (spec R13). Needs the network: nothing is queued. */
+export const createTaskFromIdea = (token: string, projectId: string, ideaId: string, taskId: string) =>
+  request<{ task: Task; idea: Idea }>(`${one(projectId, ideaId)}/task`, { method: "POST", body: { taskId }, token });
 
 /** Sets the caller's vote; 0 takes it back. */
 export const putVote = (token: string, projectId: string, ideaId: string, value: Vote) =>
