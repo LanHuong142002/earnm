@@ -354,7 +354,6 @@
       "tooLong": "Over {{max}} characters ({{length}}). Remove {{over}}.",
       "emptyBody": "No comments yet. Leave a note so the assignee has the details when reminded.",
       "loadMore": "Show more comments ({{count}})",
-      "allShown": "You've seen every comment",
       "offline": "You're offline. Comments will show once you're back online.",
       "loadingA11y": "Loading comments",
       "edited": "edited",

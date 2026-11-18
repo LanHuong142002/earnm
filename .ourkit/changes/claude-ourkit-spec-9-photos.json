@@ -58,6 +58,11 @@
       "id": 9,
       "decision": "Photos UI departures: viewer token (black, scrim 0.55) added to tokens.ts, spinner instead of ring, viewer time uses the comment time format, caption sheet is a page-sheet modal",
       "why": "DESIGN.md has no black/scrim token; readability of white text; reuse of existing helpers and patterns"
+    },
+    {
+      "id": 10,
+      "decision": "Removed the 'Đã xem hết bình luận' end-of-list line in this change",
+      "why": "The user answered in the review doc: with comments, show nothing at the end; with none, the empty line. #8 was already merged, so the fix rides with #9"
     }
   ],
   "serviceActions": [
@@ -343,22 +348,22 @@
     {
       "id": 1,
       "question": "#9: Signed photo links never expire (expiring links need a paid Cloudinary plan), so a member could share a link outside the app. Accept for now? Recommendation: yes, revisit if the team grows.",
-      "answer": null
+      "answer": "Accepted the recommendation (user's answers in the review doc, 2026-11-18)"
     },
     {
       "id": 2,
       "question": "#9: /sign has no rate limit and no format or size cap, so an involved member could fill the Cloudinary quota. Add a rate limit and allowed_formats=jpg in a follow-up ticket? Recommendation: yes, small follow-up.",
-      "answer": null
+      "answer": "Accepted the recommendation (user's answers in the review doc, 2026-11-18)"
     },
     {
       "id": 3,
       "question": "#9: The viewer added a 'viewer' colour token (black, scrim 0.55) to tokens.ts. Add it to DESIGN.md too? Recommendation: yes.",
-      "answer": null
+      "answer": "Accepted the recommendation (user's answers in the review doc, 2026-11-18)"
     },
     {
       "id": 4,
       "question": "#8/#9: #9 is stacked on #8. Merge #8 first, then #9 (its PR will then show only photo changes). OK? Recommendation: yes.",
-      "answer": null
+      "answer": "Accepted the recommendation (user's answers in the review doc, 2026-11-18)"
     }
   ]
 }

@@ -352,7 +352,6 @@
       "tooLong": "Dài quá {{max}} ký tự ({{length}}). Bớt {{over}} ký tự.",
       "emptyBody": "Chưa có bình luận. Ghi chú để người làm biết chi tiết khi được nhắc.",
       "loadMore": "Xem thêm bình luận ({{count}})",
-      "allShown": "Đã xem hết bình luận",
       "offline": "Đang ngoại tuyến. Bình luận sẽ hiện khi có mạng.",
       "loadingA11y": "Đang tải bình luận",
       "edited": "đã sửa",

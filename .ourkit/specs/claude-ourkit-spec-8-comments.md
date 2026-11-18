@@ -43,7 +43,7 @@ Today a task has a title, description, status, due date, assignees, labels and c
 ### On the phone: screens
 
 17. The task screen has a **Bình luận** section below Checklist (and below Ảnh once #9 lands), with the comment count. There is no separate comments screen.
-18. The section shows comments in batches of 5. "Xem thêm bình luận (N)" loads the next 5 below, without leaving the screen. When all are shown, it says "Đã xem hết bình luận".
+18. The section shows comments in batches of 5. "Xem thêm bình luận (N)" loads the next 5 below, without leaving the screen. When all are shown, nothing more appears and the list simply ends. (Changed after the user's review on 2026-11-18: no end-of-list line.)
 19. A sort control switches between **Mới nhất** (newest first, the default) and **Cũ nhất** (oldest first). Changing it goes back to the first 5. The phone remembers the choice.
 20. Each comment is a rounded bubble with the author's avatar initial and name, then the text. Below the bubble: the time and, on one's own comments, "Sửa · Xoá". Comments are 16pt apart.
 21. A bell sits on the right of each comment. On: orange bell with the word "Nhắc". For involved people, an off flag shows a grey outlined bell they can tap; for others, an off flag shows nothing and an on flag can't be tapped.
@@ -76,7 +76,7 @@ Today a task has a title, description, status, due date, assignees, labels and c
 15. Unit test: queued comment changes merge per comment (create then delete leaves nothing; two edits leave one). By hand: offline, add a comment, see "Chờ gửi", restart the app, go online, it sends.
 16. Unit test: a permanently refused comment change produces the "Couldn't send" state with retry and discard.
 17. By hand, against the mockup: the Bình luận section sits below Checklist with the count, and there is no separate screen.
-18. By hand: comments come 5 at a time; "Xem thêm bình luận (N)" loads 5 more; "Đã xem hết bình luận" appears when all are shown. Unit test: batching.
+18. By hand: comments come 5 at a time; "Xem thêm bình luận (N)" loads 5 more; nothing more appears once all are shown. Unit test: batching.
 19. By hand: switching Mới nhất / Cũ nhất goes back to the first 5 and is remembered after restarting the app. Unit test: sorting.
 20. By hand: bubble layout with avatar, name, text, time and "Sửa · Xoá" on one's own comments only, 16pt apart.
 21. By hand: bell states for an involved member (grey outline tappable, orange "Nhắc" when on) and a non-involved member (nothing when off, not tappable when on). Unit test: bell states.
