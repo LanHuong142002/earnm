@@ -13,8 +13,10 @@ import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 import { createChecklistsRouter } from "./checklists/routes.js";
 import { createCommentsRouter } from "./comments/routes.js";
+import { createProjectRemindersRouter, createRemindersRouter } from "./reminders/routes.js";
 import { createPhotosRouter } from "./photos/routes.js";
 import type { PhotoStore } from "./photos/cloudinary.js";
+import type { PushSender } from "./push/sender.js";
 import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 
@@ -31,6 +33,8 @@ export interface AppDeps {
   inviteCodeKey?: string | null;
   /** Cloudinary access for task photos. Null or absent: the photo endpoints answer 503 and the rest works. */
   photoStore?: PhotoStore | null;
+  /** Sends reminder pushes on each tick. Null or absent: ticks send nothing. */
+  pushSender?: PushSender | null;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -49,6 +53,8 @@ export function createApp(deps: AppDeps): Express {
   app.use("/projects/:projectId/tasks/:taskId/checklists", createChecklistsRouter(deps));
   app.use("/projects/:projectId/tasks/:taskId/comments", createCommentsRouter(deps));
   app.use("/projects/:projectId/tasks/:taskId/photos", createPhotosRouter(deps));
+  app.use("/projects/:projectId/tasks/:taskId/reminders", createRemindersRouter(deps));
+  app.use("/projects/:projectId/reminders", createProjectRemindersRouter(deps));
   app.use("/projects/:projectId/tasks", createTasksRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
@@ -68,9 +74,12 @@ export function createApp(deps: AppDeps): Express {
 
   app.use(
     "/internal",
-    createInternalRouter(
-      deps.internalSecret !== undefined ? { internalSecret: deps.internalSecret } : {},
-    ),
+    createInternalRouter({
+      ...(deps.internalSecret !== undefined ? { internalSecret: deps.internalSecret } : {}),
+      prisma: deps.prisma,
+      pushSender: deps.pushSender ?? null,
+      now: deps.now,
+    }),
   );
 
   app.use(notFoundHandler);

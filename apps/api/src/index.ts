@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
 import { createCloudinaryStore } from "./photos/cloudinary.js";
+import { createExpoSender } from "./push/sender.js";
 import { ConfigError, loadConfig } from "./config.js";
 import { createPrismaClient } from "./db.js";
 
@@ -24,6 +25,7 @@ const app = createApp({
   inviteInstallUrl: config.inviteInstallUrl,
   inviteCodeKey: config.inviteCodeKey,
   photoStore: config.cloudinary ? createCloudinaryStore(config.cloudinary) : null,
+  pushSender: createExpoSender({ accessToken: config.expoAccessToken }),
 });
 
 app.listen(config.port, () => {

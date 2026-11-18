@@ -30,7 +30,8 @@ export type TaskFieldPatch = {
 
 const base = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/tasks`;
 
-export const listTasks = (token: string, projectId: string) => request<Task[]>(base(projectId), { token });
+export const listTasks = (token: string, projectId: string) =>
+  request<Task[]>(base(projectId), { token });
 
 export const createTask = (token: string, projectId: string, body: CreateTaskBody) =>
   request<Task>(base(projectId), { method: "POST", body, token });

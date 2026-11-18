@@ -16,9 +16,10 @@ export type RejectedReason =
   | "labelNameTaken"
   | "labelLimit"
   | "checklistLimit"
-  | "itemLimit";
+  | "itemLimit"
+  | "reminderLimit";
 /** What a notice is about when it is not a task: a label, a checklist or one of its items. */
-export type NoticeSubject = "label" | "checklist" | "item" | "taskLabels";
+export type NoticeSubject = "label" | "checklist" | "item" | "taskLabels" | "reminder";
 export type TaskRejectedNotice = {
   kind: ChangeKind;
   taskTitle: string | null;
@@ -42,6 +43,8 @@ export function reasonFor(error: ApiError): RejectedReason {
       return "checklistLimit";
     case "item_limit_reached":
       return "itemLimit";
+    case "reminder_limit_reached":
+      return "reminderLimit";
     case "validation_failed":
       return "invalid";
     case "not_found":
@@ -93,6 +96,7 @@ const REASON_KEY: Record<RejectedReason, string> = {
   labelLimit: "tasks.reasons.labelLimit",
   checklistLimit: "tasks.reasons.checklistLimit",
   itemLimit: "tasks.reasons.itemLimit",
+  reminderLimit: "tasks.reasons.reminderLimit",
 };
 
 const SUBJECT_NOT_FOUND: Record<NoticeSubject, string> = {
@@ -100,12 +104,14 @@ const SUBJECT_NOT_FOUND: Record<NoticeSubject, string> = {
   checklist: "tasks.reasons.checklistNotFound",
   item: "tasks.reasons.itemNotFound",
   taskLabels: "tasks.reasons.notFound",
+  reminder: "tasks.reasons.reminderNotFound",
 };
 const SUBJECT_HEADLINE: Record<NoticeSubject, string> = {
   label: "tasks.rejectedLabel",
   checklist: "tasks.rejectedChecklist",
   item: "tasks.rejectedItem",
   taskLabels: "tasks.rejectedTaskLabels",
+  reminder: "tasks.rejectedReminder",
 };
 
 /** i18n keys for a refused-change notice. Only the creator or an Owner can delete, so a refused delete says that. */

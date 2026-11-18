@@ -45,21 +45,25 @@ enum LabelColour {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  passwordHash   String
-  displayName    String
-  language       Language?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  sessions       Session[]
-  projects       ProjectMember[]
-  invitesCreated Invite[]        @relation("InviteCreatedBy")
-  invitesUsed    Invite[]        @relation("InviteUsedBy")
-  createdTasks   Task[]          @relation("TaskCreator")
-  assignments    TaskAssignee[]
-  taskComments   TaskComment[]
-  taskPhotos     TaskPhoto[]
+  id                 String                  @id @default(uuid())
+  email              String                  @unique
+  passwordHash       String
+  displayName        String
+  language           Language?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  sessions           Session[]
+  projects           ProjectMember[]
+  invitesCreated     Invite[]                @relation("InviteCreatedBy")
+  invitesUsed        Invite[]                @relation("InviteUsedBy")
+  createdTasks       Task[]                  @relation("TaskCreator")
+  assignments        TaskAssignee[]
+  taskComments       TaskComment[]
+  taskPhotos         TaskPhoto[]
+  remindersCreated   TaskReminder[]          @relation("ReminderCreator")
+  reminderRecipients TaskReminderRecipient[]
+  pushTokens         DevicePushToken[]
+  reminderPushes     ReminderPushSent[]
 }
 
 model ProjectMember {
@@ -75,19 +79,20 @@ model ProjectMember {
 }
 
 model Project {
-  id                  String          @id
+  id                  String              @id
   name                String
-  description         String          @default("")
+  description         String              @default("")
   currency            Currency
   nameEditedAt        DateTime
   descriptionEditedAt DateTime
   currencyEditedAt    DateTime
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
   members             ProjectMember[]
   tasks               Task[]
   invites             Invite[]
   labels              Label[]
+  deviceSyncs         DeviceProjectSync[]
 }
 
 model Session {
@@ -125,6 +130,7 @@ model Task {
   labels              TaskLabel[]
   comments            TaskComment[]
   photos              TaskPhoto[]
+  reminders           TaskReminder[]
 
   @@index([projectId])
 }
@@ -236,4 +242,96 @@ model TaskLabel {
 
   @@id([taskId, labelId])
   @@index([labelId])
+}
+
+enum ReminderRepeat {
+  once
+  daily
+  weekly
+  monthly
+}
+
+model TaskReminder {
+  id                 String                  @id
+  taskId             String
+  task               Task                    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  startDate          DateTime                @db.Date
+  time               String
+  timezone           String
+  repeat             ReminderRepeat
+  weekdays           Int[]                   @default([])
+  endDate            DateTime?               @db.Date
+  scheduleEditedAt   DateTime                @default(now())
+  recipientsEditedAt DateTime                @default(now())
+  changedAt          DateTime                @default(now())
+  createdById        String?
+  createdBy          User?                   @relation("ReminderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime                @default(now())
+  recipients         TaskReminderRecipient[]
+  pushesSent         ReminderPushSent[]
+
+  @@index([taskId])
+}
+
+model TaskReminderRecipient {
+  reminderId String
+  reminder   TaskReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([reminderId, userId])
+  @@index([userId])
+}
+
+model DevicePushToken {
+  token        String              @id
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /**
+   * Unused: per-project sync times live in DeviceProjectSync.
+   */
+  lastSyncedAt DateTime?
+  createdAt    DateTime            @default(now())
+  projectSyncs DeviceProjectSync[]
+
+  @@index([userId])
+}
+
+/**
+ * When a phone last fetched a project's reminders, so the tick knows it has them scheduled.
+ */
+model DeviceProjectSync {
+  token        String
+  device       DevicePushToken @relation(fields: [token], references: [token], onDelete: Cascade)
+  projectId    String
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lastSyncedAt DateTime        @default(now())
+
+  @@id([token, projectId])
+  @@index([projectId])
+}
+
+model ReminderPushSent {
+  reminderId    String
+  reminder      TaskReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurrenceAt  DateTime
+  /// When the claim was made.
+  claimedAt     DateTime     @default(now())
+  /// When the latest send attempt started; retries wait after it.
+  lastAttemptAt DateTime     @default(now())
+  /// Send attempts so far; a claim is retried while below 3.
+  attempts      Int          @default(1)
+  /// Null while claimed and not yet settled; set once the push service accepted a message, or when every failed message was for a token that is no longer registered (those tokens are deleted, so nothing is left to retry).
+  sentAt        DateTime?
+
+  @@id([reminderId, userId, occurrenceAt])
+  @@index([sentAt, claimedAt])
+}
+
+/// One row (id "tick"): when the last /internal/tick ran, so the next one knows how far back to look.
+model TickState {
+  id         String   @id @default("tick")
+  lastTickAt DateTime @default(now())
 }

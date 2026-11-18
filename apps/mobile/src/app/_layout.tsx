@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import i18n from "../i18n";
 import { ProjectsProvider } from "../projects/ProjectsProvider";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
+import { NotificationGlue } from "../tasks/reminders/NotificationGlue";
 import { TasksProvider } from "../tasks/TasksProvider";
 import { readAppearance, schemeOverride } from "../theme/appearance";
 
@@ -28,16 +29,20 @@ function RootNavigator() {
 
   if (status === "loading") return null;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={status === "signedOut"}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-      {/* Signed out, "/" (app)/index is guarded off; without redirectTo the router falls back to
-          the "(auth)" group, which has no index and shows Unmatched Route. */}
-      <Stack.Protected guard={status === "signedIn"} redirectTo="/sign-in">
-        <Stack.Screen name="(app)" />
-      </Stack.Protected>
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={status === "signedOut"}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        {/* Signed out, "/" (app)/index is guarded off; without redirectTo the router falls back to
+            the "(auth)" group, which has no index and shows Unmatched Route. */}
+        <Stack.Protected guard={status === "signedIn"} redirectTo="/sign-in">
+          <Stack.Screen name="(app)" />
+        </Stack.Protected>
+      </Stack>
+      {/* After the navigator, so a tapped notification has a stack to push onto. */}
+      {status === "signedIn" ? <NotificationGlue /> : null}
+    </>
   );
 }
 

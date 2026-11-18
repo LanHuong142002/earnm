@@ -1,0 +1,363 @@
+{
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "10",
+    "accepted": true
+  },
+  "ticket": "10",
+  "tier": "feature",
+  "tierReason": "One cycle from the MVP epic; adds reminder tables, push-token registration and API endpoints",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "#10: any project member may add, edit or delete reminders",
+      "why": "Matches task editing permissions; mockup assumption 1, user did not object"
+    },
+    {
+      "id": 2,
+      "decision": "#10: at most 5 reminders per task, 20 recipients",
+      "why": "Mockup assumption; keeps the 64-pending iOS local notification cap safe"
+    },
+    {
+      "id": 3,
+      "decision": "#10: occurrences scheduled locally 14 days ahead, server push only wakes phones and catches missed ones",
+      "why": "Decision 5; works offline and within iOS limits"
+    },
+    {
+      "id": 4,
+      "decision": "#10: monthly repeat uses start day, falling back to the month's last day",
+      "why": "Simplest predictable rule"
+    },
+    {
+      "id": 5,
+      "decision": "#10: reuse expo-notifications and expo-server-sdk; write a small occurrence calculator instead of rrule",
+      "why": "Official libs cover push; our 4 repeat rules don't justify rrule plus Luxon"
+    },
+    {
+      "id": 6,
+      "decision": "#10: remote push is off until EAS projectId and token are configured",
+      "why": "Local reminders still work, so the feature isn't blocked on the user's Apple setup"
+    },
+    {
+      "id": 7,
+      "decision": "#10: local notifications only, no server push, token or tick work",
+      "why": "User has no paid Apple Developer account and wants free notifications (2026-11-18)"
+    },
+    {
+      "id": 8,
+      "decision": "#10: option B — local notifications plus Expo push in Expo Go, sent only by the tick to out-of-date phones",
+      "why": "User chose B on 2026-11-18; free, and no duplicate notifications"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#10: Confirm the mockup assumptions (any member edits reminders; max 5; default time due date 9:00; permission asked on first save; done stops reminders, no snooze)?",
+      "answer": "Yes, mockup assumptions OK"
+    },
+    {
+      "id": 2,
+      "question": "#10: Remote push needs an EAS project id and Apple push key (paid Apple Developer account). Do you have one, or should #10 ship with local reminders only and remote push disabled until set up?",
+      "answer": "No paid Apple account; go with free notifications"
+    }
+  ],
+  "serviceActions": [
+    "Create an EAS project (eas init) and upload an APNs key via eas credentials, then put the projectId in apps/mobile/app.json; optionally create an Expo access token and set EXPO_ACCESS_TOKEN on Render",
+    "In apps/mobile run npx eas init (free Expo account) and commit extra.eas.projectId in app.json, so phones can get Expo push tokens"
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "4b4cfd180fc7198128dd564c9d229f55a425b714330915088adb06eee4d552c4",
+  "planApproval": "8bc1b1e9ffcd779243c443417ba2afa79a2dce81c34e46010e4ad735dae8c6a8",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "apps/api/src/tasks/routes.ts:211-216 + apps/mobile/src/tasks/syncCycle.ts:166-174: token lastSyncedAt is stamped on the task-list fetch, before the phone fetches reminders; if /reminders then fails, the server thinks the phone is current and catchUp.ts:112 skips the push, while the phone never scheduled it - reminder silently lost. Stamp only when the reminders fetch succeeds.",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/catchUp.ts:62-82: each tick loads all non-done reminders with token-holding recipients and all their Nhac kem comments, unbounded; filter by due window in SQL or cap comments per task.",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/catchUp.ts:121-141: claim row inserted before send; a send failure is only logged, so a transient Expo outage loses that occurrence's push for good.",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/reminders/routes.ts:365-393: project reminders list is unpaged and loads every Nhac kem comment then trims to 3 in memory.",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/catchUp.ts:48-58: overlapping ticks can read the same lastTickAt; duplicates are prevented by the ReminderPushSent claim (note only).",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx registerSignOutCleanup has a single slot; ProjectsProvider overwrites TasksProvider's cleanup so the task/reminder caches may not be cleared on sign-out (existing bug, found during Build).",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "catchUp.ts ~140-150 + sender.ts createExpoSender: the Expo sender swallows chunk failures so the claim-release never runs; when it does throw, lastTickAt still advances so no retry; the 'next tick retries' comment is false.",
+        "resolved": true
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "me/routes.ts ~75-80: moving a token to another user keeps its DeviceProjectSync rows, so the new owner can look synced from the previous owner's fetch and miss a push.",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "me/routes.ts: per-user token cap judges newest by createdAt, not refreshed on re-register/move, so the just-registered token can be deleted.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "catchUp.ts sendDue: unbounded scan each tick (same as finding 2).",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "catchUp.ts: a crash between claiming and sending loses those pushes (accepted at-most-once trade-off).",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "catchUp.ts end of sendDue: a claim whose failures were all invalid tokens is marked sentAt though nothing arrived; comment now says so (fixed)",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "catchUp.ts: for a user with several devices a claim settles when any one message arrives, so a failed second device is not retried (fits once per user; local notification covers it; note only)",
+        "resolved": true
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "reminders/routes.ts: orphaned REMIND_WITH_LIMIT doc comment (removed)",
+        "resolved": true
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "schema.prisma: misaligned ReminderPushSent fields (prisma format applied)",
+        "resolved": true
+      }
+    ],
+    "reviewed": "fc22f5f041f6f004beb26155a01854d18d4234003374548fe6e3f548666b980d"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API test creates a reminder of each repeat rule and returns every field (reminders/routes.test.ts); gate run test passed",
+        "criterion": "API test: a member creates a reminder of each repeat rule; it comes back with all fields."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "occurrences.test.ts (both copies): once, daily, weekly, monthly 31st->Feb/Apr, Ho Chi Minh and New York across DST",
+        "criterion": "Unit test (occurrence calculator on the phone): once, daily, weekly on chosen days, monthly incl. 31st → last day; DST-free timezone and one with DST."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API test refuses end before start; unit tests: end date inclusive, nothing after it",
+        "criterion": "API test: end date before start is refused; unit test: no occurrence after the end date."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API tests refuse 0 or 21 recipients and a non-member; 20 accepted",
+        "criterion": "API test: 0 or 21 recipients, or a non-member recipient, are refused with `validation_failed`."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "formState tests: assignees, then creator; due date+time, 9:00 on due date, 9:00 tomorrow",
+        "criterion": "Unit test: the default time and recipients for each case in requirement 5 and 4."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API test refuses a past one-off on create and on time change",
+        "criterion": "API test: a past one-off is refused on create and on time change."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API test: 6th reminder refused with reminder_limit_reached",
+        "criterion": "API test: the 6th reminder is refused with `reminder_limit_reached`."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API test: a non-creator member edits and deletes a reminder",
+        "criterion": "API test: a non-creator member edits and deletes a reminder."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "Occurrence tests compute in the stored zone, end date in the stored zone",
+        "criterion": "Unit test: occurrences are computed in the stored timezone."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "Scheduler test: nothing for a done task; range tests give only future occurrences",
+        "criterion": "Unit test: a done task yields no occurrences; reopening yields only future ones."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API tests: reminders deleted with task and project; removed or leaving member dropped from recipients",
+        "criterion": "API test: deleting the task removes reminders; removing a member drops them from recipients."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API tests: LWW per field, idempotent id, 409 on another task",
+        "criterion": "API test: an older edit doesn't overwrite a newer one per field; the same id twice gives one reminder; on another task `409`."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API test: 404 non-member, 401 signed out, for list/create/edit/delete",
+        "criterion": "API test: non-member `404`, signed out `401`, for list, create, edit, delete."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "pushToken.test.ts: register, move, unregister; sync time recorded per project on the reminders fetch (review fix)",
+        "criterion": "API test: registering a token, registering it again as another user moves it, unregistering removes it; a task-list fetch updates the token's sync time."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: explanation sheet then iOS prompt; Để sau still saves",
+        "criterion": "By hand (dev build on an iPhone): first save shows the explanation sheet, then the iOS prompt; \"Để sau\" still saves."
+      },
+      "16": {
+        "result": "pass",
+        "evidence": "Content tests: title, due/project line, 0-4 Nhắc kèm comments, up to 3 newest first",
+        "criterion": "Unit test: notification content for with/without due date and 0–4 \"Nhắc kèm\" comments."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: tap opens the task; deleted task opens the project list",
+        "criterion": "By hand: tapping a notification opens the task; for a deleted task, the project list."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Unit part passes (scheduler: only my reminders, 14 days, nearest 64, idempotent); firing on a locked phone in airplane mode needs an iPhone",
+        "criterion": "Unit test: the scheduler picks only this user's reminders, 14 days ahead, nearest 64, and is idempotent. By hand: a reminder fires on a locked phone in airplane mode."
+      },
+      "19": {
+        "result": "pass",
+        "evidence": "grep: reminders routes send no push; only the tick sends",
+        "criterion": "Check: no push is sent at the moment a reminder changes."
+      },
+      "20": {
+        "result": "pass",
+        "evidence": "catchUp.test.ts: one push per out-of-date recipient, newer Nhắc kèm counts, none for done tasks, 15-min window, invalid tokens deleted; after the review fixes: failed or crash-left sends retried up to 3 times within an hour, never twice after success, concurrent ticks serialized by an advisory lock; gate run test passed (API 543, mobile 855)",
+        "criterion": "API test (push sender faked): tick sends one push per due occurrence to out-of-date recipients only (including when a \"Nhắc kèm\" comment is newer than their last sync), none twice across ticks, none for done tasks; invalid tokens are deleted; nothing is sent without configuration."
+      },
+      "21": {
+        "result": "pass",
+        "evidence": "No mute setting exists (grep)",
+        "criterion": "Check: there is no mute setting for reminders."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, compare with mockup 1a",
+        "criterion": "By hand, against mockup 1a: the Nhắc nhở section sits below the info card with N/5, ＋ Thêm and rows; at 5, ＋ Thêm is grey with \"Tối đa 5\"."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, mockup 1b",
+        "criterion": "By hand, mockup 1b: empty state line and button."
+      },
+      "24": {
+        "result": "manual",
+        "evidence": "Unit part passes (rowLines marks rows stopped); visual check of mockup 1c needs an iPhone",
+        "criterion": "By hand, mockup 1c: done task greys rows with the stopped line. Unit test: the row view model marks rows stopped."
+      },
+      "25": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, mockup 1d",
+        "criterion": "By hand, mockup 1d: with permission denied, the notice shows and \"Mở Cài đặt\" opens Settings."
+      },
+      "26": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, mockups 2a-2c",
+        "criterion": "By hand, mockups 2a–2c: the reminder screen, weekly days, end date, recipients, delete confirm; selections highlighted with no ticks."
+      },
+      "27": {
+        "result": "manual",
+        "evidence": "Unit part passes (formState validation); visual check of mockup 2d needs an iPhone",
+        "criterion": "By hand, mockup 2d: field errors and disabled Lưu. Unit test: form validation."
+      },
+      "28": {
+        "result": "manual",
+        "evidence": "Unit part passes (overlay/sync merge, waiting row); offline check of mockup 4c needs an iPhone",
+        "criterion": "Unit test: queued reminder changes merge per reminder. By hand, mockup 4c: offline add shows \"Chờ lưu\" and syncs after reconnect."
+      },
+      "29": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: dark mode (4d), English, VoiceOver",
+        "criterion": "By hand, mockup 4d: dark mode; also EN text and VoiceOver names on rows and buttons."
+      },
+      "30": {
+        "result": "pass",
+        "evidence": "Migrations only add tables/indexes/FKs; applied to a fresh test DB by gate run test. Not applied separately to a DB with existing tasks.",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing tasks."
+      }
+    },
+    "checked": "fc22f5f041f6f004beb26155a01854d18d4234003374548fe6e3f548666b980d"
+  },
+  "testHandoff": [
+    {
+      "what": "#10 reminders on the phone (AC15, 17, 18, 22-29)",
+      "steps": "Run npm run dev:phone from this branch checkout (after db:deploy on the dev DB), open in Expo Go on the iPhone, sign in, open a task. 1) Tap ＋ Thêm, save a reminder 2 minutes ahead: the explanation sheet, then the iOS prompt (Tiếp tục). 2) Lock the phone, airplane mode on: the notification shows at that time with task title, due/project line and Nhắc kèm comments; tap it: the task opens. 3) Compare the Nhắc nhở section and form with mockup screens 1a-1d, 2a-2d, 4c, 4d (5 reminders -> Tối đa 5; done task -> greyed rows; denied permission -> Mở Cài đặt notice; past one-off and no recipients -> errors, Lưu disabled; offline add -> Chờ lưu then syncs; dark mode, English, VoiceOver names). Expected: all match the mockup, selections highlighted with no ticks."
+    },
+    {
+      "what": "#10 Expo push in Expo Go (R14, R20)",
+      "steps": "After npx eas init has put extra.eas.projectId in apps/mobile/app.json and cron-job.org calls /internal/tick: on phone A (Lan) sign in and allow notifications, then close the app. On phone B (Huy) add a reminder for Lan 6 minutes ahead on a shared task. Expected: Lan's phone shows the notification within one tick (<=5 min late) without opening the app, and only once. If nothing arrives, Expo Go on SDK 58 may not support push: tell Claude, and #10 keeps local notifications only."
+    }
+  ],
+  "shipApproval": "fc22f5f041f6f004beb26155a01854d18d4234003374548fe6e3f548666b980d",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/46"
+}
