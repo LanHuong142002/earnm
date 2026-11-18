@@ -76,5 +76,97 @@
     "reason": null
   },
   "mockupApproval": "4b4cfd180fc7198128dd564c9d229f55a425b714330915088adb06eee4d552c4",
-  "planApproval": "8bc1b1e9ffcd779243c443417ba2afa79a2dce81c34e46010e4ad735dae8c6a8"
+  "planApproval": "8bc1b1e9ffcd779243c443417ba2afa79a2dce81c34e46010e4ad735dae8c6a8",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "apps/api/src/tasks/routes.ts:211-216 + apps/mobile/src/tasks/syncCycle.ts:166-174: token lastSyncedAt is stamped on the task-list fetch, before the phone fetches reminders; if /reminders then fails, the server thinks the phone is current and catchUp.ts:112 skips the push, while the phone never scheduled it - reminder silently lost. Stamp only when the reminders fetch succeeds.",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/catchUp.ts:62-82: each tick loads all non-done reminders with token-holding recipients and all their Nhac kem comments, unbounded; filter by due window in SQL or cap comments per task.",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/catchUp.ts:121-141: claim row inserted before send; a send failure is only logged, so a transient Expo outage loses that occurrence's push for good.",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/reminders/routes.ts:365-393: project reminders list is unpaged and loads every Nhac kem comment then trims to 3 in memory.",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/catchUp.ts:48-58: overlapping ticks can read the same lastTickAt; duplicates are prevented by the ReminderPushSent claim (note only).",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/auth/AuthProvider.tsx registerSignOutCleanup has a single slot; ProjectsProvider overwrites TasksProvider's cleanup so the task/reminder caches may not be cleared on sign-out (existing bug, found during Build).",
+        "resolved": false
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "catchUp.ts ~140-150 + sender.ts createExpoSender: the Expo sender swallows chunk failures so the claim-release never runs; when it does throw, lastTickAt still advances so no retry; the 'next tick retries' comment is false.",
+        "resolved": true
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "me/routes.ts ~75-80: moving a token to another user keeps its DeviceProjectSync rows, so the new owner can look synced from the previous owner's fetch and miss a push.",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "me/routes.ts: per-user token cap judges newest by createdAt, not refreshed on re-register/move, so the just-registered token can be deleted.",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "catchUp.ts sendDue: unbounded scan each tick (same as finding 2).",
+        "resolved": false
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "catchUp.ts: a crash between claiming and sending loses those pushes (accepted at-most-once trade-off).",
+        "resolved": false
+      }
+    ],
+    "reviewed": "91a38316c13d0fc006fc9a60c94559ad8fa4502cf6a6c1c181c43a046429813f"
+  }
 }
