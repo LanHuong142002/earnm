@@ -1,7 +1,8 @@
 import { occurrencesBetween } from "./occurrences";
 import type { ReminderSchedule } from "./types";
 
-type T = (key: string, options?: Record<string, unknown>) => string;
+/** A translate function: a key and the values to put in it. */
+export type T = (key: string, options?: Record<string, unknown>) => string;
 
 const DAY_MS = 86_400_000;
 
@@ -18,7 +19,7 @@ export function dayLabel(date: string, t: T): string {
 }
 
 /** `21 Thg 11` / `21 Nov`. */
-function shortDay(date: string, t: T): string {
+export function shortDay(date: string, t: T): string {
   const [, m, d] = date.split("-").map(Number) as [number, number, number];
   return `${d} ${t(`tasks.month.${m}`)}`;
 }

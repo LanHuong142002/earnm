@@ -42,6 +42,13 @@ export default function HomeStackLayout() {
         options={{ title: t("tasks.detailsTitle"), headerTitleAlign: "center" }}
       />
       <Stack.Screen name="projects/[id]/tasks/[taskId]/edit" options={{ title: t("tasks.editTitle") }} />
+      <Stack.Screen name="projects/[id]/tasks/[taskId]/reminders/new" options={{ title: t("tasks.reminders.newTitle") }} />
+      <Stack.Screen name="projects/[id]/tasks/[taskId]/reminders/[reminderId]" options={{ title: t("tasks.reminders.editTitle") }} />
+      {/* The explanation sheet before iOS asks for notifications. */}
+      <Stack.Screen
+        name="projects/[id]/tasks/[taskId]/reminders/permission"
+        options={{ ...sheet, sheetAllowedDetents: [0.5], title: t("tasks.reminders.permission.title") }}
+      />
       {/* The photo viewer: full screen on black, with its own close button. */}
       <Stack.Screen
         name="projects/[id]/tasks/[taskId]/photos"
