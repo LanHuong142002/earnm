@@ -21,6 +21,7 @@ import { createIdeasRouter } from "./ideas/routes.js";
 import { createVotesRouter } from "./ideas/votes.js";
 import { createIdeaCommentsRouter } from "./ideas/comments.js";
 import { createIdeaPhotosRouter } from "./ideas/photos.js";
+import { createIdeaToTaskRouter } from "./ideas/toTask.js";
 
 export interface AppDeps {
   prisma: PrismaClient;
@@ -58,6 +59,7 @@ export function createApp(deps: AppDeps): Express {
   app.use("/projects/:projectId/ideas/:ideaId/vote", createVotesRouter(deps));
   app.use("/projects/:projectId/ideas/:ideaId/comments", createIdeaCommentsRouter(deps));
   app.use("/projects/:projectId/ideas/:ideaId/photos", createIdeaPhotosRouter(deps));
+  app.use("/projects/:projectId/ideas/:ideaId/task", createIdeaToTaskRouter(deps));
   app.use("/projects/:projectId/ideas", createIdeasRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));

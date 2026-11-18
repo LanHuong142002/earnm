@@ -89,13 +89,15 @@ const patchSchema = z
 
 const idSchema = z.uuid();
 
-const taskInclude = {
+export const taskInclude = {
   assignees: {
     include: { user: { select: { id: true, displayName: true } } },
     orderBy: [{ user: { displayName: "asc" } }, { userId: "asc" }],
   },
   // Label ids come back sorted by id, so the order is stable.
   labels: { orderBy: [{ labelId: "asc" }] },
+  // The idea this task was made from, if any.
+  fromIdea: { select: { id: true, title: true } },
   checklists: {
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     include: { items: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] } },
@@ -105,7 +107,7 @@ const taskInclude = {
 type TaskRow = Prisma.TaskGetPayload<{ include: typeof taskInclude }>;
 
 /** The exact shape the mobile app expects. */
-function toResponse(task: TaskRow) {
+export function taskResponse(task: TaskRow) {
   return {
     id: task.id,
     projectId: task.projectId,
@@ -127,6 +129,7 @@ function toResponse(task: TaskRow) {
         createdAt: i.createdAt.toISOString(),
       })),
     })),
+    fromIdea: task.fromIdea ? { id: task.fromIdea.id, title: task.fromIdea.title } : null,
     createdById: task.createdById,
     createdAt: task.createdAt.toISOString(),
   };
@@ -211,7 +214,7 @@ export function createTasksRouter(deps: {
         include: taskInclude,
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       });
-      res.json(tasks.map(toResponse));
+      res.json(tasks.map(taskResponse));
     } catch (err) {
       next(err);
     }
@@ -279,7 +282,7 @@ export function createTasksRouter(deps: {
         if (!isUniqueViolation(err)) throw err;
         result = await createOnce();
       }
-      res.status(result.status).json(toResponse(result.task));
+      res.status(result.status).json(taskResponse(result.task));
     } catch (err) {
       next(err);
     }
@@ -360,7 +363,7 @@ export function createTasksRouter(deps: {
         include: taskInclude,
       });
       if (!current) throw notFound(); // deleted meanwhile
-      res.json(toResponse(current));
+      res.json(taskResponse(current));
     } catch (err) {
       next(err);
     }
