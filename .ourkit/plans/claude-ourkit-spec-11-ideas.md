@@ -4,13 +4,13 @@ Spec: `.ourkit/specs/claude-ourkit-spec-11-ideas.md`. Mockup: `.ourkit/mockups/c
 
 ## Approach
 
-Ideas are a new project child resource built like tasks, with sub-resources built like task comments and photos. On the API: new Prisma models and routers under `/projects/:projectId/ideas`, reusing `lockProject`, `applyLastWriteWins`, text helpers, the `Label` table and the Cloudinary store (`photos/cloudinary.ts`, `destroy.ts`) with an `earnm/<project>/ideas/<idea>/<photo>` public-id prefix. A dedicated `POST /ideas/:ideaId/task` creates the task server-side (title, description, labels), copies photos with a new Cloudinary copy helper, and sets the link — one transaction for rows, image copies before it, cleanup on failure. On the phone: an `ideas/` folder mirroring `tasks/` (store, queue entity, sync cycle, overlay), list and detail screens copied from the task list and task screen, and comments/photos components lifted to take a generic parent rather than duplicated where that is a small, safe change.
+Ideas are a new project child resource built like tasks, with sub-resources built like task comments and photos. On the API: new Prisma models and routers under `/projects/:projectId/ideas`, reusing `lockProject`, `applyLastWriteWins`, text helpers, the `Label` table and the Cloudinary store (`photos/cloudinary.ts`, `destroy.ts`) with an `earnm/<project>/ideas/<idea>/<photo>` public-id prefix. A dedicated `POST /ideas/:ideaId/task` creates the task server-side (title, description, labels, no photos) and sets the link, in one transaction. On the phone: an `ideas/` folder mirroring `tasks/` (store, queue entity, sync cycle, overlay), list and detail screens copied from the task list and task screen, and comments/photos components lifted to take a generic parent rather than duplicated where that is a small, safe change.
 
 ## Prior Art
 
 - **In project, reuse:** task routes/LWW/idempotent create; comments routes (copy, minus remindWith); photos sign/record/delete and `destroyImages`; label validation; mobile `sync/queue.ts`, `syncCycle.ts`, `FilterBar`, `Collapsible`, `TaskCard` layout, `OfflineNote`, `SheetFrame`, status picker sheet, `PhotosSection`/`PhotoViewer`/`CaptionSheet`, `CommentsSection`/`CommentBubble`/`CommentComposer`.
 - **Mobile comments/photos components:** refactor to take a `parent` adapter (api/store/sync + permission callbacks) instead of `taskId`, keeping task behaviour identical (existing tests must stay green). Cheaper and more consistent than copying ~12 files each. If the refactor grows beyond the hooks, fall back to copying for photos only (decision at Build, logged).
-- **Image copy:** Cloudinary's upload API accepts a source URL; signing an authenticated delivery URL of the original and uploading it under the new public id is the documented way to duplicate an asset. No library beyond the existing `cloudinary` SDK.
+- **Image copy:** not needed; copying photos to the task was moved to #43 by the user.
 - **Votes:** no library; a `(ideaId, userId)` table with value ±1.
 
 ## Changes
@@ -18,7 +18,6 @@ Ideas are a new project child resource built like tasks, with sub-resources buil
 **API (`apps/api`)**
 - `prisma/schema.prisma` + one migration: `Idea` (id, projectId cascade, authorId SetNull, title, description, status enum `new|considering|accepted|dropped`, per-field `*EditedAt`, createdAt, `taskId` unique nullable → Task SetNull), `IdeaLabel`, `IdeaVote` (PK ideaId+userId, value smallint), `IdeaComment`, `IdeaPhoto`. Timestamp checked against `main` and #10's migration at Build and again before Ship (lesson).
 - `src/ideas/routes.ts` (list with score + own vote + counts, create, patch, delete), `votes.ts` (`PUT /:ideaId/vote {value: 1|-1|0}`), `comments.ts`, `photos.ts`, `toTask.ts`. Limits: `MAX_IDEAS_PER_PROJECT=500`, `MAX_COMMENTS_PER_IDEA=500`, `MAX_PHOTOS_PER_IDEA=10`.
-- `src/photos/cloudinary.ts`: add `copyImage(fromPublicId, toPublicId)`.
 - Project delete path and idea delete: collect idea photo public ids and destroy (every cascade path, lesson). Task routes: task response gains `fromIdeaId`.
 - `src/app.ts` mount.
 
@@ -35,7 +34,6 @@ Ideas are a new project child resource built like tasks, with sub-resources buil
 
 - **Sensitive Areas: data, schema, public API.** New tables and endpoints with membership checks; members-only signed image URLs; author/Owner checks on edits and photos.
 - **Refactoring #8/#9 components** could regress tasks: existing unit tests must pass unchanged; by-hand recheck of task comments and photos goes into the Test Handoff.
-- **Image copy failure** midway: copy first, then write rows in one transaction; on failure destroy copied images and return an error the phone shows as retryable.
 - **Migration ordering with #10** (both add migrations): whichever merges second renames its migration timestamp.
 - **Score sort with pending local votes:** overlay applies own pending vote to score before sorting.
 
@@ -45,5 +43,5 @@ Commands: `ourkit command test`, `ourkit command lint`.
 - API tests (real test DB, Cloudinary store faked): R1–R11, R13, R14, R24.
 - Unit tests (mobile): order and filters R17, New count R16, permissions R2/R19, queue merge R22, button state R15, author fallback R6.
 - Existing #8/#9 tests guard the refactor.
-- Test Handoff (phone): R12, R16–R23 screens against the mockup, real Cloudinary copy end-to-end, task comments/photos regression check.
+- Test Handoff (phone): R12, R16–R23 screens against the mockup, task comments/photos regression check.
 - Cloudinary failures are tested only through the injected fake store (decided now).

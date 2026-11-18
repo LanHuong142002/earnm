@@ -38,18 +38,23 @@
       "id": 5,
       "decision": "#11: generalise mobile comments and photos components to a parent adapter instead of copying",
       "why": "Keeps one design and avoids ~24 duplicated files; existing tests guard tasks"
+    },
+    {
+      "id": 6,
+      "decision": "#11: no photo copy when creating a task from an idea",
+      "why": "User's answer 2026-11-18; tracked as a follow-up ticket"
     }
   ],
   "questions": [
     {
       "id": 1,
       "question": "#11: Confirm the mockup assumptions (order by score; one anonymous vote; any member changes status; author+Owner edit/delete; no bell on idea comments; one task per idea)?",
-      "answer": null
+      "answer": "Yes, keep the mockup assumptions"
     },
     {
       "id": 2,
       "question": "#11: Should creating a task from an idea copy its photos? It needs new server-side Cloudinary copy code and uses storage twice. Default in the spec: yes.",
-      "answer": null
+      "answer": "Not for now; note it and add a ticket to the board"
     }
   ],
   "mockup": {

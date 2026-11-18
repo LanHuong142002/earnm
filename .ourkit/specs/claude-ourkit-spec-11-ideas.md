@@ -35,10 +35,10 @@ Today a project has tasks with labels (#7), comments (#8) and photos (#9) (`apps
 
 ### Create task from idea
 
-12. When an idea is **Accepted**, its screen shows "Tạo công việc từ ý tưởng". It opens the new-task form prefilled with title, description and labels, with a line "Từ ý tưởng “…” · kèm N ảnh".
-13. Saving creates the task, copies the idea's photos to it as new images (the idea keeps its own), and links the idea to the task. An idea can create only one task; afterwards its screen shows "Đã tạo công việc" with the task's title and status, opening the task. The task screen shows "Từ ý tưởng …" opening the idea.
+12. When an idea is **Accepted**, its screen shows "Tạo công việc từ ý tưởng". It opens the new-task form prefilled with title, description and labels, with a line "Từ ý tưởng “…”". Photos are not carried over (user, 2026-11-18; #43), so the mockup 2d text "· kèm 2 ảnh" is dropped.
+13. Saving creates the task (without the idea's photos), and links the idea to the task. An idea can create only one task; afterwards its screen shows "Đã tạo công việc" with the task's title and status, opening the task. The task screen shows "Từ ý tưởng …" opening the idea.
 14. If the task is later deleted, the idea's link clears and the button shows again (if still Accepted). If the idea is deleted, the task's back-link disappears.
-15. Creating a task from an idea requires network (photo copy happens on the server); offline, the button shows a short "Cần có mạng" note.
+15. Creating a task from an idea requires network (the task and both links are written together on the server); offline, the button shows a short "Cần có mạng" note.
 
 ### On the phone: screens
 
@@ -71,7 +71,7 @@ Today a project has tasks with labels (#7), comments (#8) and photos (#9) (`apps
 10. API test: idea comments create, edit (edited flag), delete, author-only, 500 limit, paging; no remindWith field. By hand: the comments section without bells.
 11. API test: idea photo sign/record/delete limited to author and Owner, 10 limit, members-only list with signed URLs.
 12. By hand, mockup 2c–2d: the button shows only when Accepted and opens the prefilled form.
-13. API test (store faked): create-task-from-idea creates the task with labels, copies photos to new public ids, links both ways, refuses a second time with `409`.
+13. API test (store faked): create-task-from-idea creates the task with title, description and labels and no photos, links both ways, refuses a second time with `409`.
 14. API test: deleting the task clears the idea's link; deleting the idea clears the task's back-link.
 15. Unit test: the create-task button state is "needs network" offline.
 16. By hand, mockup 1a: the tile is enabled with the New count. Unit test: count.
@@ -87,10 +87,11 @@ Today a project has tasks with labels (#7), comments (#8) and photos (#9) (`apps
 ## Out of Scope
 
 - "Create product" from an idea (#15).
+- Copying an idea's photos to the task created from it (#43).
 - New-idea push and any activity push (#16).
 - Sharing ideas across projects; idea templates; seeing who voted.
 - "Nhắc kèm" or reminders on ideas.
 
 ## Open Questions
 
-Non-blocking, settled by assumption in the Decision Log and listed in the Question Batch: list order, one vote per person and anonymity, who changes status and who edits, one task per idea, copying photos to the task.
+None. Previously: list order, one vote per person and anonymity, who changes status and who edits, one task per idea. Answered by the user on 2026-11-18: assumptions confirmed; photos are not copied to the task for now (#43).
