@@ -171,9 +171,15 @@
         "severity": "non-blocking",
         "text": "Re-review: fire-and-forget destroys can be lost if the server exits right after answering; the image is then orphaned but unreachable by link",
         "resolved": false
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "view.ts:29-30,37 page.allShown is now unused (and its comment quotes the removed line); view.test.ts:45-56 still tests it",
+        "resolved": false
       }
     ],
-    "reviewed": "4a1d48e923556ccf149ee1fedcbdb5883e74dada832f2122c964189a986d2bc6"
+    "reviewed": "c5c698451f77e6d74b3391f6a5ca64ed3adb55ead2e97d83a0becad769de7244"
   },
   "qa": {
     "results": {
@@ -328,7 +334,7 @@
         "criterion": "API test: without the Cloudinary variables, photo endpoints answer `photos_unavailable` (503) and task endpoints still work."
       }
     },
-    "checked": "4a1d48e923556ccf149ee1fedcbdb5883e74dada832f2122c964189a986d2bc6"
+    "checked": "c5c698451f77e6d74b3391f6a5ca64ed3adb55ead2e97d83a0becad769de7244"
   },
   "testHandoff": [
     {
@@ -365,5 +371,6 @@
       "question": "#8/#9: #9 is stacked on #8. Merge #8 first, then #9 (its PR will then show only photo changes). OK? Recommendation: yes.",
       "answer": "Accepted the recommendation (user's answers in the review doc, 2026-11-18)"
     }
-  ]
+  ],
+  "shipApproval": "c5c698451f77e6d74b3391f6a5ca64ed3adb55ead2e97d83a0becad769de7244"
 }

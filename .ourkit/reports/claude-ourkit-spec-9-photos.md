@@ -57,3 +57,5 @@ What's left: create a Cloudinary account and set three variables, the on-device 
 | 30 | API test: without the Cloudinary variables, photo endpoints answer `photos_unavailable` (503) and task endpoints still work. | API test 'answers photos_unavailable (503) without Cloudinary while task routes still work' passed | ✅ pass |
 
 **Not verified here:** no real Cloudinary call was made (signing is checked against a hand-computed SHA-1; uploads, delivery URLs and destroy use fakes in tests); everything marked by hand above. The spec's acceptance criteria were renumbered one per line before QA so each could be tracked; their content didn't change.
+
+**Also in this PR:** after the user reviewed #8 (already merged), the "Đã xem hết bình luận" end-of-list line under comments was removed; the #8 spec R18 is updated to match. Reviewed on its own commit; test and lint pass.
