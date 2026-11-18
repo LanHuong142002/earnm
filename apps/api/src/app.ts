@@ -16,6 +16,7 @@ import { createCommentsRouter } from "./comments/routes.js";
 import { createProjectRemindersRouter, createRemindersRouter } from "./reminders/routes.js";
 import { createPhotosRouter } from "./photos/routes.js";
 import type { PhotoStore } from "./photos/cloudinary.js";
+import type { PushSender } from "./push/sender.js";
 import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 
@@ -32,6 +33,8 @@ export interface AppDeps {
   inviteCodeKey?: string | null;
   /** Cloudinary access for task photos. Null or absent: the photo endpoints answer 503 and the rest works. */
   photoStore?: PhotoStore | null;
+  /** Sends reminder pushes on each tick. Null or absent: ticks send nothing. */
+  pushSender?: PushSender | null;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -71,9 +74,12 @@ export function createApp(deps: AppDeps): Express {
 
   app.use(
     "/internal",
-    createInternalRouter(
-      deps.internalSecret !== undefined ? { internalSecret: deps.internalSecret } : {},
-    ),
+    createInternalRouter({
+      ...(deps.internalSecret !== undefined ? { internalSecret: deps.internalSecret } : {}),
+      prisma: deps.prisma,
+      pushSender: deps.pushSender ?? null,
+      now: deps.now,
+    }),
   );
 
   app.use(notFoundHandler);

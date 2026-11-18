@@ -302,3 +302,9 @@ model ReminderPushSent {
 
   @@id([reminderId, userId, occurrenceAt])
 }
+
+/// One row (id "tick"): when the last /internal/tick ran, so the next one knows how far back to look.
+model TickState {
+  id         String   @id @default("tick")
+  lastTickAt DateTime @default(now())
+}

@@ -24,7 +24,13 @@ describe("loadConfig", () => {
       inviteInstallUrl: null,
       inviteCodeKey: null,
       cloudinary: null,
+      expoAccessToken: null,
     });
+  });
+
+  it("reads an optional EXPO_ACCESS_TOKEN", () => {
+    expect(loadConfig({ ...base, EXPO_ACCESS_TOKEN: "tok" }).expoAccessToken).toBe("tok");
+    expect(loadConfig({ ...base, EXPO_ACCESS_TOKEN: "" }).expoAccessToken).toBeNull();
   });
 
   it.each([undefined, ""])("treats INVITE_INSTALL_URL %j as unset", (value) => {

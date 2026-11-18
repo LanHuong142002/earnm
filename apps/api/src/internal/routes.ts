@@ -1,6 +1,9 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { Router, type RequestHandler } from "express";
+import type { PrismaClient } from "../../generated/prisma/client.js";
 import { AppError } from "../http/errors.js";
+import { runCatchUp } from "../push/catchUp.js";
+import type { PushSender } from "../push/sender.js";
 
 function digest(value: string): Buffer {
   return createHash("sha256").update(value).digest();
@@ -27,12 +30,26 @@ export function requireInternalSecret(secret: string | undefined): RequestHandle
   };
 }
 
-export function createInternalRouter(deps: { internalSecret?: string }): Router {
+export function createInternalRouter(deps: {
+  internalSecret?: string;
+  /** With both, each tick sends the reminders that came due. Without, a tick does nothing and never touches the database. */
+  prisma?: PrismaClient;
+  pushSender?: PushSender | null;
+  now?: () => Date;
+}): Router {
   const router = Router();
   router.use(requireInternalSecret(deps.internalSecret));
 
-  router.post("/tick", (_req, res) => {
-    res.json({ status: "ok" });
+  router.post("/tick", async (_req, res, next) => {
+    try {
+      const { prisma, pushSender } = deps;
+      if (prisma && pushSender) {
+        await runCatchUp({ prisma, sender: pushSender, now: (deps.now ?? (() => new Date()))() });
+      }
+      res.json({ status: "ok" });
+    } catch (err) {
+      next(err);
+    }
   });
 
   router.get("/ip", (req, res) => {

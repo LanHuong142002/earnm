@@ -13,6 +13,10 @@ const profileSelect = {
 
 const patchSchema = z.object({ language: z.enum(["vi", "en"]) }).strict();
 
+const tokenSchema = z.object({ token: z.string().min(1).max(200) }).strict();
+/** One person's devices; registering past this drops the oldest. */
+const MAX_TOKENS_PER_USER = 10;
+
 function notSignedIn(): AppError {
   return new AppError(401, "not_signed_in", "Not signed in.");
 }
@@ -53,6 +57,45 @@ export function createMeRouter(deps: {
       });
       if (!user) throw notSignedIn();
       res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Tokens are personal data: written here, read only by the tick, never sent to anyone.
+  router.put("/push-token", async (req, res, next) => {
+    try {
+      const { token } = tokenSchema.parse(req.body);
+      const userId = getAuth(res.locals).userId;
+      await prisma.$transaction(async (tx) => {
+        const existing = await tx.devicePushToken.findUnique({ where: { token } });
+        if (!existing) {
+          await tx.devicePushToken.create({ data: { token, userId } });
+        } else if (existing.userId !== userId) {
+          // A moved token starts over: the new owner's phone has not synced yet.
+          await tx.devicePushToken.update({ where: { token }, data: { userId, lastSyncedAt: null } });
+        }
+        const newest = await tx.devicePushToken.findMany({
+          where: { userId },
+          orderBy: [{ createdAt: "desc" }, { token: "asc" }],
+          select: { token: true },
+          skip: MAX_TOKENS_PER_USER,
+        });
+        if (newest.length > 0) {
+          await tx.devicePushToken.deleteMany({ where: { token: { in: newest.map((t) => t.token) } } });
+        }
+      });
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete("/push-token", async (req, res, next) => {
+    try {
+      const { token } = tokenSchema.parse(req.body);
+      await prisma.devicePushToken.deleteMany({ where: { token, userId: getAuth(res.locals).userId } });
+      res.status(204).end();
     } catch (err) {
       next(err);
     }
