@@ -123,5 +123,136 @@
       }
     ],
     "reviewed": "4e2906e35cdf400b728f779661bf981ffc39cd95e06f02a375d3be513aaa6f23"
-  }
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "routes.test.ts: New idea with author and time; bad title, long description, too many and foreign labels refused; gate run test passed",
+        "criterion": "API test: a member creates an idea; it's New with author and time; bad title, 2001-character description, 11 labels and foreign labels are refused."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "routes.test.ts: author and Owner edit and delete, another member 403",
+        "criterion": "API test: the author and the Owner edit and delete; another member gets `403`."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "routes.test.ts: any member changes status",
+        "criterion": "API test: any member changes status."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "routes.test.ts: 501st idea refused with idea_limit_reached",
+        "criterion": "API test: the 501st idea is refused with `idea_limit_reached`."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "routes.test.ts: idea delete removes comments, votes, photo rows and destroys images; project delete destroys idea images; created task stays",
+        "criterion": "API test: deleting an idea removes comments, votes and photo rows and destroys images (store faked); deleting the project destroys idea images too; a task created from it stays."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "routes.test.ts: deleted label dropped from ideas; mobile unit test: neutral author name",
+        "criterion": "API test: deleting a label removes it from ideas. Unit test: missing author maps to the neutral name."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "routes.test.ts: LWW per field, same id gives one idea, non-member 404, signed out 401",
+        "criterion": "API test: older edits don't overwrite newer per field; same id twice gives one idea; non-member `404`; signed out `401`."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "routes.test.ts: sets, switches and removes a vote, own idea allowed",
+        "criterion": "API test: vote up, vote up again removes, vote down switches; own idea allowed."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "routes.test.ts: score and only the caller's own vote returned",
+        "criterion": "API test: the list returns score and the caller's own vote only."
+      },
+      "10": {
+        "result": "manual",
+        "evidence": "API part passes (comments.test.ts: create, edited, author-only, 500 cap, no remindWith); comments section without bells needs an iPhone",
+        "criterion": "API test: idea comments create, edit (edited flag), delete, author-only, 500 limit, paging; no remindWith field. By hand: the comments section without bells."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "photos.test.ts: author/Owner only for sign, record, edit, delete; 10 limit; members-only signed URLs",
+        "criterion": "API test: idea photo sign/record/delete limited to author and Owner, 10 limit, members-only list with signed URLs."
+      },
+      "12": {
+        "result": "manual",
+        "evidence": "Unit test for the button state passes; the prefilled form against mockups 2c-2d needs an iPhone",
+        "criterion": "By hand, mockup 2c–2d: the button shows only when Accepted and opens the prefilled form."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "toTask.test.ts: task created with title, description, labels, linked both ways, second attempt idea_already_has_task, non-accepted idea_not_accepted; no photo copy code exists",
+        "criterion": "API test (store faked): create-task-from-idea creates the task with title, description and labels and no photos, links both ways, refuses a second time with `409`."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "toTask.test.ts: deleting the task clears the idea's link; deleting the idea clears the back-link",
+        "criterion": "API test: deleting the task clears the idea's link; deleting the idea clears the task's back-link."
+      },
+      "15": {
+        "result": "pass",
+        "evidence": "Mobile unit test: needs a network for an accepted idea when offline",
+        "criterion": "Unit test: the create-task button state is \"needs network\" offline."
+      },
+      "16": {
+        "result": "manual",
+        "evidence": "Unit test counts only New ideas; the enabled tile (mockup 1a) needs an iPhone",
+        "criterion": "By hand, mockup 1a: the tile is enabled with the New count. Unit test: count."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "listRules.test.ts: ordering and filters pass; row layout and collapsed Đã bỏ (mockup 1b) need an iPhone",
+        "criterion": "Unit test: ordering and filters. By hand, mockup 1b: row layout and collapsed Dropped section."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: empty, loading, error with retry (mockups 1c-1d)",
+        "criterion": "By hand, mockups 1c–1d: empty, loading, error with retry."
+      },
+      "19": {
+        "result": "manual",
+        "evidence": "canEditAs unit-tested; idea screen, status sheet, created-task link (mockups 2a, 2b, 2e) need an iPhone",
+        "criterion": "By hand, mockups 2a, 2b, 2e: idea screen, status sheet, created-task link; Sửa only for author and Owner."
+      },
+      "20": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: new and edit forms, delete confirm (mockups 3a-3b)",
+        "criterion": "By hand, mockups 3a–3b: new and edit forms, delete confirm."
+      },
+      "21": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: no tick marks on selections",
+        "criterion": "By hand: no tick marks on selections."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "sync.test.ts merge per idea field and one vote per idea pass; offline Chờ lưu (mockup 3c) needs an iPhone",
+        "criterion": "Unit test: queued idea changes merge per idea and votes per idea. By hand, mockup 3c: offline \"Chờ lưu\", syncs after reconnect."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "VoiceOver label text unit-tested; dark mode, EN, VoiceOver (mockup 3d) need an iPhone",
+        "criterion": "By hand, mockup 3d: dark mode; EN text; VoiceOver on vote buttons."
+      },
+      "24": {
+        "result": "pass",
+        "evidence": "Migration only creates tables, indexes and FKs; applied by the test setup and the suite passed. Not run separately on a DB with existing data.",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing data."
+      }
+    },
+    "checked": "4e2906e35cdf400b728f779661bf981ffc39cd95e06f02a375d3be513aaa6f23"
+  },
+  "testHandoff": [
+    {
+      "what": "#11 ideas on the phone (AC10, 12, 16-23)",
+      "steps": "Run npm run dev:phone from this branch checkout (after db:deploy on the dev DB), open in Expo Go, sign in as an Owner and, on another phone, as a member of the same project. 1) Project screen: Ý tưởng tile enabled with 'n mới' (mockup 1a). 2) Ideas list: highest score first, then newest; Đã bỏ collapsed at the end; status and label filters; empty, loading, and error with Thử lại when the API is stopped (1b-1d). 3) Idea screen, status sheet, vote buttons, Sửa only for author and Owner, comments without bells (2a, 2b). 4) Set an idea to Đã chọn, tap Tạo công việc từ ý tưởng: the form shows title, description and labels read-only (no Giao cho or Hạn chót, a known departure from mockup 2d); Tạo công việc opens the new task; back returns to the idea, which shows Đã tạo công việc (2e); the task shows Từ ý tưởng. 5) New and edit forms, delete confirm (3a-3b). 6) Airplane mode: create, edit, vote show Chờ lưu and sync after reconnect (3c). 7) Dark mode, English, VoiceOver on vote buttons (3d). 8) Recheck task comments and photos still work as before (shared components were refactored). Expected: all match the mockup, selections highlighted with no ticks."
+    }
+  ]
 }
