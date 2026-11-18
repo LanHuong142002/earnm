@@ -9,6 +9,7 @@ import { useTapOnce } from "../../../../../../../projects/useProjectNav";
 import { OfflineNote } from "../../../../../../../projects/OfflineNote";
 import { canAddChecklist, checklistSummary } from "../../../../../../../tasks/checklistView";
 import { ChecklistCard } from "../../../../../../../tasks/ChecklistCard";
+import { CommentsSection } from "../../../../../../../tasks/comments/CommentsSection";
 import { LabelsField } from "../../../../../../../tasks/LabelsField";
 import { NewChecklistField } from "../../../../../../../tasks/NewChecklistField";
 import { formatDue, isOverdue, type DueLanguage } from "../../../../../../../tasks/dueDate";
@@ -195,8 +196,11 @@ export default function TaskDetailsScreen() {
           ) : null}
         </View>
       </Enter>
+      <Enter index={2}>
+        <CommentsSection projectId={project.id} taskId={task.id} task={task} />
+      </Enter>
       {canDelete ? (
-        <Enter index={2}>
+        <Enter index={3}>
           {/* Set apart from Edit, with room below, so it can't be hit by mistake. */}
           <View
             style={{

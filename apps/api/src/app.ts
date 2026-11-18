@@ -12,6 +12,7 @@ import { createMembersRouter } from "./members/routes.js";
 import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 import { createChecklistsRouter } from "./checklists/routes.js";
+import { createCommentsRouter } from "./comments/routes.js";
 import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 
@@ -42,6 +43,7 @@ export function createApp(deps: AppDeps): Express {
   // Before /projects: that router requires sign-in for everything under it, which would run twice.
   // Before the tasks router, which also requires sign-in and would otherwise run first.
   app.use("/projects/:projectId/tasks/:taskId/checklists", createChecklistsRouter(deps));
+  app.use("/projects/:projectId/tasks/:taskId/comments", createCommentsRouter(deps));
   app.use("/projects/:projectId/tasks", createTasksRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));

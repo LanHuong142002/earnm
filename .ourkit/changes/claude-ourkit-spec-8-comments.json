@@ -1,0 +1,335 @@
+{
+  "tier": "feature",
+  "tierReason": "Comments on tasks add a new table, sync data and API endpoints; fits one cycle",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "8",
+    "accepted": true
+  },
+  "ticket": "8",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature for #8, Sensitive Areas data, schema, api",
+      "why": "Comments add a new table, synced writes and API endpoints with permission checks; fits one cycle"
+    },
+    {
+      "id": 2,
+      "decision": "Involved people of a task are its creator plus its assignees",
+      "why": "The app has no 'invite to a task' yet; this matches Decision 13's 'people involved' and the user's answer at the mockup review"
+    },
+    {
+      "id": 3,
+      "decision": "Comments load per task from their own endpoint and are cached per task; the phone shows them 5 at a time",
+      "why": "Keeps the task list payload small while staying simple offline; a cap of 500 per task bounds one response"
+    },
+    {
+      "id": 4,
+      "decision": "At most 500 comments per task",
+      "why": "Bounds the per-task response and cache for a small team; easy to raise later"
+    },
+    {
+      "id": 5,
+      "decision": "Only the author edits or deletes a comment, Owners included",
+      "why": "The user chose author-only at the mockup review; moderation is out of scope"
+    },
+    {
+      "id": 6,
+      "decision": "Comments use their own router and table, copying the checklist router's pattern instead of refactoring it",
+      "why": "Keeps the change small; prior art reused: applyLastWriteWins, access helpers, the phone queue"
+    },
+    {
+      "id": 7,
+      "decision": "A permanently refused comment change stays on that comment as 'Couldn't send' with Retry/Discard, not the task-wide notice",
+      "why": "The mockup shows the failure on the comment itself"
+    },
+    {
+      "id": 8,
+      "decision": "Treated the user's '/ourkit-handsoff cho 2 cái #8 và #9' reply to the plan-approval question as approving both plans",
+      "why": "It answered 'Duyệt plan #8?' by asking to carry both through; Ship still waits for explicit approval"
+    },
+    {
+      "id": 9,
+      "decision": "Comments UI departures from the mockup: sort uses the native action sheet; composer is inline in the scroll view; 'Đã xem hết bình luận' shows only when more than 5 exist",
+      "why": "Matches existing app patterns (checklist menu, Screen keyboard handling); the end line adds nothing for 5 or fewer"
+    },
+    {
+      "id": 10,
+      "decision": "Review finding 3 (unpaged GET comments) resolved as by design",
+      "why": "The approved plan chose one bounded list per task (max 500) with paging on the phone, as the tasks list already does; decision 3"
+    }
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "c0b72c55cb4ead3c4530ae947869b8039f3103aba5a117f76cf8621cc4218921",
+  "planApproval": "c99e83cecd6397bf44c385d1ef06ccb1322680bdb248afc14382a0bf25d982e4",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "useTaskComments.ts:232-235 setOrder keeps the expanded 'shown' count, so switching sort after 'Xem thêm' still shows 15 instead of going back to 5 (R19)",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "CommentBubble.tsx:38-41 Action buttons (Sửa/Xoá/Bỏ/Huỷ/Lưu) have minWidth 22pt and no hitSlop, under the 44pt target (R26)",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 3,
+        "severity": "blocking",
+        "text": "comments/routes.ts:131-139 GET comments returns all comments without take/cursor; up to 500 x 1000 chars per response on every open and sync pass (paging checklist item)",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "CommentsSection.tsx:139 'Đã xem hết bình luận' shows only when count > 5, differing from R18 wording (decision 9)",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "comments/sync.ts:94-104 retrying a create refused for remindWith (author no longer involved) resends the flag and fails forever",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "comments/store.ts:93-96 dropTaskComments is never called, so a deleted task's cached comments stay until the project is pruned",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "CommentComposer.tsx:30-43 send has try/finally without catch; a storage failure rejects unhandled with no message",
+        "resolved": true
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "Sensitive: routes.ts:196-206 + sync.ts:111-121 an offline text edit merged with a flag toggle gets 403 as a whole if the author stopped being involved; Retry fails again, Discard loses the text edit",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "Sensitive: sync.ts:119 Retry of a failed create always drops remindWith, even when the refusal wasn't 'forbidden' (e.g. comment_limit_reached)",
+        "resolved": false
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "Sensitive: routes.ts:150-157 a create replayed after a lost response can recreate a comment deleted from another phone (no tombstone)",
+        "resolved": false
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "Sensitive: routes.ts:61 missing task/comment answers 'Project not found.'; a neutral 'Not found.' would read better with the same uniform 404",
+        "resolved": false
+      }
+    ],
+    "reviewed": "23d412a635f181991e867036c6eb315a95c33d076f5004452fd0ed4282f8b35c"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API suite (441 passed): 'creates and lists a comment with its author…' and 'rejects empty, blank, 1001-character and extra-field bodies with validation_failed'",
+        "criterion": "API test: a member adds a comment; it comes back with author, time and trimmed text. Empty, whitespace-only and 1001-character text is refused with `validation_failed`."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API test 'sets edited only when the text changes, not the flag' passed",
+        "criterion": "API test: the author edits the text; the comment reports that it was edited. Only flipping the flag leaves it not edited."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API tests on author delete and '404 for edits and deletes of a comment that is gone' passed",
+        "criterion": "API test: the author deletes a comment; it's no longer listed."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API test 'another member and an Owner get 403' passed",
+        "criterion": "API test: another member and an Owner each get `403` when editing or deleting someone else's comment."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API test 'refuses the 501st comment with comment_limit_reached' passed",
+        "criterion": "API test: the 501st comment on a task is refused with a distinct error code."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API test 'deletes the comments with the task and nulls the author…' passed; unit test returns 'Người dùng cũ'; DB check: deleting a task removed its comment",
+        "criterion": "API test: deleting a task removes its comments. Unit test: a comment with no author maps to the neutral name."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API test 'lets only involved people set the flag, on create and on patch' passed for creator and assignee",
+        "criterion": "API test: the creator and an assignee can set and clear the flag on another member's comment, and can create a comment with the flag on."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "Same API test: a non-involved member gets 403 on create and patch",
+        "criterion": "API test: a member who isn't involved gets `403` when setting the flag on create and on edit."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "API test 'shows flags to every member and keeps them after the person stops being involved' passed",
+        "criterion": "API test: listing comments returns the flag for every comment."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "Same API test: the flag stays after the assignee is removed",
+        "criterion": "API test: after an assignee is removed from the task, a flag they set stays on."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API tests 'answers 401 without a valid session' and '404 not_found to a non-member on every route' passed",
+        "criterion": "API test: a signed-out request gets `401`; a non-member gets `404` for list, create, edit and delete."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API tests on older text edits, per-field last-write-wins for text and flag, and 404 on a deleted comment passed",
+        "criterion": "API test: an older edit than the stored one doesn't overwrite it, for text and for the flag. Editing a deleted comment gets `404`."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API tests 'idempotent on the same id and 409 on an id used by another task' and concurrent create passed",
+        "criterion": "API test: creating the same id twice on one task gives one comment; the same id on another task gets `409`."
+      },
+      "14": {
+        "result": "manual",
+        "evidence": "Needs a device: open a task online, go offline, reopen it",
+        "criterion": "By hand: comments seen on a task stay readable with the phone offline."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "Unit tests passed (create+delete sends nothing, two edits one request); offline send and restart need a device",
+        "criterion": "Unit test: queued comment changes merge per comment (create then delete leaves nothing; two edits leave one). By hand: offline, add a comment, see \"Chờ gửi\", restart the app, go online, it sends."
+      },
+      "16": {
+        "result": "pass",
+        "evidence": "Mobile sync.test.ts: refused change kept as failed with retry and discard; overlay shows failed state (642 passed)",
+        "criterion": "Unit test: a permanently refused comment change produces the \"Couldn't send\" state with retry and discard."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand, against the mockup: the Bình luận section sits below Checklist with the count, and there is no separate screen."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: comments come 5 at a time; \"Xem thêm bình luận (N)\" loads 5 more; \"Đã xem hết bình luận\" appears when all are shown. Unit test: batching."
+      },
+      "19": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: switching Mới nhất / Cũ nhất goes back to the first 5 and is remembered after restarting the app. Unit test: sorting."
+      },
+      "20": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: bubble layout with avatar, name, text, time and \"Sửa · Xoá\" on one's own comments only, 16pt apart."
+      },
+      "21": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: bell states for an involved member (grey outline tappable, orange \"Nhắc\" when on) and a non-involved member (nothing when off, not tappable when on). Unit test: bell states."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: the write field stays above the keyboard; the \"Nhắc kèm\" toggle shows only for involved people and resets after sending; a new comment lands in the current order."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: inline edit with Huỷ · Lưu; Lưu is disabled while empty."
+      },
+      "24": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: over 1000 characters disables sending and shows how many characters to remove. Unit test: length check."
+      },
+      "25": {
+        "result": "manual",
+        "evidence": "Needs a device against the mockup; static check: CommentsSection mounted after Checklist; unit tests for batching, sort, bell, length passed",
+        "criterion": "By hand: with no comments, one inviting line and the write field."
+      },
+      "26": {
+        "result": "manual",
+        "evidence": "Needs a device: light/dark, VI/EN, VoiceOver; static check: accessibilityLabel on bell, send, sort, edit, toggle",
+        "criterion": "By hand: light and dark mode, VI and EN, VoiceOver names on the bell and send button."
+      },
+      "27": {
+        "result": "pass",
+        "evidence": "prisma migrate deploy applied all 8 migrations to an empty scratch DB, and the comments migration to a scratch DB with a project and task; data intact, defaults correct",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing tasks."
+      }
+    },
+    "checked": "23d412a635f181991e867036c6eb315a95c33d076f5004452fd0ed4282f8b35c"
+  },
+  "testHandoff": [
+    {
+      "what": "#8 comments: section, batches, sort (AC17-19)",
+      "steps": "Run db:deploy on the dev database, then npm run dev:phone from this branch. Open a task with 12+ comments. Expected: Bình luận below Checklist with the count; 5 comments shown; 'Xem thêm bình luận (N)' adds 5 each time; after all, 'Đã xem hết bình luận'. Switch to Cũ nhất: back to the first 5, oldest first; restart the app: Cũ nhất is still chosen."
+    },
+    {
+      "what": "#8 comments: bubbles, bell, write, edit, delete, limits (AC20-25)",
+      "steps": "As the task's creator or an assignee: write a comment with Nhắc kèm on; it shows an orange bell 'Nhắc' on the right; the toggle resets after sending; tap a grey bell on another comment to turn it on. As a member who isn't involved: no Nhắc kèm toggle, no grey bells, orange bells can't be tapped. On your own comment: Sửa edits inline (Lưu disabled when empty, 'đã sửa' after), Xoá asks then removes it. Paste over 1000 characters: send disabled and a red 'remove N characters' line. On a task with no comments: one inviting line plus the field. Compare with .ourkit/mockups/claude-ourkit-spec-8-comments.html."
+    },
+    {
+      "what": "#8 comments: offline (AC14-15)",
+      "steps": "Open a task with comments online, turn on airplane mode, reopen it: comments still show. Add a comment: it shows 'Chờ gửi' with a clock. Kill and reopen the app, turn airplane mode off: the comment sends and 'Chờ gửi' disappears; a second phone sees it."
+    },
+    {
+      "what": "#8 comments: appearance and accessibility (AC26)",
+      "steps": "Switch the app between light and dark, and between VI and EN: text fits, colours follow DESIGN.md. Turn on VoiceOver: the bell, send button, sort button and Sửa/Xoá read meaningful names."
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#8: 'Người liên quan' is read as the task's creator plus its assignees, since the app has no 'invite to a task'. Is that what you meant? Recommendation: yes; an explicit 'follow task' could come later.",
+      "answer": null
+    },
+    {
+      "id": 2,
+      "question": "#8: 'Đã xem hết bình luận' shows only when a task has more than 5 comments (spec says whenever all are shown). Keep? Recommendation: keep.",
+      "answer": null
+    },
+    {
+      "id": 3,
+      "question": "#8: Owners can't delete other people's comments (author-only, as chosen at the mockup review). Keep, or let Owners moderate? Recommendation: keep for now.",
+      "answer": null
+    }
+  ],
+  "shipApproval": "23d412a635f181991e867036c6eb315a95c33d076f5004452fd0ed4282f8b35c",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/40"
+}

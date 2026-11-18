@@ -20,10 +20,10 @@ import {
   type TaskField,
   type TaskFieldPatch,
 } from "./api";
-import { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY } from "./entities";
+import { CHECKLIST_ENTITY, COMMENT_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY } from "./entities";
 import { stripLabelFromWaiting } from "./waitingLabels";
 
-export { CHECKLIST_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY };
+export { CHECKLIST_ENTITY, COMMENT_ENTITY, ITEM_ENTITY, LABEL_ENTITY, TASK_ENTITY, TASK_LABELS_ENTITY };
 
 /**
  * What a task change's `data` holds. Every change carries `projectId` (the URL needs it).
