@@ -372,5 +372,6 @@
       "answer": "Accepted the recommendation (user's answers in the review doc, 2026-11-18)"
     }
   ],
-  "shipApproval": "c1b451aef91302bfd1ceaafd515508b8374543a07d49488d5fa4fd3836044b73"
+  "shipApproval": "c1b451aef91302bfd1ceaafd515508b8374543a07d49488d5fa4fd3836044b73",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/41"
 }
