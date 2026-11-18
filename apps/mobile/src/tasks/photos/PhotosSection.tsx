@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActionSheetIOS, Alert, Platform, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -8,12 +7,12 @@ import { useTheme } from "../../theme/useTheme";
 import { Button } from "../../ui/Button";
 import { ErrorText } from "../../ui/ErrorText";
 import { PressableScale } from "../../ui/PressableScale";
-import type { Task } from "../types";
+import type { Parent } from "../parent";
 import { addNotice, overlayOf, type PickSource } from "./photoUi";
 import { PhotoThumb } from "./PhotoThumb";
 import type { Photo } from "./types";
 import { usePhotoPicker } from "./usePhotoPicker";
-import { useTaskPhotos } from "./useTaskPhotos";
+import { useParentPhotos } from "./useParentPhotos";
 import { PHOTO_MAX } from "./view";
 
 type Choice = { label: string; destructive?: boolean; onPress: () => void };
@@ -38,21 +37,12 @@ function showChoices(title: string, choices: Choice[], cancel: string) {
   ]);
 }
 
-/** The Ảnh section of the task screen: count, add, a four-per-row grid of thumbnails, and the viewer behind each. */
-export function PhotosSection({
-  projectId,
-  taskId,
-  task,
-}: {
-  projectId: string;
-  taskId: string;
-  task: Pick<Task, "createdById" | "assignees">;
-}) {
+/** The Ảnh section of a task or idea screen: count, add, a four-per-row grid of thumbnails, and the viewer behind each (`onOpenPhoto` opens it). */
+export function PhotosSection({ parent, onOpenPhoto }: { parent: Parent; onOpenPhoto: (photoId: string) => void }) {
   const { t } = useTranslation();
-  const router = useRouter();
   const { colors, typography, layout, radius, spacing, disabled } = useTheme();
   const { identity } = useAuth();
-  const p = useTaskPhotos({ projectId, taskId, me: identity, task });
+  const p = useParentPhotos({ parent, me: identity });
   const picker = usePhotoPicker(p.freePlaces);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -81,8 +71,7 @@ export function PhotosSection({
     );
   };
 
-  const openViewer = (photo: Photo) =>
-    router.push({ pathname: "/projects/[id]/tasks/[taskId]/photos", params: { id: projectId, taskId, photoId: photo.id } });
+  const openViewer = (photo: Photo) => onOpenPhoto(photo.id);
 
   const onThumb = (photo: Photo) => {
     if (overlayOf(photo) !== "failed") {

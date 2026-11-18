@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/useTheme";
 import { ErrorText } from "../../ui/ErrorText";
 import { PressableScale } from "../../ui/PressableScale";
-import type { CommentResult } from "./useTaskComments";
+import type { CommentResult } from "./useParentComments";
 import { COMMENT_MAX, lengthCheck } from "./view";
 
 /** The write field at the top of the section: multi-line, a send button, and "Nhắc kèm" for involved people. */

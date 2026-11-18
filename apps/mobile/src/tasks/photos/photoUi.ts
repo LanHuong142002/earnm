@@ -1,5 +1,5 @@
 import type { Photo } from "./types";
-import type { AddResult } from "./useTaskPhotos";
+import type { AddResult } from "./useParentPhotos";
 import { CAPTION_MAX } from "./view";
 
 export type PickSource = "camera" | "library";

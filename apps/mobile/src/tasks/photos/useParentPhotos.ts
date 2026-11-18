@@ -6,8 +6,7 @@ import { newProjectId } from "../../projects/newProjectId";
 import { useProjects } from "../../projects/ProjectsProvider";
 import type { Change } from "../../sync/queue";
 import { asyncStorageStore } from "../../sync/asyncStorageStore";
-import type { Task } from "../types";
-import { listPhotos } from "./api";
+import type { Parent } from "../parent";
 import { applyPhotoOverlay, staleFailedIds } from "./overlay";
 import { preparePhoto, type PickedPhoto } from "./prepare";
 import { pendingFiles, prepareDeps } from "./realDeps";
@@ -40,7 +39,6 @@ import {
   captionCheck,
   freePlaces,
   gridOf,
-  isInvolved,
   photoCount,
   showSection,
   sortPhotos,
@@ -56,18 +54,16 @@ export type AddResult =
 export type PhotoResult = { ok: true } | { ok: false; reason: "too_long" | "not_ready" | "not_allowed" };
 
 type Options = {
-  projectId: string;
-  taskId: string;
+  /** The task or idea the photos belong to. */
+  parent: Parent;
   /**
    * The signed-in person, from the session (`identity` of `useAuth()`: the saved copy counts while the profile
    * request is pending, so the screen never waits on the network to know who "me" is).
    */
   me: { id: string; displayName: string } | null;
-  /** The task, to know who is involved. Null while it is not known. */
-  task: Pick<Task, "createdById" | "assignees"> | null;
 };
 
-export type TaskPhotos = {
+export type ParentPhotos = {
   /** Every photo, oldest first: the server's, with waiting, uploading and failed ones and queued changes laid over them. */
   photos: Photo[];
   /** The x of "x/10": uploaded, waiting and uploading photos (a failed upload holds no place). */
@@ -82,7 +78,7 @@ export type TaskPhotos = {
   unavailable: boolean;
   /** Nothing is cached and the last fetch did not get through (offline). */
   offline: boolean;
-  /** Whether the viewer is the task's creator or an assignee. */
+  /** Whether the viewer may add, caption and delete photos (`parent.canManagePhotos`). */
   involved: boolean;
   /** "＋ Thêm": hidden, open, or full (disabled with the "Đủ 10 ảnh" line). Hidden too while photos are unavailable. */
   addState: AddState;
@@ -102,14 +98,15 @@ export type TaskPhotos = {
   canCaption: (photo: Photo) => boolean;
 };
 
-/** Loads, shows and changes one task's photos. Changes go through the shared queue, so they work offline. */
-export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPhotos {
+/** Loads, shows and changes one parent's photos. Changes go through the shared queue, so they work offline. */
+export function useParentPhotos({ parent, me }: Options): ParentPhotos {
+  const { projectId, id: parentId, photos: scope } = parent;
   const { sync } = useProjects();
   const { queue, afterEnqueue, onFlushed, runExclusive } = sync;
   const ownerId = me?.id ?? null;
 
-  // Everything loaded is filed under the screen it was loaded for, so opening another task starts clean.
-  const key = `${ownerId}|${projectId}|${taskId}`;
+  // Everything loaded is filed under the screen it was loaded for, so opening another task or idea starts clean.
+  const key = `${ownerId}|${projectId}|${parentId}`;
   const [local, setLocal] = useState<{ key: string; cache: PhotoCache; waiting: Change[]; uploading: ReadonlySet<string> } | null>(null);
   const [remote, setRemote] = useState<{ key: string; failed: boolean; unavailable: boolean } | null>(null);
   const cache = local?.key === key ? local.cache : null;
@@ -121,9 +118,9 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
 
   const readLocal = useCallback(async () => {
     if (ownerId === null) return;
-    const [next, queued] = await Promise.all([loadPhotoCache(asyncStorageStore, ownerId), queue.waiting()]);
+    const [next, queued] = await Promise.all([loadPhotoCache(asyncStorageStore, ownerId, scope), queue.waiting()]);
     setLocal({ key, cache: next, waiting: queued, uploading: uploadingIds() });
-  }, [ownerId, queue, key]);
+  }, [ownerId, queue, key, scope]);
 
   const fetchRemote = useCallback(async () => {
     if (ownerId === null) return;
@@ -132,11 +129,16 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
       const token = await getToken();
       if (!token) return;
       try {
-        const list = await listPhotos(token, projectId, taskId);
-        await updatePhotoCache(asyncStorageStore, ownerId, (c) => {
-          const stale = new Set(staleFailedIds(taskId, list, failedFor(c, taskId)));
-          return withoutFailed(setTaskPhotos(c, projectId, taskId, list), (f) => stale.has(f.changeId));
-        });
+        const list = await scope.api.listPhotos(token, projectId, parentId);
+        await updatePhotoCache(
+          asyncStorageStore,
+          ownerId,
+          (c) => {
+            const stale = new Set(staleFailedIds(parentId, list, failedFor(c, parentId), scope));
+            return withoutFailed(setTaskPhotos(c, projectId, parentId, list), (f) => stale.has(f.changeId));
+          },
+          scope,
+        );
         setRemote({ key, failed: false, unavailable: false });
       } catch (e) {
         // Offline or refused: what is cached stays on screen. A signed-out answer is handled by the sync cycle.
@@ -144,7 +146,7 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
         setRemote({ key, failed: !(e instanceof ApiError) || e.status !== 404, unavailable: notSetUp });
       }
     }).catch(() => setRemote({ key, failed: true, unavailable: false }));
-  }, [ownerId, projectId, taskId, runExclusive, key]);
+  }, [ownerId, projectId, parentId, runExclusive, key, scope]);
 
   // Open: show the cache, then fetch. Whatever changes the cache, the queue or an upload later is read again.
   useEffect(() => {
@@ -160,13 +162,13 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
     };
   }, [readLocal, fetchRemote, onFlushed]);
 
-  const server = cache ? photosFor(cache, taskId) : null;
-  const failed = useMemo(() => (cache ? failedFor(cache, taskId) : []), [cache, taskId]);
+  const server = cache ? photosFor(cache, parentId) : null;
+  const failed = useMemo(() => (cache ? failedFor(cache, parentId) : []), [cache, parentId]);
   const photos = useMemo(
-    () => sortPhotos(applyPhotoOverlay(taskId, server ?? [], waiting, failed, { uploading, localUri: pendingFiles.uriFor })),
-    [taskId, server, waiting, failed, uploading],
+    () => sortPhotos(applyPhotoOverlay(parentId, server ?? [], waiting, failed, { uploading, localUri: pendingFiles.uriFor }, scope)),
+    [parentId, server, waiting, failed, uploading, scope],
   );
-  const involved = task !== null && isInvolved(task, ownerId);
+  const involved = parent.canManagePhotos;
   const ready = ownerId !== null && cache !== null;
 
   const record = useCallback(
@@ -178,7 +180,7 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
     [queue, readLocal, afterEnqueue],
   );
 
-  const add = useCallback<TaskPhotos["add"]>(
+  const add = useCallback<ParentPhotos["add"]>(
     async (picked) => {
       if (!me || !ready) return { ok: false, reason: "not_ready" };
       if (!involved || unavailable) return { ok: false, reason: "not_allowed" };
@@ -191,7 +193,16 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
         try {
           const prepared = await preparePhoto(source, id, prepareDeps);
           await queue.enqueue(
-            photoUploadChange({ projectId, taskId, id, width: prepared.width, height: prepared.height, author: me, now: new Date() }),
+            photoUploadChange({
+              projectId,
+              taskId: parentId,
+              uploadEntity: scope.uploadEntity,
+              id,
+              width: prepared.width,
+              height: prepared.height,
+              author: me,
+              now: new Date(),
+            }),
           );
           added += 1;
         } catch {
@@ -204,60 +215,60 @@ export function useTaskPhotos({ projectId, taskId, me, task }: Options): TaskPho
       if (added > 0) await afterEnqueue();
       return { ok: true, added, dropped, failed: unreadable };
     },
-    [me, ready, involved, unavailable, photos, queue, projectId, taskId, readLocal, afterEnqueue],
+    [me, ready, involved, unavailable, photos, queue, projectId, parentId, scope.uploadEntity, readLocal, afterEnqueue],
   );
 
-  const remove = useCallback<TaskPhotos["remove"]>(
+  const remove = useCallback<ParentPhotos["remove"]>(
     async (photoId) => {
       const photo = photos.find((p) => p.id === photoId);
       if (!ready || !ownerId || !photo) return { ok: false, reason: "not_ready" };
       if (!canRemove(involved, photo)) return { ok: false, reason: "not_allowed" };
       if (photo.state === "waiting" || photo.state === "failed") {
         // Only on this phone: nothing to delete on the server, so the upload is cancelled.
-        await cancelUpload(queue, pendingFiles, photoId);
-        await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles);
+        await cancelUpload(queue, pendingFiles, photoId, scope);
+        await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles, scope);
         await readLocal();
         return { ok: true };
       }
       // The delete is queued first, so a storage error while tidying up can't lose both. Refused
       // changes of this photo are moot once it is deleted.
-      await record(photoDeleteChange({ projectId, taskId, id: photoId }));
-      await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles);
+      await record(photoDeleteChange({ projectId, taskId: parentId, entity: scope.entity, id: photoId }));
+      await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles, scope);
       return { ok: true };
     },
-    [photos, ready, ownerId, involved, queue, readLocal, record, projectId, taskId],
+    [photos, ready, ownerId, involved, queue, readLocal, record, projectId, parentId, scope],
   );
 
-  const setCaption = useCallback<TaskPhotos["setCaption"]>(
+  const setCaption = useCallback<ParentPhotos["setCaption"]>(
     async (photoId, text) => {
       const photo = photos.find((p) => p.id === photoId);
       if (!ready || !photo) return { ok: false, reason: "not_ready" };
       if (!canCaption(involved, photo)) return { ok: false, reason: "not_allowed" };
       const check = captionCheck(text);
       if (!check.canSave) return { ok: false, reason: "too_long" };
-      if (check.value !== photo.caption) await record(photoCaptionChange({ projectId, taskId, id: photoId, caption: check.value, now: new Date() }));
+      if (check.value !== photo.caption) await record(photoCaptionChange({ projectId, taskId: parentId, entity: scope.entity, id: photoId, caption: check.value, now: new Date() }));
       return { ok: true };
     },
-    [photos, ready, involved, record, projectId, taskId],
+    [photos, ready, involved, record, projectId, parentId, scope.entity],
   );
 
   const retry = useCallback(
     async (photoId: string) => {
       if (ownerId === null) return;
-      await retryFailed(queue, asyncStorageStore, ownerId, photoId);
+      await retryFailed(queue, asyncStorageStore, ownerId, photoId, scope);
       await readLocal();
       await afterEnqueue();
     },
-    [ownerId, queue, readLocal, afterEnqueue],
+    [ownerId, queue, readLocal, afterEnqueue, scope],
   );
 
   const discard = useCallback(
     async (photoId: string) => {
       if (ownerId === null) return;
-      await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles);
+      await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles, scope);
       await readLocal();
     },
-    [ownerId, readLocal],
+    [ownerId, readLocal, scope],
   );
 
   return {

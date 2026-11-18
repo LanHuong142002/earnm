@@ -2,7 +2,7 @@ import { ApiError } from "../../lib/api";
 import type { Change, NewChange, Queue } from "../../sync/queue";
 import type { KeyValueStore } from "../../sync/storage";
 import { PHOTO_ENTITY, PHOTO_UPLOAD_ENTITY } from "../entities";
-import { deletePhoto, patchPhotoCaption, recordPhoto, signPhoto } from "./api";
+import { TASK_PHOTOS, type PhotosApi, type PhotosScope } from "../parent";
 import { notifyPhotos, recordFailed, updatePhotoCache, withoutFailed } from "./store";
 import type { UploadSignature } from "./types";
 
@@ -14,11 +14,7 @@ export type PendingFiles = {
   remove: (id: string) => void;
 };
 
-export type PhotoDeps = {
-  signPhoto: typeof signPhoto;
-  recordPhoto: typeof recordPhoto;
-  patchPhotoCaption: typeof patchPhotoCaption;
-  deletePhoto: typeof deletePhoto;
+export type PhotoDeps = Pick<PhotosApi, "signPhoto" | "recordPhoto" | "patchPhotoCaption" | "deletePhoto"> & {
   fetch: typeof fetch;
   files: PendingFiles;
 };
@@ -43,13 +39,16 @@ export async function settleFailures(): Promise<void> {
   while (pendingFailures.size > 0) await Promise.all([...pendingFailures]);
 }
 
-type Where = { projectId: string; taskId: string };
+/** `taskId` is the parent id (a task or an idea); `entity` is the parent kind's queue entity (the task's when absent). */
+type Where = { projectId: string; taskId: string; entity?: string };
 
 /**
  * A photo waiting to upload. The queue entry holds only ids, the size and who added it (to show it before the
  * server answers); the file itself is found again by the photo id.
  */
 export function photoUploadChange(input: Where & {
+  /** The queue entity of an upload (the task's when absent). */
+  uploadEntity?: string;
   id: string;
   width: number;
   height: number;
@@ -64,12 +63,12 @@ export function photoUploadChange(input: Where & {
     data.authorName = input.author.displayName;
   }
   const at = input.now.toISOString();
-  return { entity: PHOTO_UPLOAD_ENTITY, entityId: input.id, kind: "create", data, fieldTimes: input.caption !== undefined ? { caption: at } : {} };
+  return { entity: input.uploadEntity ?? PHOTO_UPLOAD_ENTITY, entityId: input.id, kind: "create", data, fieldTimes: input.caption !== undefined ? { caption: at } : {} };
 }
 
 export function photoCaptionChange(input: Where & { id: string; caption: string; now: Date }): NewChange {
   return {
-    entity: PHOTO_ENTITY,
+    entity: input.entity ?? PHOTO_ENTITY,
     entityId: input.id,
     kind: "update",
     data: { projectId: input.projectId, taskId: input.taskId, caption: input.caption },
@@ -78,7 +77,7 @@ export function photoCaptionChange(input: Where & { id: string; caption: string;
 }
 
 export function photoDeleteChange(input: Where & { id: string }): NewChange {
-  return { entity: PHOTO_ENTITY, entityId: input.id, kind: "delete", data: { projectId: input.projectId, taskId: input.taskId }, fieldTimes: {} };
+  return { entity: input.entity ?? PHOTO_ENTITY, entityId: input.id, kind: "delete", data: { projectId: input.projectId, taskId: input.taskId }, fieldTimes: {} };
 }
 
 /** The answer of /sign is the only thing used to upload; anything else in it is ignored, and a gap is a server fault to try again. */
@@ -136,11 +135,11 @@ async function uploadToCloudinary(sig: UploadSignature, uri: string, doFetch: ty
  * discard. The queue only calls this for a refusal no resend will change; a network error, a 429 or a 503
  * (photos not set up yet) stays queued and is tried again.
  */
-export function registerPhotoEntities(queue: Queue, store: KeyValueStore, deps: PhotoDeps): void {
+export function registerPhotoEntities(queue: Queue, store: KeyValueStore, deps: PhotoDeps, scope: PhotosScope = TASK_PHOTOS): void {
   const rejected = (change: Change) => {
     const write = (async () => {
       const owner = await queue.ownerId();
-      if (owner) await updatePhotoCache(store, owner, (cache) => recordFailed(cache, change));
+      if (owner) await updatePhotoCache(store, owner, (cache) => recordFailed(cache, change), scope);
     })()
       .catch(() => {})
       .finally(() => pendingFailures.delete(write));
@@ -148,7 +147,7 @@ export function registerPhotoEntities(queue: Queue, store: KeyValueStore, deps: 
   };
 
   queue.registerEntity(
-    PHOTO_UPLOAD_ENTITY,
+    scope.uploadEntity,
     {
       create: async (change, token) => {
         const id = change.entityId;
@@ -189,7 +188,7 @@ export function registerPhotoEntities(queue: Queue, store: KeyValueStore, deps: 
   );
 
   queue.registerEntity(
-    PHOTO_ENTITY,
+    scope.entity,
     {
       create: async () => {
         throw new ApiError("unsupported", 400);
@@ -206,30 +205,36 @@ export function registerPhotoEntities(queue: Queue, store: KeyValueStore, deps: 
 }
 
 /** Puts a photo's refused changes back on the queue, oldest first, and forgets them as failed. */
-export async function retryFailed(queue: Queue, store: KeyValueStore, ownerId: string, photoId: string): Promise<void> {
+export async function retryFailed(queue: Queue, store: KeyValueStore, ownerId: string, photoId: string, scope: PhotosScope = TASK_PHOTOS): Promise<void> {
   let taken: Change[] = [];
   await updatePhotoCache(store, ownerId, (cache) => {
     taken = cache.failed.filter((c) => c.entityId === photoId);
     return withoutFailed(cache, (c) => c.entityId === photoId);
-  });
+  }, scope);
   for (const change of taken) {
     await queue.enqueue({ entity: change.entity, entityId: change.entityId, kind: change.kind, data: change.data, fieldTimes: change.fieldTimes });
   }
 }
 
 /** Drops a photo's refused changes for good, and the local file of an upload that was refused. */
-export async function discardFailed(store: KeyValueStore, ownerId: string, photoId: string, files: PendingFiles): Promise<void> {
+export async function discardFailed(
+  store: KeyValueStore,
+  ownerId: string,
+  photoId: string,
+  files: PendingFiles,
+  scope: PhotosScope = TASK_PHOTOS,
+): Promise<void> {
   let hadUpload = false;
   await updatePhotoCache(store, ownerId, (cache) => {
-    hadUpload = cache.failed.some((c) => c.entityId === photoId && c.entity === PHOTO_UPLOAD_ENTITY);
+    hadUpload = cache.failed.some((c) => c.entityId === photoId && c.entity === scope.uploadEntity);
     return withoutFailed(cache, (c) => c.entityId === photoId);
-  });
+  }, scope);
   if (hadUpload) files.remove(photoId);
 }
 
 /** Takes a photo that waits to upload off the queue, with any caption change queued for it, and deletes its file. */
-export async function cancelUpload(queue: Queue, files: PendingFiles, photoId: string): Promise<void> {
-  await queue.dropEntity(PHOTO_UPLOAD_ENTITY, photoId);
-  await queue.dropEntity(PHOTO_ENTITY, photoId);
+export async function cancelUpload(queue: Queue, files: PendingFiles, photoId: string, scope: PhotosScope = TASK_PHOTOS): Promise<void> {
+  await queue.dropEntity(scope.uploadEntity, photoId);
+  await queue.dropEntity(scope.entity, photoId);
   files.remove(photoId);
 }

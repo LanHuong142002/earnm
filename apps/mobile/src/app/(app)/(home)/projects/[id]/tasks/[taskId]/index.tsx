@@ -5,11 +5,13 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "../../../../../../../auth/AuthProvider";
 import { useTapOnce } from "../../../../../../../projects/useProjectNav";
 import { OfflineNote } from "../../../../../../../projects/OfflineNote";
 import { canAddChecklist, checklistSummary } from "../../../../../../../tasks/checklistView";
 import { ChecklistCard } from "../../../../../../../tasks/ChecklistCard";
 import { CommentsSection } from "../../../../../../../tasks/comments/CommentsSection";
+import { taskParent } from "../../../../../../../tasks/parent";
 import { PhotosSection } from "../../../../../../../tasks/photos/PhotosSection";
 import { LabelsField } from "../../../../../../../tasks/LabelsField";
 import { NewChecklistField } from "../../../../../../../tasks/NewChecklistField";
@@ -33,6 +35,7 @@ export default function TaskDetailsScreen() {
   const { colors, typography, radius, spacing, layout, iconSize, header } = useTheme();
   const { id, taskId } = useLocalSearchParams<{ id: string; taskId: string }>();
   const { setStatus } = useTasks();
+  const { identity } = useAuth();
   const { project, task, view, deleting, canDelete, confirmDelete } = useTaskScreen(id, taskId);
   // Judged against the moment the screen opened.
   const [now] = useState(() => new Date());
@@ -63,6 +66,8 @@ export default function TaskDetailsScreen() {
   const due = task.dueDate !== null ? formatDue(task.dueDate, task.dueTime, lang, t) : null;
   const summary = checklistSummary(task);
   const names = task.assignees.map((a) => a.displayName).join(", ");
+
+  const parent = taskParent(project.id, task.id, task, identity?.id ?? null);
 
   const caption = (text: string) => <Text style={[typography.label, { color: colors.textSecondary }]}>{text}</Text>;
 
@@ -198,10 +203,15 @@ export default function TaskDetailsScreen() {
         </View>
       </Enter>
       <Enter index={2}>
-        <PhotosSection projectId={project.id} taskId={task.id} task={task} />
+        <PhotosSection
+          parent={parent}
+          onOpenPhoto={(photoId) =>
+            router.push({ pathname: "/projects/[id]/tasks/[taskId]/photos", params: { id: project.id, taskId: task.id, photoId } })
+          }
+        />
       </Enter>
       <Enter index={3}>
-        <CommentsSection projectId={project.id} taskId={task.id} task={task} />
+        <CommentsSection parent={parent} />
       </Enter>
       {canDelete ? (
         <Enter index={4}>

@@ -6,7 +6,6 @@ import { newProjectId } from "../../projects/newProjectId";
 import { useProjects } from "../../projects/ProjectsProvider";
 import type { Change } from "../../sync/queue";
 import { asyncStorageStore } from "../../sync/asyncStorageStore";
-import { listComments } from "./api";
 import { applyCommentOverlay, staleFailedIds } from "./overlay";
 import {
   commentsFor,
@@ -30,29 +29,27 @@ import {
   settleFailures,
 } from "./sync";
 import type { Comment, CommentOrder } from "./types";
-import { COMMENT_BATCH, bellState, canEditComment, isInvolved, lengthCheck, nextShown, pageComments, type BellState, type CommentPage } from "./view";
-import type { Task } from "../types";
+import { COMMENT_BATCH, bellFor, canEditComment, lengthCheck, nextShown, pageComments, type BellState, type CommentPage } from "./view";
+import type { Parent } from "../parent";
 
 export type CommentResult = { ok: true } | { ok: false; reason: "empty" | "too_long" | "not_ready" | "not_allowed" };
 
 type Options = {
-  projectId: string;
-  taskId: string;
+  /** The task or idea the comments belong to. */
+  parent: Parent;
   /**
    * The signed-in person, from the session (`identity` of `useAuth()`: the saved copy counts while the profile
    * request is pending, so the screen never waits on the network to know who "me" is).
    */
   me: { id: string; displayName: string } | null;
-  /** The task, to know who is involved. Null while it is not known. */
-  task: Pick<Task, "createdById" | "assignees"> | null;
 };
 
-export type TaskComments = {
+export type ParentComments = {
   /** Every comment with waiting and failed changes laid over it, in no particular order. */
   comments: Comment[];
   /** The comments to show now, in the chosen order, a batch of 5 at a time. */
   page: CommentPage;
-  /** How many comments the task has (for the heading). */
+  /** How many comments the parent has (for the heading). */
   count: number;
   order: CommentOrder;
   setOrder: (order: CommentOrder) => void;
@@ -62,7 +59,7 @@ export type TaskComments = {
   loading: boolean;
   /** Nothing is cached and the last fetch did not get through: show the offline note. */
   unavailable: boolean;
-  /** Whether the viewer is the task's creator or an assignee, who may use the reminder flag. */
+  /** Whether the viewer may use the reminder flag (`parent.canFlag`): tasks only, for the creator and assignees. */
   involved: boolean;
   add: (text: string, remindWith: boolean) => Promise<CommentResult>;
   edit: (commentId: string, text: string) => Promise<CommentResult>;
@@ -78,14 +75,15 @@ export type TaskComments = {
   bell: (comment: Comment) => BellState;
 };
 
-/** Loads, shows and changes one task's comments. Changes go through the shared queue, so they work offline. */
-export function useTaskComments({ projectId, taskId, me, task }: Options): TaskComments {
+/** Loads, shows and changes one parent's comments. Changes go through the shared queue, so they work offline. */
+export function useParentComments({ parent, me }: Options): ParentComments {
+  const { projectId, id: parentId, comments: scope } = parent;
   const { sync } = useProjects();
   const { queue, afterEnqueue, onFlushed, runExclusive } = sync;
   const ownerId = me?.id ?? null;
 
-  // Everything loaded is filed under the screen it was loaded for, so opening another task starts clean.
-  const key = `${ownerId}|${projectId}|${taskId}`;
+  // Everything loaded is filed under the screen it was loaded for, so opening another task or idea starts clean.
+  const key = `${ownerId}|${projectId}|${parentId}`;
   const [local, setLocal] = useState<{ key: string; cache: CommentCache; waiting: Change[] } | null>(null);
   const [remote, setRemote] = useState<{ key: string; failed: boolean } | null>(null);
   const [more, setMore] = useState<{ key: string; shown: number } | null>(null);
@@ -98,9 +96,9 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
 
   const readLocal = useCallback(async () => {
     if (ownerId === null) return;
-    const [next, queued] = await Promise.all([loadCommentCache(asyncStorageStore, ownerId), queue.waiting()]);
+    const [next, queued] = await Promise.all([loadCommentCache(asyncStorageStore, ownerId, scope), queue.waiting()]);
     setLocal({ key, cache: next, waiting: queued });
-  }, [ownerId, queue, key]);
+  }, [ownerId, queue, key, scope]);
 
   const fetchRemote = useCallback(async () => {
     if (ownerId === null) return;
@@ -109,18 +107,23 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
       const token = await getToken();
       if (!token) return;
       try {
-        const list = await listComments(token, projectId, taskId);
-        await updateCommentCache(asyncStorageStore, ownerId, (c) => {
-          const stale = new Set(staleFailedIds(taskId, list, failedFor(c, taskId)));
-          return withoutFailed(setTaskComments(c, projectId, taskId, list), (f) => stale.has(f.changeId));
-        });
+        const list = await scope.api.listComments(token, projectId, parentId);
+        await updateCommentCache(
+          asyncStorageStore,
+          ownerId,
+          (c) => {
+            const stale = new Set(staleFailedIds(parentId, list, failedFor(c, parentId), scope.entity));
+            return withoutFailed(setTaskComments(c, projectId, parentId, list), (f) => stale.has(f.changeId));
+          },
+          scope,
+        );
         setRemote({ key, failed: false });
       } catch (e) {
         // Offline or refused: what is cached stays on screen. A signed-out answer is handled by the sync cycle.
         setRemote({ key, failed: !(e instanceof ApiError) || e.status !== 404 });
       }
     }).catch(() => setRemote({ key, failed: true }));
-  }, [ownerId, projectId, taskId, runExclusive, key]);
+  }, [ownerId, projectId, parentId, runExclusive, key, scope]);
 
   // Open: show the cache, then fetch. Whatever changes the cache or the queue later is read again.
   useEffect(() => {
@@ -137,11 +140,14 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
     };
   }, [readLocal, fetchRemote, onFlushed]);
 
-  const server = cache ? commentsFor(cache, taskId) : null;
-  const failed = useMemo(() => (cache ? failedFor(cache, taskId) : []), [cache, taskId]);
-  const comments = useMemo(() => applyCommentOverlay(taskId, server ?? [], waiting, failed), [taskId, server, waiting, failed]);
+  const server = cache ? commentsFor(cache, parentId) : null;
+  const failed = useMemo(() => (cache ? failedFor(cache, parentId) : []), [cache, parentId]);
+  const comments = useMemo(
+    () => applyCommentOverlay(parentId, server ?? [], waiting, failed, scope.entity),
+    [parentId, server, waiting, failed, scope.entity],
+  );
   const page = useMemo(() => pageComments(comments, order, shown), [comments, order, shown]);
-  const involved = task !== null && isInvolved(task, ownerId);
+  const involved = parent.canFlag === true;
 
   const record = useCallback(
     async (change: Parameters<typeof queue.enqueue>[0]) => {
@@ -154,7 +160,7 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
 
   const ready = ownerId !== null && cache !== null;
 
-  const add = useCallback<TaskComments["add"]>(
+  const add = useCallback<ParentComments["add"]>(
     async (text, remindWith) => {
       if (!me || !ready) return { ok: false, reason: "not_ready" };
       const check = lengthCheck(text);
@@ -163,14 +169,23 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
       // Only involved people set the flag, also on a new comment.
       const flag = remindWith && involved;
       await record(
-        commentCreateChange({ projectId, taskId, id: newProjectId(), text: text.trim(), remindWith: flag, author: me, now: new Date() }),
+        commentCreateChange({
+          projectId,
+          taskId: parentId,
+          entity: scope.entity,
+          id: newProjectId(),
+          text: text.trim(),
+          remindWith: flag,
+          author: me,
+          now: new Date(),
+        }),
       );
       return { ok: true };
     },
-    [me, ready, involved, record, projectId, taskId],
+    [me, ready, involved, record, projectId, parentId, scope.entity],
   );
 
-  const edit = useCallback<TaskComments["edit"]>(
+  const edit = useCallback<ParentComments["edit"]>(
     async (commentId, text) => {
       const comment = comments.find((c) => c.id === commentId);
       if (!ready || !comment) return { ok: false, reason: "not_ready" };
@@ -178,55 +193,55 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
       const check = lengthCheck(text);
       if (check.empty) return { ok: false, reason: "empty" };
       if (check.over > 0) return { ok: false, reason: "too_long" };
-      if (text.trim() !== comment.text) await record(commentTextChange({ projectId, taskId, id: commentId, text: text.trim(), now: new Date() }));
+      if (text.trim() !== comment.text) await record(commentTextChange({ projectId, taskId: parentId, entity: scope.entity, id: commentId, text: text.trim(), now: new Date() }));
       return { ok: true };
     },
-    [ready, ownerId, comments, record, projectId, taskId],
+    [ready, ownerId, comments, record, projectId, parentId, scope.entity],
   );
 
-  const remove = useCallback<TaskComments["remove"]>(
+  const remove = useCallback<ParentComments["remove"]>(
     async (commentId) => {
       const comment = comments.find((c) => c.id === commentId);
       if (!ready || !ownerId || !comment) return { ok: false, reason: "not_ready" };
       if (!canEditComment(comment, ownerId)) return { ok: false, reason: "not_allowed" };
       // Refused changes of this comment are moot once it is deleted.
-      await discardFailed(asyncStorageStore, ownerId, commentId);
+      await discardFailed(asyncStorageStore, ownerId, commentId, scope);
       const onServer = server?.some((c) => c.id === commentId) ?? false;
-      if (comment.state !== "failed" || onServer) await record(commentDeleteChange({ projectId, taskId, id: commentId }));
+      if (comment.state !== "failed" || onServer) await record(commentDeleteChange({ projectId, taskId: parentId, entity: scope.entity, id: commentId }));
       else await readLocal();
       return { ok: true };
     },
-    [ready, ownerId, comments, server, record, readLocal, projectId, taskId],
+    [ready, ownerId, comments, server, record, readLocal, projectId, parentId, scope],
   );
 
-  const toggleRemind = useCallback<TaskComments["toggleRemind"]>(
+  const toggleRemind = useCallback<ParentComments["toggleRemind"]>(
     async (commentId) => {
       const comment = comments.find((c) => c.id === commentId);
       if (!ready || !comment) return { ok: false, reason: "not_ready" };
       if (!involved || comment.state === "failed") return { ok: false, reason: "not_allowed" };
-      await record(commentRemindChange({ projectId, taskId, id: commentId, remindWith: !comment.remindWith, now: new Date() }));
+      await record(commentRemindChange({ projectId, taskId: parentId, entity: scope.entity, id: commentId, remindWith: !comment.remindWith, now: new Date() }));
       return { ok: true };
     },
-    [ready, involved, comments, record, projectId, taskId],
+    [ready, involved, comments, record, projectId, parentId, scope.entity],
   );
 
   const retry = useCallback(
     async (commentId: string) => {
       if (ownerId === null) return;
-      await retryFailed(queue, asyncStorageStore, ownerId, commentId);
+      await retryFailed(queue, asyncStorageStore, ownerId, commentId, scope);
       await readLocal();
       await afterEnqueue();
     },
-    [ownerId, queue, readLocal, afterEnqueue],
+    [ownerId, queue, readLocal, afterEnqueue, scope],
   );
 
   const discard = useCallback(
     async (commentId: string) => {
       if (ownerId === null) return;
-      await discardFailed(asyncStorageStore, ownerId, commentId);
+      await discardFailed(asyncStorageStore, ownerId, commentId, scope);
       await readLocal();
     },
-    [ownerId, readLocal],
+    [ownerId, readLocal, scope],
   );
 
   const setOrder = useCallback((next: CommentOrder) => {
@@ -255,6 +270,6 @@ export function useTaskComments({ projectId, taskId, me, task }: Options): TaskC
     retry,
     discard,
     canEdit: (comment) => canEditComment(comment, ownerId) && comment.state !== "failed",
-    bell: (comment) => bellState(comment.remindWith, involved),
+    bell: (comment) => bellFor(parent.canFlag, comment.remindWith),
   };
 }
