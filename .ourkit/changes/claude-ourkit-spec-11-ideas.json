@@ -88,5 +88,40 @@
     "8": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/photos.ts:220: a 403 from canManage on the record route leaves orphaned=false, so an already-uploaded image stays in Cloudinary (needs a hand-crafted call, sign already 403s). Fix: mark orphaned before pre-create failures.",
+        "resolved": false
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/photos.ts:100-121: after the idea is deleted, requireIdeaOrDestroyUpload destroys the server-fixed image path on the caller's say-so (harmless, note only).",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/routes.ts:219-247: image destroy after commit is not awaited; a crash in between orphans images (same trade-off as tasks).",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/routes.ts:109: idempotent re-create returns the existing idea ignoring a differing body (task convention).",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "Mockup 2d departure: the task-from-idea form shows title, description and labels read-only, without the Giao cho and Hạn chót fields in the mockup, because the API only takes { taskId }; the user sets them on the new task after it opens.",
+        "resolved": false
+      }
+    ],
+    "reviewed": "4e2906e35cdf400b728f779661bf981ffc39cd95e06f02a375d3be513aaa6f23"
   }
 }
