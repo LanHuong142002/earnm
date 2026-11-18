@@ -207,14 +207,6 @@ export function createTasksRouter(deps: {
     try {
       const userId = getAuth(res.locals).userId;
       const { projectId } = await requireMember(param(req, "projectId"), userId);
-      // This phone just fetched the list, so it has the latest reminders: no push needed for them.
-      const pushToken = req.get("x-push-token");
-      if (pushToken) {
-        await prisma.devicePushToken.updateMany({
-          where: { token: pushToken, userId },
-          data: { lastSyncedAt: now() },
-        });
-      }
       const tasks = await prisma.task.findMany({
         where: { projectId },
         include: taskInclude,

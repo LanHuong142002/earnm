@@ -391,7 +391,21 @@ export function createProjectRemindersRouter(deps: Deps): Router {
           }
         }
       }
-      res.json({ reminders: rows.map(reminderResponse), remindWith });
+      const body = { reminders: rows.map(reminderResponse), remindWith };
+      // This phone now has the project's reminders to schedule, so the tick needn't push them.
+      const pushToken = req.get("x-push-token");
+      if (pushToken) {
+        const device = await prisma.devicePushToken.findFirst({ where: { token: pushToken, userId }, select: { token: true } });
+        if (device) {
+          const at = deps.now();
+          await prisma.deviceProjectSync.upsert({
+            where: { token_projectId: { token: pushToken, projectId: projectId.data } },
+            create: { token: pushToken, projectId: projectId.data, lastSyncedAt: at },
+            update: { lastSyncedAt: at },
+          });
+        }
+      }
+      res.json(body);
     } catch (err) {
       next(err);
     }

@@ -1,4 +1,4 @@
-import { request } from "../../lib/api";
+import { pushTokenHeaders, request } from "../../lib/api";
 import type { ProjectReminders, ReminderSchedule, ServerReminder } from "./types";
 
 type Stamped<T> = { value: T; editedAt: string };
@@ -12,7 +12,7 @@ const base = (projectId: string, taskId: string) =>
   `/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/reminders`;
 
 export const listProjectReminders = (token: string, projectId: string) =>
-  request<ProjectReminders>(`/projects/${encodeURIComponent(projectId)}/reminders`, { token });
+  request<ProjectReminders>(`/projects/${encodeURIComponent(projectId)}/reminders`, { token, headers: pushTokenHeaders() });
 
 export const createReminder = (token: string, projectId: string, taskId: string, body: CreateReminderBody) =>
   request<ServerReminder>(base(projectId, taskId), { method: "POST", body, token });

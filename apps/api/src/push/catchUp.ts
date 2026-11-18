@@ -68,7 +68,7 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
     include: {
       task: { include: { project: { select: { name: true } } } },
       recipients: {
-        include: { user: { select: { id: true, language: true, pushTokens: { select: { token: true, lastSyncedAt: true } } } } },
+        include: { user: { select: { id: true, language: true, pushTokens: { select: { token: true, projectSyncs: { select: { projectId: true, lastSyncedAt: true } } } } } } },
       },
     },
   });
@@ -84,6 +84,7 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
   for (const c of comments) byTask.set(c.taskId, [...(byTask.get(c.taskId) ?? []), c]);
 
   const messages: PushMessage[] = [];
+  const claims: { reminderId: string; userId: string; occurrenceAt: Date }[] = [];
   for (const reminder of reminders) {
     const occurrences = occurrencesBetween(
       {
@@ -109,7 +110,9 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
 
     for (const { user } of reminder.recipients) {
       if (user.pushTokens.length === 0) continue;
-      const outOfDate = user.pushTokens.every((t) => t.lastSyncedAt === null || t.lastSyncedAt.getTime() < version);
+      const outOfDate = user.pushTokens.every(
+        (t) => !t.projectSyncs.some((s) => s.projectId === task.projectId && s.lastSyncedAt.getTime() >= version),
+      );
       if (!outOfDate) continue;
       const lang: Language = user.language === "en" ? "en" : "vi";
       const head = task.dueDate
@@ -124,6 +127,7 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
           skipDuplicates: true,
         });
         if (count === 0) continue;
+        claims.push({ reminderId: reminder.id, userId: user.id, occurrenceAt });
         for (const { token } of user.pushTokens) {
           messages.push({ to: token, title: task.title, body, data: { projectId: task.projectId, taskId: task.id } });
         }
@@ -137,6 +141,9 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
     ({ invalidTokens } = await sender.send(messages));
   } catch {
     console.error("push: sending failed");
+    // Release this batch's claims so the next tick retries it.
+    await prisma.reminderPushSent.deleteMany({ where: { OR: claims } });
+    return 0;
   }
   if (invalidTokens.length > 0) {
     await prisma.devicePushToken.deleteMany({ where: { token: { in: invalidTokens } } });

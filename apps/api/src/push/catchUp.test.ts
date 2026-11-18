@@ -12,6 +12,10 @@ const LONG_AGO = new Date("2025-12-01T00:00:00Z");
 describe("runCatchUp", () => {
   const { clock } = useTestApp();
 
+  async function sync(token: string, projectId: string, lastSyncedAt: Date) {
+    await prisma.deviceProjectSync.create({ data: { token, projectId, lastSyncedAt } });
+  }
+
   async function world(opts: { due?: boolean; status?: "todo" | "done" } = {}) {
     const alice = await createSignedInUser(clock);
     const bob = await createSignedInUser(clock);
@@ -107,11 +111,8 @@ describe("runCatchUp", () => {
   });
 
   it("skips a recipient whose device synced after the content version, but not one who did not", async () => {
-    await world();
-    await prisma.devicePushToken.update({
-      where: { token: "ExponentPushToken[alice]" },
-      data: { lastSyncedAt: new Date("2025-12-31T00:00:00Z") },
-    });
+    const w = await world();
+    await sync("ExponentPushToken[alice]", w.project.id, new Date("2025-12-31T00:00:00Z"));
     const sender = createFakeSender();
     await runCatchUp({ prisma, sender, now: NOW });
     expect(sender.sent.map((m) => m.to)).toEqual(["ExponentPushToken[bob]"]);
@@ -119,10 +120,7 @@ describe("runCatchUp", () => {
 
   it("sends to a synced recipient when a Nhắc kèm comment is newer than their last sync", async () => {
     const w = await world();
-    await prisma.devicePushToken.update({
-      where: { token: "ExponentPushToken[alice]" },
-      data: { lastSyncedAt: new Date("2025-12-31T00:00:00Z") },
-    });
+    await sync("ExponentPushToken[alice]", w.project.id, new Date("2025-12-31T00:00:00Z"));
     await comment(w.task.id, w.bob.id, "new note", new Date("2025-12-31T12:00:00Z"));
     const sender = createFakeSender();
     await runCatchUp({ prisma, sender, now: NOW });
@@ -131,19 +129,41 @@ describe("runCatchUp", () => {
 
   it("needs every device of a recipient to be out of date", async () => {
     const w = await world();
-    await prisma.devicePushToken.create({
-      data: { token: "ExponentPushToken[alice2]", userId: w.alice.id, lastSyncedAt: new Date("2025-12-31T00:00:00Z") },
-    });
+    await prisma.devicePushToken.create({ data: { token: "ExponentPushToken[alice2]", userId: w.alice.id } });
+    await sync("ExponentPushToken[alice2]", w.project.id, new Date("2025-12-31T00:00:00Z"));
     const sender = createFakeSender();
     await runCatchUp({ prisma, sender, now: NOW });
     expect(sender.sent.map((m) => m.to)).toEqual(["ExponentPushToken[bob]"]);
 
-    await prisma.devicePushToken.update({ where: { token: "ExponentPushToken[alice]" }, data: { lastSyncedAt: null } });
-    await prisma.devicePushToken.update({ where: { token: "ExponentPushToken[alice2]" }, data: { lastSyncedAt: null } });
+    await prisma.deviceProjectSync.deleteMany({});
     await prisma.tickState.deleteMany({});
     const again = createFakeSender();
     await runCatchUp({ prisma, sender: again, now: NOW });
     expect(again.sent.map((m) => m.to).sort()).toEqual(["ExponentPushToken[alice2]", "ExponentPushToken[alice]"]);
+  });
+
+  it("does not count a sync of another project", async () => {
+    const w = await world();
+    const t = LONG_AGO;
+    const otherProject = await prisma.project.create({
+      data: { id: randomUUID(), name: "Khác", currency: "VND", nameEditedAt: t, descriptionEditedAt: t, currencyEditedAt: t },
+    });
+    await sync("ExponentPushToken[alice]", otherProject.id, new Date("2025-12-31T00:00:00Z"));
+    const sender = createFakeSender();
+    await runCatchUp({ prisma, sender, now: NOW });
+    expect(sender.sent.map((m) => m.to).sort()).toEqual(["ExponentPushToken[alice]", "ExponentPushToken[bob]"]);
+    expect(w.project.id).not.toBe(otherProject.id);
+  });
+
+  it("leaves no claims when the sender throws, so the next tick retries", async () => {
+    await world();
+    const failing = { send: async () => { throw new Error("down"); } };
+    await runCatchUp({ prisma, sender: failing, now: NOW });
+    expect(await prisma.reminderPushSent.count()).toBe(0);
+    await prisma.tickState.deleteMany({});
+    const retry = createFakeSender();
+    await runCatchUp({ prisma, sender: retry, now: NOW });
+    expect(retry.sent.map((m) => m.to).sort()).toEqual(["ExponentPushToken[alice]", "ExponentPushToken[bob]"]);
   });
 
   it("sends an occurrence at most once across ticks", async () => {

@@ -67,7 +67,7 @@ describe("push tokens (AC14)", () => {
     expect(JSON.stringify(res.body)).not.toContain("abc123");
   });
 
-  describe("task list sync time", () => {
+  describe("reminders sync time", () => {
     async function project(me: { id: string; token: string }) {
       const t = clock.now();
       const p = await prisma.project.create({
@@ -76,25 +76,33 @@ describe("push tokens (AC14)", () => {
       await addMember(p.id, me.id, "owner");
       return p.id;
     }
+    const syncs = () => prisma.deviceProjectSync.findMany();
 
-    it("is recorded on the caller's token when the task list is fetched", async () => {
+    it("is recorded per project when the reminders are fetched, not when the task list is", async () => {
       const me = await createSignedInUser(clock);
       const p = await project(me);
+      const p2 = await project(me);
       await request(app).put("/me/push-token").set(...bearer(me.token)).send({ token: TOKEN });
       clock.advanceMs(5_000);
-      const res = await request(app).get(`/projects/${p}/tasks`).set(...bearer(me.token)).set("X-Push-Token", TOKEN);
+      await request(app).get(`/projects/${p}/tasks`).set(...bearer(me.token)).set("X-Push-Token", TOKEN);
+      expect(await syncs()).toEqual([]);
+      const res = await request(app).get(`/projects/${p}/reminders`).set(...bearer(me.token)).set("X-Push-Token", TOKEN);
       expect(res.status).toBe(200);
-      expect((await prisma.devicePushToken.findUnique({ where: { token: TOKEN } }))?.lastSyncedAt).toEqual(clock.now());
+      const rows = await syncs();
+      expect(rows.map((r) => [r.token, r.projectId, r.lastSyncedAt])).toEqual([[TOKEN, p, clock.now()]]);
+      expect(rows.some((r) => r.projectId === p2)).toBe(false);
     });
 
-    it("is not recorded for a token that belongs to someone else, or without the header", async () => {
+    it("is not recorded for a failed fetch, someone else's token, or without the header", async () => {
       const me = await createSignedInUser(clock);
       const other = await createSignedInUser(clock);
       const p = await project(me);
       await request(app).put("/me/push-token").set(...bearer(other.token)).send({ token: TOKEN });
-      await request(app).get(`/projects/${p}/tasks`).set(...bearer(me.token)).set("X-Push-Token", TOKEN);
-      await request(app).get(`/projects/${p}/tasks`).set(...bearer(other.token));
-      expect((await prisma.devicePushToken.findUnique({ where: { token: TOKEN } }))?.lastSyncedAt).toBeNull();
+      await request(app).get(`/projects/${p}/reminders`).set(...bearer(me.token)).set("X-Push-Token", TOKEN);
+      await request(app).get(`/projects/${p}/reminders`).set(...bearer(me.token));
+      const outsider = await request(app).get(`/projects/${p}/reminders`).set(...bearer(other.token)).set("X-Push-Token", TOKEN);
+      expect(outsider.status).toBe(404);
+      expect(await syncs()).toEqual([]);
     });
   });
 });

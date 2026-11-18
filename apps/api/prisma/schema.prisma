@@ -92,6 +92,7 @@ model Project {
   tasks               Task[]
   invites             Invite[]
   labels              Label[]
+  deviceSyncs         DeviceProjectSync[]
 }
 
 model Session {
@@ -286,10 +287,24 @@ model DevicePushToken {
   token        String    @id
   userId       String
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** Unused: per-project sync times live in DeviceProjectSync. */
   lastSyncedAt DateTime?
   createdAt    DateTime  @default(now())
+  projectSyncs DeviceProjectSync[]
 
   @@index([userId])
+}
+
+/** When a phone last fetched a project's reminders, so the tick knows it has them scheduled. */
+model DeviceProjectSync {
+  token        String
+  device       DevicePushToken @relation(fields: [token], references: [token], onDelete: Cascade)
+  projectId    String
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lastSyncedAt DateTime        @default(now())
+
+  @@id([token, projectId])
+  @@index([projectId])
 }
 
 model ReminderPushSent {
