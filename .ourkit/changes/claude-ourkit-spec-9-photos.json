@@ -179,7 +179,7 @@
         "resolved": false
       }
     ],
-    "reviewed": "c5c698451f77e6d74b3391f6a5ca64ed3adb55ead2e97d83a0becad769de7244"
+    "reviewed": "c1b451aef91302bfd1ceaafd515508b8374543a07d49488d5fa4fd3836044b73"
   },
   "qa": {
     "results": {
@@ -334,7 +334,7 @@
         "criterion": "API test: without the Cloudinary variables, photo endpoints answer `photos_unavailable` (503) and task endpoints still work."
       }
     },
-    "checked": "c5c698451f77e6d74b3391f6a5ca64ed3adb55ead2e97d83a0becad769de7244"
+    "checked": "c1b451aef91302bfd1ceaafd515508b8374543a07d49488d5fa4fd3836044b73"
   },
   "testHandoff": [
     {
@@ -372,5 +372,5 @@
       "answer": "Accepted the recommendation (user's answers in the review doc, 2026-11-18)"
     }
   ],
-  "shipApproval": "c5c698451f77e6d74b3391f6a5ca64ed3adb55ead2e97d83a0becad769de7244"
+  "shipApproval": "c1b451aef91302bfd1ceaafd515508b8374543a07d49488d5fa4fd3836044b73"
 }
