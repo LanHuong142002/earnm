@@ -20,6 +20,7 @@ import {
   type AuthResult,
   type User,
 } from "../lib/api";
+import { clearNotificationsOnSignOut } from "../tasks/reminders/notifications";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { applyLanguage, resolveLanguage, type Language } from "../i18n";
 import {
@@ -364,11 +365,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Cleanup is best effort: the sign-out itself must still happen.
     }
+    // This phone's push token leaves the person and nothing stays scheduled (R14). Not awaited: it must never block sign-out.
+    const unregistered = clearNotificationsOnSignOut(token);
     // Forget the session first so a slow or unreachable server cannot keep it alive (R20).
     await endSession();
     if (token) {
-      // Fire and forget: the server call must never block or undo the sign-out.
-      apiSignOut(token).catch(() => {});
+      // Fire and forget: the server call must never block or undo the sign-out. It follows the token's removal, which needs the session.
+      void unregistered.then(() => apiSignOut(token)).catch(() => {});
     }
   }, [endSession]);
 
