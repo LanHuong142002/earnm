@@ -358,5 +358,6 @@
       "steps": "After npx eas init has put extra.eas.projectId in apps/mobile/app.json and cron-job.org calls /internal/tick: on phone A (Lan) sign in and allow notifications, then close the app. On phone B (Huy) add a reminder for Lan 6 minutes ahead on a shared task. Expected: Lan's phone shows the notification within one tick (<=5 min late) without opening the app, and only once. If nothing arrives, Expo Go on SDK 58 may not support push: tell Claude, and #10 keeps local notifications only."
     }
   ],
-  "shipApproval": "fc22f5f041f6f004beb26155a01854d18d4234003374548fe6e3f548666b980d"
+  "shipApproval": "fc22f5f041f6f004beb26155a01854d18d4234003374548fe6e3f548666b980d",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/46"
 }
