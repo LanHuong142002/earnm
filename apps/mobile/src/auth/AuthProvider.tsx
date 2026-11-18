@@ -20,6 +20,7 @@ import {
   type AuthResult,
   type User,
 } from "../lib/api";
+import { createSignOutCleanups } from "./sign-out-cleanups";
 import { clearNotificationsOnSignOut } from "../tasks/reminders/notifications";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { applyLanguage, resolveLanguage, type Language } from "../i18n";
@@ -116,14 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pendingRef.current = languagePendingSync;
   }, [languagePendingSync]);
 
-  const signOutCleanupRef = useRef<(() => Promise<void>) | null>(null);
+  const signOutCleanupsRef = useRef(createSignOutCleanups());
 
-  const registerSignOutCleanup = useCallback((cleanup: () => Promise<void>) => {
-    signOutCleanupRef.current = cleanup;
-    return () => {
-      if (signOutCleanupRef.current === cleanup) signOutCleanupRef.current = null;
-    };
-  }, []);
+  const registerSignOutCleanup = useCallback(
+    (cleanup: () => Promise<void>) => signOutCleanupsRef.current.register(cleanup),
+    [],
+  );
 
   const endSession = useCallback(async () => {
     tokenRef.current = null;
@@ -360,11 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     const token = tokenRef.current;
     // The user's own sign-out removes the local project copy and queue first (R28).
-    try {
-      await signOutCleanupRef.current?.();
-    } catch {
-      // Cleanup is best effort: the sign-out itself must still happen.
-    }
+    await signOutCleanupsRef.current.runAll();
     // This phone's push token leaves the person and nothing stays scheduled (R14). Not awaited: it must never block sign-out.
     const unregistered = clearNotificationsOnSignOut(token);
     // Forget the session first so a slow or unreachable server cannot keep it alive (R20).
