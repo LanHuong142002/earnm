@@ -48,6 +48,11 @@
       "id": 7,
       "decision": "#10: local notifications only, no server push, token or tick work",
       "why": "User has no paid Apple Developer account and wants free notifications (2026-11-18)"
+    },
+    {
+      "id": 8,
+      "decision": "#10: option B — local notifications plus Expo push in Expo Go, sent only by the tick to out-of-date phones",
+      "why": "User chose B on 2026-11-18; free, and no duplicate notifications"
     }
   ],
   "questions": [
@@ -63,11 +68,13 @@
     }
   ],
   "serviceActions": [
-    "Create an EAS project (eas init) and upload an APNs key via eas credentials, then put the projectId in apps/mobile/app.json; optionally create an Expo access token and set EXPO_ACCESS_TOKEN on Render"
+    "Create an EAS project (eas init) and upload an APNs key via eas credentials, then put the projectId in apps/mobile/app.json; optionally create an Expo access token and set EXPO_ACCESS_TOKEN on Render",
+    "In apps/mobile run npx eas init (free Expo account) and commit extra.eas.projectId in app.json, so phones can get Expo push tokens"
   ],
   "mockup": {
     "needed": true,
     "reason": null
   },
-  "mockupApproval": "4b4cfd180fc7198128dd564c9d229f55a425b714330915088adb06eee4d552c4"
+  "mockupApproval": "4b4cfd180fc7198128dd564c9d229f55a425b714330915088adb06eee4d552c4",
+  "planApproval": "8bc1b1e9ffcd779243c443417ba2afa79a2dce81c34e46010e4ad735dae8c6a8"
 }

@@ -8,7 +8,7 @@ A task can carry several reminders, one-off or repeating. When one is due, the p
 
 Today tasks, comments and their sync exist (`apps/api/prisma/schema.prisma`, `apps/api/src/tasks/routes.ts`, `apps/api/src/comments/routes.ts`, `apps/mobile/src/sync/queue.ts`, `apps/mobile/src/tasks/syncCycle.ts`). `POST /internal/tick` runs every 5 minutes but does nothing yet (`apps/api/src/internal/routes.ts`). There is no push library, no device-token model and no EAS project id. Reminders follow the existing conventions: phone-chosen ids, per-field last-write-wins, offline queue.
 
-**Delivery model (changed by the user on 2026-11-18):** local notifications only. Each recipient's phone schedules its own notifications from the reminders it knows about and reschedules them after every sync, so reminders fire on time even offline. There is no server push in #10: the team has no paid Apple Developer account and wants a free path. So a reminder someone else creates or changes reaches a recipient's phone the next time that phone syncs (the app is opened or comes to the foreground). Remote push (wake-ups and missed-reminder catch-up from Decision 5) is a follow-up.
+**Delivery model (option B, chosen by the user on 2026-11-18):** local notifications plus free push through Expo's push service while the team runs the app in Expo Go (no paid Apple account). Each recipient's phone schedules its own notifications from the reminders it knows about and reschedules them after every sync, so reminders fire on time even offline. The server covers phones that are out of date: on each `/internal/tick` it sends a push for each occurrence due since the previous tick to every recipient who has no device that synced after the reminder's **content version** (the later of the reminder's last change and the task's latest "Nhắc kèm" change). So a reminder someone else adds still arrives, at most one tick late, and a phone never shows the same occurrence twice. Push needs a free EAS project id; without it, the app stays on local notifications only.
 
 ## Requirements
 
@@ -30,13 +30,13 @@ Today tasks, comments and their sync exist (`apps/api/prisma/schema.prisma`, `ap
 
 ### Devices and notifications
 
-14. Removed (2026-11-18): no push-token registration, since there is no server push.
+14. A signed-in phone that has notification permission and an EAS project id registers its Expo push token with the API; a token belongs to one user at a time (registering it again as another user moves it), and signing out unregisters it. Each task-list sync records the time on the caller's token.
 15. Permission is asked the first time a person saves a reminder, after a short in-app explanation sheet ("Tiếp tục" / "Để sau"). The reminder is saved either way. The app never asks at launch.
 16. Each occurrence notification shows: title = task title; first line = due date/time and project name (or just project name with no due date); then up to 3 latest "Nhắc kèm" comments as "Name: text", newest first, each cut to fit. The reminders the phone syncs carry each task's latest 3 "Nhắc kèm" comments, so this works for tasks the person hasn't opened.
 17. Tapping a notification opens that task's screen, after sign-in if needed; if the task is gone or the person is no longer a member, the app opens the project list with no error.
 18. The phone reschedules its local notifications after every successful sync, on app start, and when reminders change locally, covering occurrences in the next 14 days only for reminders where this user is a recipient (iOS keeps at most 64 pending; the nearest win).
-19. Removed (2026-11-18): no server wake-up push.
-20. Removed (2026-11-18): no missed-reminder catch-up; `/internal/tick` is unchanged.
+19. Removed (2026-11-18): no separate wake-up push; requirement 20 covers out-of-date phones.
+20. On each `/internal/tick`, the server sends a visible push (same content as requirement 16) for each occurrence due since the previous tick (at most 15 minutes back) to recipients with no device synced after the reminder's content version, at most once per occurrence per user, and never for done tasks. Tokens the push service reports as no longer registered are deleted. With no push configuration, the tick sends nothing.
 21. Reminders can't be muted (Decision 13).
 
 ### On the phone: screens
@@ -54,7 +54,7 @@ Today tasks, comments and their sync exist (`apps/api/prisma/schema.prisma`, `ap
 
 ### Data
 
-30. A migration adds reminders and reminder recipients. It applies to empty and existing databases.
+30. A migration adds reminders, reminder recipients, device push tokens and a record of sent pushes. It applies to empty and existing databases.
 
 ## Acceptance Criteria
 
@@ -71,13 +71,13 @@ Today tasks, comments and their sync exist (`apps/api/prisma/schema.prisma`, `ap
 11. API test: deleting the task removes reminders; removing a member drops them from recipients.
 12. API test: an older edit doesn't overwrite a newer one per field; the same id twice gives one reminder; on another task `409`.
 13. API test: non-member `404`, signed out `401`, for list, create, edit, delete.
-14. Check: no push-token endpoint or table exists.
+14. API test: registering a token, registering it again as another user moves it, unregistering removes it; a task-list fetch updates the token's sync time.
 15. By hand (dev build on an iPhone): first save shows the explanation sheet, then the iOS prompt; "Để sau" still saves.
 16. Unit test: notification content for with/without due date and 0–4 "Nhắc kèm" comments.
 17. By hand: tapping a notification opens the task; for a deleted task, the project list.
 18. Unit test: the scheduler picks only this user's reminders, 14 days ahead, nearest 64, and is idempotent. By hand: a reminder fires on a locked phone in airplane mode.
-19. Check: changing a reminder sends nothing from the server; the recipient's phone picks it up on its next sync (by hand, two phones).
-20. Check: `/internal/tick` behaviour is unchanged (existing test passes).
+19. Check: no push is sent at the moment a reminder changes.
+20. API test (push sender faked): tick sends one push per due occurrence to out-of-date recipients only (including when a "Nhắc kèm" comment is newer than their last sync), none twice across ticks, none for done tasks; invalid tokens are deleted; nothing is sent without configuration.
 21. Check: there is no mute setting for reminders.
 22. By hand, against mockup 1a: the Nhắc nhở section sits below the info card with N/5, ＋ Thêm and rows; at 5, ＋ Thêm is grey with "Tối đa 5".
 23. By hand, mockup 1b: empty state line and button.
@@ -92,7 +92,7 @@ Today tasks, comments and their sync exist (`apps/api/prisma/schema.prisma`, `ap
 ## Out of Scope
 
 - Snooze, widgets, Live Activities (deferred by the ticket).
-- Remote push: wake-up pushes and missed-reminder catch-up (needs a paid Apple Developer account; follow-up).
+- Push outside Expo Go (dev build, TestFlight, App Store), which needs a paid Apple Developer account.
 - Activity push for comments, assignments, ideas (#16).
 - Android (the app is iPhone only).
 - Per-person notification settings or muting.
@@ -100,4 +100,4 @@ Today tasks, comments and their sync exist (`apps/api/prisma/schema.prisma`, `ap
 
 ## Open Questions
 
-None. Answered by the user on 2026-11-18: the mockup assumptions are confirmed; no paid Apple account, so #10 uses free local notifications only.
+None. Answered by the user on 2026-11-18: mockup assumptions confirmed; option B (local notifications plus free Expo push in Expo Go).
