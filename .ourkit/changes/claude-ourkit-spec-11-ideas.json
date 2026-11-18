@@ -95,34 +95,54 @@
         "id": 1,
         "severity": "non-blocking",
         "text": "apps/api/src/ideas/photos.ts:220: a 403 from canManage on the record route leaves orphaned=false, so an already-uploaded image stays in Cloudinary (needs a hand-crafted call, sign already 403s). Fix: mark orphaned before pre-create failures.",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 2,
         "severity": "non-blocking",
         "text": "apps/api/src/ideas/photos.ts:100-121: after the idea is deleted, requireIdeaOrDestroyUpload destroys the server-fixed image path on the caller's say-so (harmless, note only).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 3,
         "severity": "non-blocking",
         "text": "apps/api/src/ideas/routes.ts:219-247: image destroy after commit is not awaited; a crash in between orphans images (same trade-off as tasks).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 4,
         "severity": "non-blocking",
         "text": "apps/api/src/ideas/routes.ts:109: idempotent re-create returns the existing idea ignoring a differing body (task convention).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 5,
         "severity": "non-blocking",
         "text": "Mockup 2d departure: the task-from-idea form shows title, description and labels read-only, without the Giao cho and Hạn chót fields in the mockup, because the API only takes { taskId }; the user sets them on the new task after it opens.",
-        "resolved": false
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "blocking",
+        "text": "User decision 2026-11-18: the task-from-idea form must include Giao cho and Hạn chót as in mockup 2d (POST /ideas/:ideaId/task to accept assigneeIds and due).",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 7,
+        "severity": "blocking",
+        "text": "apps/api/src/ideas/photos.ts ~225-230: orphaned=true before the 403 runs before the existing-photo check, so a non-manager member re-recording an existing photo id (public id is computable) gets 403 and the catch destroys the author's real image while the row stays. Only mark orphaned when no IdeaPhoto row with body.id exists.",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "ideas/routes.ts and photos.ts: awaited destroyImages has no visible timeout; a hanging Cloudinary call holds the delete request.",
+        "resolved": true
       }
     ],
-    "reviewed": "4e2906e35cdf400b728f779661bf981ffc39cd95e06f02a375d3be513aaa6f23"
+    "reviewed": "a44ef6348e68835903b8a733ce8c8dc647ee2c246e97d316cd837334d62209a4"
   },
   "qa": {
     "results": {
@@ -178,17 +198,17 @@
       },
       "11": {
         "result": "pass",
-        "evidence": "photos.test.ts: author/Owner only for sign, record, edit, delete; 10 limit; members-only signed URLs",
+        "evidence": "photos.test.ts: author/Owner only, 10 limit, members-only signed URLs; after the review fix a non-manager re-recording an existing photo id gets 403 and nothing is destroyed; gate run test passed (API 549, mobile 854)",
         "criterion": "API test: idea photo sign/record/delete limited to author and Owner, 10 limit, members-only list with signed URLs."
       },
       "12": {
         "result": "manual",
-        "evidence": "Unit test for the button state passes; the prefilled form against mockups 2c-2d needs an iPhone",
+        "evidence": "Unit test for the prefill (now with assignees and due) passes; the form with Giao cho and Hạn chót against mockup 2d needs an iPhone (#44)",
         "criterion": "By hand, mockup 2c–2d: the button shows only when Accepted and opens the prefilled form."
       },
       "13": {
         "result": "pass",
-        "evidence": "toTask.test.ts: task created with title, description, labels, linked both ways, second attempt idea_already_has_task, non-accepted idea_not_accepted; no photo copy code exists",
+        "evidence": "toTask.test.ts: task created with title, description, labels, assignees and due (falls back to idea text), non-member assignee refused, linked both ways, second attempt idea_already_has_task, non-accepted idea_not_accepted; no photo copy",
         "criterion": "API test (store faked): create-task-from-idea creates the task with title, description and labels and no photos, links both ways, refuses a second time with `409`."
       },
       "14": {
@@ -247,7 +267,7 @@
         "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing data."
       }
     },
-    "checked": "4e2906e35cdf400b728f779661bf981ffc39cd95e06f02a375d3be513aaa6f23"
+    "checked": "a44ef6348e68835903b8a733ce8c8dc647ee2c246e97d316cd837334d62209a4"
   },
   "testHandoff": [
     {
