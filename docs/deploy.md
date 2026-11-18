@@ -30,6 +30,7 @@ Trước khi làm bước này, `render.yaml` phải có trên nhánh `main` (PR
    - `TRUST_PROXY`: `0` (sẽ chỉnh ở bước 6)
    - `INVITE_INSTALL_URL` (không bắt buộc): đường link `https://` để người được mời cài app (ví dụ link TestFlight), hiện trên trang lời mời. Để trống nếu chưa có; giá trị không phải `https://` làm server từ chối khởi động.
    - `INVITE_CODE_KEY` (không bắt buộc): khóa riêng (ít nhất 32 ký tự, không có khoảng trắng) để băm mã mời, tách mã mời khỏi `INTERNAL_SECRET`. Để trống thì dùng `INTERNAL_SECRET`. Đổi `INVITE_CODE_KEY` làm mọi lời mời đang chờ ngừng hoạt động.
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (không bắt buộc, nhưng phải đặt đủ cả ba): tài khoản Cloudinary để lưu ảnh đính kèm công việc. Lấy ở Cloudinary Console, mục **Settings → API Keys**. `CLOUDINARY_API_SECRET` là bí mật, chỉ nhập ở đây, không đưa vào app hay commit. Thiếu một trong ba thì tính năng ảnh tắt: API trả `503 photos_unavailable` cho các đường dẫn ảnh, phần còn lại vẫn chạy bình thường.
 
    Lưu ý: cho tới khi xong bước 6, mọi người dùng chia sẻ chung IP proxy của Render nên dùng chung giới hạn tốc độ đăng nhập. Đừng mở đăng nhập cho người dùng thật trước khi hoàn tất bước 6. Trang lời mời và giới hạn tham gia dự án cũng tính theo IP, nên cũng dùng chung cho mọi người cho tới khi xong bước 6.
 4. Render chỉ hỏi các biến này khi tạo Blueprint lần đầu. Về sau muốn đổi hoặc thêm biến thì vào service, tab **Environment**.

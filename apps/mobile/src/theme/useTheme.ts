@@ -15,6 +15,7 @@ import {
   spacing,
   tile,
   typography,
+  viewer,
   type ColorSet,
   type LabelColour,
   type LabelColourPair,
@@ -34,6 +35,7 @@ export type Theme = {
   disabled: typeof disabled;
   header: typeof header;
   onFixed: typeof onFixed;
+  viewer: typeof viewer;
   projectCard: typeof projectCard;
   avatar: typeof avatar;
 };
@@ -54,6 +56,7 @@ export function useTheme(): Theme {
     disabled,
     header,
     onFixed,
+    viewer,
     projectCard,
     avatar,
   };

@@ -9,3 +9,4 @@
 | 2026-11-12 | #6 Tasks | feature | Tasks in a project with status, assignees, due date, filters and offline sync on the shared queue; reuses #5's members. | https://github.com/LanHuong142002/earnm/pull/30 |
 | 2026-11-17 | #7 checklists and colour labels | feature | Tasks get named checklists with x/y progress and project colour labels with a label filter; Settings gets an Appearance choice. | https://github.com/LanHuong142002/earnm/pull/37 |
 | 2026-11-17 | Comments on tasks (#8) | feature | Members comment on tasks in bubbles, 5 at a time, with a remind-with bell for involved people; works offline. | https://github.com/LanHuong142002/earnm/pull/40 |
+| 2026-11-18 | Photos on tasks (#9) | feature | Involved people attach up to 10 photos with captions to a task, uploaded to Cloudinary through server signatures and queued offline. | https://github.com/LanHuong142002/earnm/pull/41 |

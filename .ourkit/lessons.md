@@ -19,3 +19,5 @@
 - [quality] Migrations run before the new server starts (render.yaml), so never DROP DEFAULT on a new NOT NULL column in the same release; the running server's inserts would fail.
 - [quality] Tests that poll pg_stat_activity inside a transaction must call pg_stat_clear_snapshot() each poll; the cached snapshot made a lock test fail once the request got 50ms slower.
 - [cost] When running implementers in parallel, let only one run the API suite at a time; two on the shared test DB gave false failures again.
+- [quality] Write each acceptance criterion on its own number; ranged items like '17–25.' are skipped by ourkit qa criteria and would go unchecked
+- [quality] A cleanup added to one delete path (task) must be added to every path that cascades to the same rows (project delete); the Sensitive reviewer caught orphaned Cloudinary images

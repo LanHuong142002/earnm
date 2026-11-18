@@ -35,6 +35,9 @@ colors:
     dangerBg: "#3A1715"
     success: "#6FCF97"
   heroGradient: ["#C2410C", "#7A2A12"]   # optional; the banner uses accentStrong flat. White text only, both modes
+viewer:                       # full-screen photo viewer, both modes; white text on it
+  background: "#000000"
+  scrim: "rgba(0,0,0,0.55)"   # over a thumbnail under its status text (Đang tải, Chờ mạng, Lỗi)
 labelColors:                  # label chips: tinted bg + dark text, never accent
   light:
     gray: { bg: "#EEEEEE", text: "#3F3F3F" }

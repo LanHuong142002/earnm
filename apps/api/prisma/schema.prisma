@@ -59,6 +59,7 @@ model User {
   createdTasks   Task[]          @relation("TaskCreator")
   assignments    TaskAssignee[]
   taskComments   TaskComment[]
+  taskPhotos     TaskPhoto[]
 }
 
 model ProjectMember {
@@ -123,6 +124,7 @@ model Task {
   checklists          Checklist[]
   labels              TaskLabel[]
   comments            TaskComment[]
+  photos              TaskPhoto[]
 
   @@index([projectId])
 }
@@ -139,6 +141,22 @@ model TaskComment {
   remindWith         Boolean  @default(false)
   remindWithEditedAt DateTime @default(now())
   createdAt          DateTime @default(now())
+
+  @@index([taskId, createdAt, id])
+}
+
+model TaskPhoto {
+  id              String   @id
+  taskId          String
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  addedById       String?
+  addedBy         User?    @relation(fields: [addedById], references: [id], onDelete: SetNull)
+  publicId        String   @unique
+  width           Int
+  height          Int
+  caption         String   @default("")
+  captionEditedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   @@index([taskId, createdAt, id])
 }

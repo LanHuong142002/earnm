@@ -7,6 +7,8 @@ import { multiLineText, singleLineText } from "../http/text.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { findForMember, lockProject } from "../projects/access.js";
+import type { PhotoStore } from "../photos/cloudinary.js";
+import { destroyImages } from "../photos/destroy.js";
 
 /** A project holds at most this many tasks. */
 export const MAX_TASKS_PER_PROJECT = 1000;
@@ -142,7 +144,12 @@ function notFound(): AppError {
 
 type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
-export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
+export function createTasksRouter(deps: {
+  prisma: PrismaClient;
+  now: () => Date;
+  /** Used to remove a deleted task's images from Cloudinary; absent when photos are off. */
+  photoStore?: PhotoStore | null;
+}): Router {
   const { prisma, now } = deps;
   const router = Router({ mergeParams: true });
   router.use(requireAuth(deps));
@@ -364,6 +371,7 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
       const userId = getAuth(res.locals).userId;
       const { projectId } = await requireMember(param(req, "projectId"), userId);
       const task = await requireTask(param(req, "taskId"), projectId);
+      let publicIds: string[] = [];
       await prisma.$transaction(async (tx) => {
         // The role is read again under the lock: a demotion that committed meanwhile counts.
         const role = await lockedRole(tx, projectId, userId);
@@ -371,11 +379,18 @@ export function createTasksRouter(deps: { prisma: PrismaClient; now: () => Date 
         if (task.createdById !== userId && role !== "owner") {
           throw new AppError(403, "forbidden", "Only the person who created this task or an owner can delete it.");
         }
+        // Collected before the delete: the photo rows go with the task by the database cascade.
+        publicIds = (
+          await tx.taskPhoto.findMany({ where: { taskId: task.id }, select: { publicId: true } })
+        ).map((p) => p.publicId);
         // Assignments are removed by the database cascade.
         const { count } = await tx.task.deleteMany({ where: { id: task.id, projectId } });
         if (count === 0) throw notFound(); // someone else deleted it first
       });
+      // After the commit, so a refused or rolled-back delete never touches an image. Answered first:
+      // Cloudinary being slow must not hold the request (destroyImages logs and never throws).
       res.status(204).end();
+      void destroyImages(deps.photoStore, publicIds);
     } catch (err) {
       next(err);
     }

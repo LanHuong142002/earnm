@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSPhotoLibraryUsageDescription": "Earnm cần truy cập thư viện ảnh để bạn đính kèm ảnh vào công việc.",
+    "NSCameraUsageDescription": "Earnm cần dùng máy ảnh để bạn chụp ảnh đính kèm vào công việc."
+  }
+}

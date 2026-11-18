@@ -23,6 +23,7 @@ describe("loadConfig", () => {
       port: 3000,
       inviteInstallUrl: null,
       inviteCodeKey: null,
+      cloudinary: null,
     });
   });
 
@@ -45,6 +46,21 @@ describe("loadConfig", () => {
       expect(err.message).not.toContain(value);
     },
   );
+
+  it("turns photos on only when all three Cloudinary variables are set", () => {
+    const all = {
+      CLOUDINARY_CLOUD_NAME: "demo",
+      CLOUDINARY_API_KEY: "key123",
+      CLOUDINARY_API_SECRET: "secret456",
+    };
+    expect(loadConfig({ ...base, ...all }).cloudinary).toEqual({
+      cloudName: "demo",
+      apiKey: "key123",
+      apiSecret: "secret456",
+    });
+    expect(loadConfig({ ...base, CLOUDINARY_CLOUD_NAME: "demo" }).cloudinary).toBeNull();
+    expect(loadConfig({ ...base, ...all, CLOUDINARY_API_SECRET: "" }).cloudinary).toBeNull();
+  });
 
   it("reads TRUST_PROXY and PORT when set", () => {
     const cfg = loadConfig({ ...base, TRUST_PROXY: "2", PORT: "8080" });

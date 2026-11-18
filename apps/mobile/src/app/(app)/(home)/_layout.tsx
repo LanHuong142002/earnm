@@ -42,6 +42,11 @@ export default function HomeStackLayout() {
         options={{ title: t("tasks.detailsTitle"), headerTitleAlign: "center" }}
       />
       <Stack.Screen name="projects/[id]/tasks/[taskId]/edit" options={{ title: t("tasks.editTitle") }} />
+      {/* The photo viewer: full screen on black, with its own close button. */}
+      <Stack.Screen
+        name="projects/[id]/tasks/[taskId]/photos"
+        options={{ presentation: "fullScreenModal", headerShown: false, animation: "fade", title: t("tasks.photos.viewerTitle") }}
+      />
       <Stack.Screen
         name="projects/[id]/tasks/labels/index"
         options={{ title: t("tasks.labels.manageTitle"), headerTitleAlign: "center" }}

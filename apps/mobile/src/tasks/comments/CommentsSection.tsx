@@ -14,7 +14,6 @@ import { CommentComposer } from "./CommentComposer";
 import { formatCommentTime } from "./commentTime";
 import type { CommentOrder } from "./types";
 import { useTaskComments, type CommentResult } from "./useTaskComments";
-import { COMMENT_BATCH } from "./view";
 
 /** The sort choice: an action sheet on iOS, Alert buttons elsewhere (like the checklist menu). */
 function showSortMenu(t: (key: string) => string, current: CommentOrder, onPick: (order: CommentOrder) => void): void {
@@ -135,9 +134,6 @@ export function CommentsSection({
             {t("tasks.comments.loadMore", { count: c.page.remaining })}
           </Text>
         </PressableScale>
-      ) : null}
-      {c.page.allShown && c.count > COMMENT_BATCH ? (
-        <Text style={[typography.caption, { color: colors.textSecondary, textAlign: "center" }]}>{t("tasks.comments.allShown")}</Text>
       ) : null}
     </View>
   );

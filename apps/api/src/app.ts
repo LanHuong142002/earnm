@@ -13,6 +13,8 @@ import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 import { createChecklistsRouter } from "./checklists/routes.js";
 import { createCommentsRouter } from "./comments/routes.js";
+import { createPhotosRouter } from "./photos/routes.js";
+import type { PhotoStore } from "./photos/cloudinary.js";
 import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 
@@ -27,6 +29,8 @@ export interface AppDeps {
   inviteInstallUrl?: string | null;
   /** Optional key for hashing invite codes. When absent, INTERNAL_SECRET is used. */
   inviteCodeKey?: string | null;
+  /** Cloudinary access for task photos. Null or absent: the photo endpoints answer 503 and the rest works. */
+  photoStore?: PhotoStore | null;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -44,6 +48,7 @@ export function createApp(deps: AppDeps): Express {
   // Before the tasks router, which also requires sign-in and would otherwise run first.
   app.use("/projects/:projectId/tasks/:taskId/checklists", createChecklistsRouter(deps));
   app.use("/projects/:projectId/tasks/:taskId/comments", createCommentsRouter(deps));
+  app.use("/projects/:projectId/tasks/:taskId/photos", createPhotosRouter(deps));
   app.use("/projects/:projectId/tasks", createTasksRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
