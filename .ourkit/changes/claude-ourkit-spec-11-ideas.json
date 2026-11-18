@@ -1,0 +1,60 @@
+{
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "11",
+    "accepted": true
+  },
+  "ticket": "11",
+  "tier": "feature",
+  "tierReason": "One cycle from the MVP epic; adds idea, vote and idea-comment tables and API endpoints",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "#11: ideas get their own comment, photo, label-join and vote tables rather than generalising task ones",
+      "why": "Task tables are coupled to task permissions and reminders; parallel copies keep #8/#9 untouched"
+    },
+    {
+      "id": 2,
+      "decision": "#11: any member changes status; author and Owner edit, delete and manage photos",
+      "why": "Mockup assumption 3, user did not object"
+    },
+    {
+      "id": 3,
+      "decision": "#11: order by score then newest; one anonymous vote per member, own idea allowed",
+      "why": "Mockup assumptions 1 and 2"
+    },
+    {
+      "id": 4,
+      "decision": "#11: one task per idea, created on the server with photos copied to new Cloudinary ids",
+      "why": "Shared public ids would be destroyed when either side is deleted"
+    },
+    {
+      "id": 5,
+      "decision": "#11: generalise mobile comments and photos components to a parent adapter instead of copying",
+      "why": "Keeps one design and avoids ~24 duplicated files; existing tests guard tasks"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#11: Confirm the mockup assumptions (order by score; one anonymous vote; any member changes status; author+Owner edit/delete; no bell on idea comments; one task per idea)?",
+      "answer": null
+    },
+    {
+      "id": 2,
+      "question": "#11: Should creating a task from an idea copy its photos? It needs new server-side Cloudinary copy code and uses storage twice. Default in the spec: yes.",
+      "answer": null
+    }
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "7a2d270e4da9c1d3d548a3949bf7ff41a63b34c1380d4c0f0ff461689a1f7f15"
+}
