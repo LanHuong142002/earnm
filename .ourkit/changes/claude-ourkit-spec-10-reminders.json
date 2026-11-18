@@ -43,18 +43,23 @@
       "id": 6,
       "decision": "#10: remote push is off until EAS projectId and token are configured",
       "why": "Local reminders still work, so the feature isn't blocked on the user's Apple setup"
+    },
+    {
+      "id": 7,
+      "decision": "#10: local notifications only, no server push, token or tick work",
+      "why": "User has no paid Apple Developer account and wants free notifications (2026-11-18)"
     }
   ],
   "questions": [
     {
       "id": 1,
       "question": "#10: Confirm the mockup assumptions (any member edits reminders; max 5; default time due date 9:00; permission asked on first save; done stops reminders, no snooze)?",
-      "answer": null
+      "answer": "Yes, mockup assumptions OK"
     },
     {
       "id": 2,
       "question": "#10: Remote push needs an EAS project id and Apple push key (paid Apple Developer account). Do you have one, or should #10 ship with local reminders only and remote push disabled until set up?",
-      "answer": null
+      "answer": "No paid Apple account; go with free notifications"
     }
   ],
   "serviceActions": [
