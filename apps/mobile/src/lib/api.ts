@@ -27,13 +27,13 @@ export class ApiError extends Error {
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
-type RequestOptions = { method?: string; body?: unknown; token?: string | null };
+type RequestOptions = { method?: string; body?: unknown; token?: string | null; headers?: Record<string, string> };
 
 export async function request<T>(
   path: string,
-  { method = "GET", body, token }: RequestOptions = {},
+  { method = "GET", body, token, headers: extraHeaders }: RequestOptions = {},
 ): Promise<T> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...extraHeaders };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -100,6 +100,24 @@ export const signIn = (email: string, password: string) =>
 
 export const signOut = (token: string) =>
   request<void>("/auth/sign-out", { method: "POST", token });
+
+/** This phone's Expo push token once registered (R14); `listTasks` sends it so the server knows the phone synced. */
+let pushToken: string | null = null;
+export const getPushToken = () => pushToken;
+export const setPushToken = (token: string | null) => {
+  pushToken = token;
+};
+
+/** The header that tells the server which registered push token just synced, or nothing when there is none. */
+export const pushTokenHeaders = (): Record<string, string> => (pushToken ? { "X-Push-Token": pushToken } : {});
+
+/** The token now belongs to the signed-in person (the server moves it from anyone else). */
+export const putPushToken = (token: string, pushTokenValue: string) =>
+  request<void>("/me/push-token", { method: "PUT", body: { token: pushTokenValue }, token });
+
+/** Takes this phone's token off the person (sign-out). */
+export const deletePushToken = (token: string, pushTokenValue: string) =>
+  request<void>("/me/push-token", { method: "DELETE", body: { token: pushTokenValue }, token });
 
 export const getMe = (token: string) => request<User>("/me", { token });
 

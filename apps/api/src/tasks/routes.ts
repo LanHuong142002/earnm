@@ -208,7 +208,8 @@ export function createTasksRouter(deps: {
 
   router.get("/", async (req, res, next) => {
     try {
-      const { projectId } = await requireMember(param(req, "projectId"), getAuth(res.locals).userId);
+      const userId = getAuth(res.locals).userId;
+      const { projectId } = await requireMember(param(req, "projectId"), userId);
       const tasks = await prisma.task.findMany({
         where: { projectId },
         include: taskInclude,

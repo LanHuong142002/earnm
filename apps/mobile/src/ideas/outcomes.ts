@@ -8,11 +8,12 @@ const REASON_KEY: Record<RejectedReason, string> = {
   invalid: "ideas.reasons.invalid",
   limit: "ideas.reasons.limit",
   generic: "ideas.reasons.generic",
-  // Reasons only labels, checklists and items can have: an idea never gets them, so they read as generic.
+  // Reasons only labels, checklists, items and reminders can have: an idea never gets them, so they read as generic.
   labelNameTaken: "ideas.reasons.generic",
   labelLimit: "ideas.reasons.generic",
   checklistLimit: "ideas.reasons.generic",
   itemLimit: "ideas.reasons.generic",
+  reminderLimit: "ideas.reasons.generic",
 };
 
 /** The i18n keys of the rejected-idea notice: its headline (takes `{{title}}`) and the reason line. */

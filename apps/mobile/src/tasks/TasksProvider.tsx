@@ -52,6 +52,9 @@ import {
 } from "./store";
 import { clearCommentCache, pruneCommentCache, updateCommentCache } from "./comments/store";
 import { registerCommentEntity } from "./comments/sync";
+import { listProjectReminders } from "./reminders/api";
+import { clearReminderCache, pruneReminderCache, setProjectReminders, updateReminderCache } from "./reminders/store";
+import { registerReminderEntity } from "./reminders/sync";
 import { clearPhotoCache, prunePhotoCache, updatePhotoCache } from "./photos/store";
 import { clearPendingFiles, photoDeps } from "./photos/realDeps";
 import { registerPhotoEntities } from "./photos/uploads";
@@ -222,6 +225,16 @@ export function TasksProvider({ children, members }: Props) {
       getToken,
       listTasks,
       listLabels,
+      listReminders: listProjectReminders,
+      commitReminders: async (projectId, data) => {
+        const owner = loadedOwnerRef.current;
+        if (!owner) return;
+        await updateReminderCache(asyncStorageStore, owner, (c) =>
+          data
+            ? setProjectReminders(c, projectId, data)
+            : pruneReminderCache(c, Object.keys(c.byProject).filter((id) => id !== projectId)),
+        );
+      },
       getTasks: (projectId) => cacheRef.current.byProject[projectId] ?? [],
       getLabels: (projectId) => cachedLabelsFor(cacheRef.current, projectId),
       commit,
@@ -242,6 +255,8 @@ export function TasksProvider({ children, members }: Props) {
     });
     registerTaskEntity(queue, c.handlers);
     registerChecklistEntities(queue, c.handlers);
+    // Reminders share the task-wide rejected-change notice.
+    registerReminderEntity(queue, c.handlers);
     // Comments keep their own refusals (retry or discard per comment), not the task-wide notice.
     registerCommentEntity(queue, asyncStorageStore);
     // Photos too: an upload that is refused for good stays on its thumbnail to retry or discard.
@@ -325,6 +340,7 @@ export function TasksProvider({ children, members }: Props) {
       try {
         await clearTaskCache(asyncStorageStore);
         await clearCommentCache(asyncStorageStore);
+        await clearReminderCache(asyncStorageStore);
         await clearPhotoCache(asyncStorageStore);
         // Pictures waiting to upload belong to the person who took them.
         clearPendingFiles();
@@ -354,6 +370,7 @@ export function TasksProvider({ children, members }: Props) {
     if (owner) {
       const ids = projects.map((p) => p.id);
       void updateCommentCache(asyncStorageStore, owner, (c) => pruneCommentCache(c, ids)).catch(() => {});
+      void updateReminderCache(asyncStorageStore, owner, (c) => pruneReminderCache(c, ids)).catch(() => {});
       void updatePhotoCache(asyncStorageStore, owner, (c) => prunePhotoCache(c, ids)).catch(() => {});
     }
   }, [ready, projectsStatus, projects, publish]);

@@ -11,6 +11,7 @@ import { OfflineNote } from "../../../../../../../projects/OfflineNote";
 import { canAddChecklist, checklistSummary } from "../../../../../../../tasks/checklistView";
 import { ChecklistCard } from "../../../../../../../tasks/ChecklistCard";
 import { CommentsSection } from "../../../../../../../tasks/comments/CommentsSection";
+import { RemindersSection } from "../../../../../../../tasks/reminders/RemindersSection";
 import { taskParent } from "../../../../../../../tasks/parent";
 import { PhotosSection } from "../../../../../../../tasks/photos/PhotosSection";
 import { LabelsField } from "../../../../../../../tasks/LabelsField";
@@ -170,6 +171,9 @@ export default function TaskDetailsScreen() {
         </View>
       </Enter>
       <Enter index={1}>
+        <RemindersSection projectId={project.id} task={task} />
+      </Enter>
+      <Enter index={2}>
         <View style={{ gap: spacing[2] }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing[1], minHeight: layout.controlHeight }}>
             <Text accessibilityRole="header" style={[typography.sectionTitle, { color: colors.text }]}>
@@ -220,7 +224,7 @@ export default function TaskDetailsScreen() {
           ) : null}
         </View>
       </Enter>
-      <Enter index={2}>
+      <Enter index={3}>
         <PhotosSection
           parent={parent}
           onOpenPhoto={(photoId) =>
@@ -228,11 +232,11 @@ export default function TaskDetailsScreen() {
           }
         />
       </Enter>
-      <Enter index={3}>
+      <Enter index={4}>
         <CommentsSection parent={parent} />
       </Enter>
       {canDelete ? (
-        <Enter index={4}>
+        <Enter index={5}>
           {/* Set apart from Edit, with room below, so it can't be hit by mistake. */}
           <View
             style={{

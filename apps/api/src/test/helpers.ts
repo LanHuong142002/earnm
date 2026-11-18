@@ -58,7 +58,7 @@ export function useTestApp(): { app: Express; clock: TestClock } {
     await connectWithRetry();
   }, 30_000);
   beforeEach(async () => {
-    await prisma.$executeRawUnsafe('TRUNCATE TABLE "Session", "User", "Project" CASCADE');
+    await prisma.$executeRawUnsafe('TRUNCATE TABLE "Session", "User", "Project", "TickState" CASCADE');
   });
   afterAll(async () => {
     await prisma.$disconnect();

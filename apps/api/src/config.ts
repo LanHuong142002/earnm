@@ -16,6 +16,8 @@ export type Config = {
   inviteCodeKey: string | null;
   /** Cloudinary account for photos; null (photos off) unless all three variables are set. */
   cloudinary: { cloudName: string; apiKey: string; apiSecret: string } | null;
+  /** Optional Expo access token for push sending (only needed when Expo enhanced security is on). */
+  expoAccessToken: string | null;
 };
 
 const MIN_SECRET_LENGTH = 32;
@@ -89,5 +91,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     inviteInstallUrl,
     inviteCodeKey,
     cloudinary,
+    expoAccessToken: (env["EXPO_ACCESS_TOKEN"] ?? "") === "" ? null : (env["EXPO_ACCESS_TOKEN"] ?? null),
   };
 }

@@ -2,6 +2,7 @@ import type { Express } from "express";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
+import { createFakeSender } from "../push/sender.js";
 import { expectError, prisma, useTestApp } from "../test/helpers.js";
 
 const SECRET = "test-only-fake-internal-secret-0123456789abcdef";
@@ -30,6 +31,23 @@ describe("internal routes", () => {
       .set("Authorization", `Bearer ${SECRET}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "ok" });
+  });
+
+  it("POST /internal/tick with a push sender records the tick; without one it records nothing", async () => {
+    const withSender = createApp({
+      prisma,
+      now: () => new Date("2026-01-01T00:00:00Z"),
+      internalSecret: SECRET,
+      pushSender: createFakeSender(),
+    });
+    const res = await request(withSender).post("/internal/tick").set("Authorization", `Bearer ${SECRET}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "ok" });
+    expect(await prisma.tickState.count()).toBe(1);
+
+    await prisma.tickState.deleteMany({});
+    await request(build({ internalSecret: SECRET })).post("/internal/tick").set("Authorization", `Bearer ${SECRET}`);
+    expect(await prisma.tickState.count()).toBe(0);
   });
 
   it("POST /internal/tick does not touch the database", async () => {

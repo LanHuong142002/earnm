@@ -11,3 +11,5 @@ export const COMMENT_ENTITY = "comment";
 export const PHOTO_UPLOAD_ENTITY = "photoUpload";
 /** A change to a photo the server already has (caption, delete). `entityId` is the photo id. */
 export const PHOTO_ENTITY = "photo";
+/** A reminder on a task. `entityId` is the reminder id (chosen by the phone). */
+export const REMINDER_ENTITY = "reminder";
