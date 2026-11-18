@@ -313,9 +313,17 @@ model ReminderPushSent {
   userId       String
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   occurrenceAt DateTime
-  sentAt       DateTime     @default(now())
+  /// When the claim was made.
+  claimedAt     DateTime     @default(now())
+  /// When the latest send attempt started; retries wait after it.
+  lastAttemptAt DateTime     @default(now())
+  /// Send attempts so far; a claim is retried while below 3.
+  attempts      Int          @default(1)
+  /// Null while claimed but not yet delivered; set once the push service accepted it.
+  sentAt        DateTime?
 
   @@id([reminderId, userId, occurrenceAt])
+  @@index([sentAt, claimedAt])
 }
 
 /// One row (id "tick"): when the last /internal/tick ran, so the next one knows how far back to look.

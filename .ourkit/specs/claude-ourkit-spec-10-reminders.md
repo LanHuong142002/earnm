@@ -36,7 +36,7 @@ Today tasks, comments and their sync exist (`apps/api/prisma/schema.prisma`, `ap
 17. Tapping a notification opens that task's screen, after sign-in if needed; if the task is gone or the person is no longer a member, the app opens the project list with no error.
 18. The phone reschedules its local notifications after every successful sync, on app start, and when reminders change locally, covering occurrences in the next 14 days only for reminders where this user is a recipient (iOS keeps at most 64 pending; the nearest win).
 19. Removed (2026-11-18): no separate wake-up push; requirement 20 covers out-of-date phones.
-20. On each `/internal/tick`, the server sends a visible push (same content as requirement 16) for each occurrence due since the previous tick (at most 15 minutes back) to recipients with no device synced after the reminder's content version, at most once per occurrence per user, and never for done tasks. Tokens the push service reports as no longer registered are deleted. With no push configuration, the tick sends nothing.
+20. On each `/internal/tick`, the server sends a visible push (same content as requirement 16) for each occurrence due since the previous tick (at most 15 minutes back) to recipients with no device synced after the reminder's content version, once per occurrence per user (a send that fails is retried up to 3 times within an hour), and never for done tasks. Tokens the push service reports as no longer registered are deleted. With no push configuration, the tick sends nothing.
 21. Reminders can't be muted (Decision 13).
 
 ### On the phone: screens

@@ -6,6 +6,7 @@ import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { findForMember, lockProject } from "../projects/access.js";
+import { latestRemindWithComments } from "./remindWithComments.js";
 import { isFutureOnce, type ReminderRule } from "./occurrences.js";
 
 /** A task holds at most this many reminders. */
@@ -13,7 +14,6 @@ export const MAX_REMINDERS_PER_TASK = 5;
 /** A reminder goes to at most this many people. */
 export const MAX_REMINDER_RECIPIENTS = 20;
 /** How many "Nhắc kèm" comments ride along with a task's reminders. */
-const REMIND_WITH_LIMIT = 3;
 
 // Accepts "Z" and offsets such as "+07:00".
 const editedAtSchema = z.iso.datetime({ offset: true }).transform((s) => new Date(s));
@@ -369,28 +369,15 @@ export function createProjectRemindersRouter(deps: Deps): Router {
       if (!projectId.success) throw notFound();
       if (!(await findForMember(prisma, projectId.data, userId))) throw notFound();
 
+      // Bounded: a task has at most 5 reminders, and a project holds at most 1000 tasks (R7), so
+      // the list is at most 5 x 1000 reminders and needs no paging.
       const rows = await prisma.taskReminder.findMany({
         where: { task: { projectId: projectId.data } },
         include,
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       });
       const taskIds = [...new Set(rows.map((r) => r.taskId))];
-
-      const remindWith: Record<string, { author: string | null; text: string }[]> = {};
-      if (taskIds.length > 0) {
-        const comments = await prisma.taskComment.findMany({
-          where: { taskId: { in: taskIds }, remindWith: true },
-          include: { author: { select: { displayName: true } } },
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        });
-        for (const taskId of taskIds) remindWith[taskId] = [];
-        for (const c of comments) {
-          const list = remindWith[c.taskId];
-          if (list && list.length < REMIND_WITH_LIMIT) {
-            list.push({ author: c.author?.displayName ?? null, text: c.text });
-          }
-        }
-      }
+      const remindWith = Object.fromEntries(await latestRemindWithComments(prisma, taskIds));
       const body = { reminders: rows.map(reminderResponse), remindWith };
       // This phone now has the project's reminders to schedule, so the tick needn't push them.
       const pushToken = req.get("x-push-token");

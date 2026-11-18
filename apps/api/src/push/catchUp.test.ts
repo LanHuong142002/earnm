@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { addMember, createSignedInUser, prisma, useTestApp } from "../test/helpers.js";
-import { runCatchUp } from "./catchUp.js";
+import { runCatchUp, TICK_LOCK_KEY } from "./catchUp.js";
 import { createFakeSender } from "./sender.js";
 
 const DAY = 86_400_000;
@@ -155,15 +155,107 @@ describe("runCatchUp", () => {
     expect(w.project.id).not.toBe(otherProject.id);
   });
 
-  it("keeps its claims when the sender throws: delivery is at most once, with no duplicate next tick", async () => {
-    await world();
-    const failing = { send: async () => { throw new Error("down"); } };
-    await runCatchUp({ prisma, sender: failing, now: NOW });
-    expect(await prisma.reminderPushSent.count()).toBe(2);
-    await prisma.tickState.deleteMany({});
-    const next = createFakeSender();
-    await runCatchUp({ prisma, sender: next, now: NOW });
-    expect(next.sent).toEqual([]);
+  describe("retries", () => {
+    const MIN = 60_000;
+    const later = (min: number) => new Date(NOW.getTime() + min * MIN);
+
+    it("retries a send that failed on the next tick, then delivers once", async () => {
+      await world();
+      const failing = { send: async () => { throw new Error("down"); } };
+      await runCatchUp({ prisma, sender: failing, now: NOW });
+      expect((await prisma.reminderPushSent.findMany()).every((c) => c.sentAt === null)).toBe(true);
+
+      const next = createFakeSender();
+      expect((await runCatchUp({ prisma, sender: next, now: later(3) })).sent).toBe(2);
+      expect(next.sent.map((m) => m.to).sort()).toEqual(["ExponentPushToken[alice]", "ExponentPushToken[bob]"]);
+      expect((await prisma.reminderPushSent.findMany()).every((c) => c.sentAt !== null)).toBe(true);
+
+      await runCatchUp({ prisma, sender: next, now: later(6) });
+      expect(next.sent.length).toBe(2);
+    });
+
+    it("retries only the messages that failed, and never again after a success", async () => {
+      await world();
+      const sender = createFakeSender();
+      sender.failing.add("ExponentPushToken[bob]");
+      await runCatchUp({ prisma, sender, now: NOW });
+      expect(sender.sent.length).toBe(2);
+      sender.failing.clear();
+      await runCatchUp({ prisma, sender, now: later(3) });
+      expect(sender.sent.map((m) => m.to).sort()).toEqual([
+        "ExponentPushToken[alice]",
+        "ExponentPushToken[bob]",
+        "ExponentPushToken[bob]",
+      ]);
+      await runCatchUp({ prisma, sender, now: later(6) });
+      expect(sender.sent.length).toBe(3);
+    });
+
+    it("retries a claim left unsent by a crash", async () => {
+      const { alice, reminder } = await world();
+      await prisma.reminderPushSent.create({
+        data: { reminderId: reminder.id, userId: alice.id, occurrenceAt: new Date("2026-01-01T02:00:00Z"), claimedAt: NOW, lastAttemptAt: NOW },
+      });
+      await prisma.tickState.create({ data: { id: "tick", lastTickAt: NOW } });
+      const sender = createFakeSender();
+      // Too soon: the first attempt may still be running.
+      await runCatchUp({ prisma, sender, now: later(1) });
+      expect(sender.sent).toEqual([]);
+      await runCatchUp({ prisma, sender, now: later(3) });
+      expect(sender.sent.map((m) => m.to)).toEqual(["ExponentPushToken[alice]"]);
+    });
+
+    it("gives up after 3 attempts", async () => {
+      await world();
+      const failing = { send: async () => { throw new Error("down"); } };
+      await runCatchUp({ prisma, sender: failing, now: NOW });
+      await runCatchUp({ prisma, sender: failing, now: later(3) });
+      await runCatchUp({ prisma, sender: failing, now: later(6) });
+      expect((await prisma.reminderPushSent.findMany()).map((c) => c.attempts)).toEqual([3, 3]);
+      const sender = createFakeSender();
+      await runCatchUp({ prisma, sender, now: later(9) });
+      expect(sender.sent).toEqual([]);
+    });
+
+    it("gives up after an hour", async () => {
+      await world();
+      const failing = { send: async () => { throw new Error("down"); } };
+      await runCatchUp({ prisma, sender: failing, now: NOW });
+      const sender = createFakeSender();
+      await runCatchUp({ prisma, sender, now: later(61) });
+      expect(sender.sent).toEqual([]);
+    });
+
+    it("does not retry for a task that is now done, or a recipient whose phone has synced", async () => {
+      const { task, alice } = await world();
+      const failing = { send: async () => { throw new Error("down"); } };
+      await runCatchUp({ prisma, sender: failing, now: NOW });
+      await sync("ExponentPushToken[alice]", task.projectId, later(1));
+      const sender = createFakeSender();
+      await runCatchUp({ prisma, sender, now: later(3) });
+      expect(sender.sent.map((m) => m.to)).toEqual(["ExponentPushToken[bob]"]);
+      await prisma.task.update({ where: { id: task.id }, data: { status: "done" } });
+      await runCatchUp({ prisma, sender, now: later(6) });
+      expect(sender.sent.length).toBe(1);
+      expect(alice.id).toBeTruthy();
+    });
+  });
+
+  describe("overlapping ticks", () => {
+    it("returns at once, sending nothing, when another tick holds the lock", async () => {
+      await world();
+      const sender = createFakeSender();
+      let result: { sent: number } | undefined;
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${TICK_LOCK_KEY}::bigint)`;
+        result = await runCatchUp({ prisma, sender, now: NOW });
+      });
+      expect(result).toEqual({ sent: 0 });
+      expect(sender.sent).toEqual([]);
+      expect(await prisma.tickState.findUnique({ where: { id: "tick" } })).toBeNull();
+      // Once the other tick is done, the next one works as usual.
+      expect((await runCatchUp({ prisma, sender, now: NOW })).sent).toBe(2);
+    });
   });
 
   it("sends an occurrence at most once across ticks", async () => {
