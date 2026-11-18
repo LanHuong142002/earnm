@@ -17,6 +17,8 @@ import { createPhotosRouter } from "./photos/routes.js";
 import type { PhotoStore } from "./photos/cloudinary.js";
 import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
+import { createIdeasRouter } from "./ideas/routes.js";
+import { createVotesRouter } from "./ideas/votes.js";
 
 export interface AppDeps {
   prisma: PrismaClient;
@@ -50,6 +52,9 @@ export function createApp(deps: AppDeps): Express {
   app.use("/projects/:projectId/tasks/:taskId/comments", createCommentsRouter(deps));
   app.use("/projects/:projectId/tasks/:taskId/photos", createPhotosRouter(deps));
   app.use("/projects/:projectId/tasks", createTasksRouter(deps));
+  // Likewise before the ideas router.
+  app.use("/projects/:projectId/ideas/:ideaId/vote", createVotesRouter(deps));
+  app.use("/projects/:projectId/ideas", createIdeasRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
   // Without INVITE_CODE_KEY or INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.

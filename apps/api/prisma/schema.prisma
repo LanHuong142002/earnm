@@ -27,6 +27,13 @@ enum ProjectRole {
   member
 }
 
+enum IdeaStatus {
+  new
+  considering
+  accepted
+  dropped
+}
+
 enum TaskStatus {
   todo
   doing
@@ -60,6 +67,10 @@ model User {
   assignments    TaskAssignee[]
   taskComments   TaskComment[]
   taskPhotos     TaskPhoto[]
+  ideas          Idea[]
+  ideaVotes      IdeaVote[]
+  ideaComments   IdeaComment[]
+  ideaPhotos     IdeaPhoto[]
 }
 
 model ProjectMember {
@@ -88,6 +99,7 @@ model Project {
   tasks               Task[]
   invites             Invite[]
   labels              Label[]
+  ideas               Idea[]
 }
 
 model Session {
@@ -125,6 +137,7 @@ model Task {
   labels              TaskLabel[]
   comments            TaskComment[]
   photos              TaskPhoto[]
+  fromIdea            Idea?          @relation("IdeaTask")
 
   @@index([projectId])
 }
@@ -224,6 +237,7 @@ model Label {
   colourEditedAt DateTime
   createdAt      DateTime    @default(now())
   tasks          TaskLabel[]
+  ideas          IdeaLabel[]
 
   @@unique([projectId, nameKey])
 }
@@ -236,4 +250,78 @@ model TaskLabel {
 
   @@id([taskId, labelId])
   @@index([labelId])
+}
+
+model Idea {
+  id                  String        @id
+  projectId           String
+  project             Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId            String?
+  author              User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  title               String
+  description         String        @default("")
+  status              IdeaStatus    @default(new)
+  titleEditedAt       DateTime      @default(now())
+  descriptionEditedAt DateTime      @default(now())
+  statusEditedAt      DateTime      @default(now())
+  labelsEditedAt      DateTime      @default(now())
+  taskId              String?       @unique
+  task                Task?         @relation("IdeaTask", fields: [taskId], references: [id], onDelete: SetNull)
+  createdAt           DateTime      @default(now())
+  labels              IdeaLabel[]
+  votes               IdeaVote[]
+  comments            IdeaComment[]
+  photos              IdeaPhoto[]
+
+  @@index([projectId, createdAt])
+}
+
+model IdeaLabel {
+  ideaId  String
+  labelId String
+  idea    Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([ideaId, labelId])
+  @@index([labelId])
+}
+
+model IdeaVote {
+  ideaId String
+  userId String
+  value  Int
+  idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([ideaId, userId])
+}
+
+model IdeaComment {
+  id           String   @id
+  ideaId       String
+  idea         Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  authorId     String?
+  author       User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  text         String
+  textEditedAt DateTime @default(now())
+  edited       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([ideaId, createdAt, id])
+}
+
+model IdeaPhoto {
+  id              String   @id
+  ideaId          String
+  idea            Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  addedById       String?
+  addedBy         User?    @relation(fields: [addedById], references: [id], onDelete: SetNull)
+  publicId        String   @unique
+  width           Int
+  height          Int
+  caption         String   @default("")
+  captionEditedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([ideaId, createdAt, id])
 }
