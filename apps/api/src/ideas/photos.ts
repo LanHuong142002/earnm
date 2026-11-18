@@ -96,6 +96,11 @@ export function createIdeaPhotosRouter(deps: {
   /**
    * `requireIdea` for the record route. When the caller is a member and only the idea is gone, the
    * image they uploaded after signing can never be recorded, so it is removed in the background.
+   *
+   * Only a current project member can trigger this (a non-member's upload is left alone), and the
+   * public id is always built from this project's and this idea's ids, so it can only name an image
+   * under this project's ideas prefix. The deleted idea can't be asked who signed the upload, so
+   * membership is the check that is possible.
    */
   async function requireIdeaOrDestroyUpload(req: Request, userId: string, store: PhotoStore) {
     try {
@@ -218,11 +223,15 @@ export function createIdeaPhotosRouter(deps: {
               throw err;
             });
             if (!canManage(idea, userId, role)) {
+              // The signed upload can never be recorded by this caller, so the image is removed.
+              orphaned = true;
               throw forbidden("Only the author or an owner can do this.");
             }
             const existing = await tx.ideaPhoto.findUnique({ where: { id: body.id }, include });
             if (existing) {
               if (existing.ideaId !== ideaId) {
+                // That id belongs to another idea's photo, whose image has a different public id.
+                orphaned = true;
                 throw new AppError(409, "id_conflict", "That photo id is already taken.");
               }
               return { status: 200, photo: existing };
@@ -310,9 +319,10 @@ export function createIdeaPhotosRouter(deps: {
         if (count === 0) throw notFound();
         return photo.publicId;
       });
-      // After the commit: the row is gone either way, and a failed destroy is only logged.
+      // After the commit, awaited before the answer so a crash can't silently orphan the image;
+      // a failed destroy is only logged (destroyImages never throws).
+      await destroyImages(store, [publicId]);
       res.status(204).end();
-      void destroyImages(store, [publicId]);
     } catch (err) {
       next(err);
     }

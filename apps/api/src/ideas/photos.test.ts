@@ -174,8 +174,22 @@ describe("/projects/:projectId/ideas/:ideaId/photos", () => {
     it("lets the Owner record, and refuses another member (destroying nothing it did not sign)", async () => {
       const w = await world();
       expect((await record(w.owner, w.p, w.i)).status).toBe(201);
-      expectError(await record(w.other, w.p, w.i), 403, "forbidden");
+      const id = randomUUID();
+      expectError(await record(w.other, w.p, w.i, { id }), 403, "forbidden");
       expect(await prisma.ideaPhoto.count()).toBe(1);
+      // That member's upload can never be recorded, so the image is removed rather than orphaned.
+      await destroyedCount(1);
+      expect(destroyed).toEqual([publicIdOf(w.p, w.i, id)]);
+    });
+
+    it("destroys the image when the id is already used on another idea (409)", async () => {
+      const w = await world();
+      const id = randomUUID();
+      await record(w.author, w.p, w.i, { id });
+      const j = (await prisma.idea.create({ data: { id: randomUUID(), projectId: w.p, authorId: w.author.id, title: "J" } })).id;
+      expectError(await record(w.author, w.p, j, { id }), 409, "id_conflict");
+      await destroyedCount(1);
+      expect(destroyed).toEqual([publicIdOf(w.p, j, id)]);
     });
 
     it("refuses a public id that is not the one signed for this idea", async () => {
@@ -218,6 +232,14 @@ describe("/projects/:projectId/ideas/:ideaId/photos", () => {
       expectError(await record(w.author, w.p, w.i, { id }), 404, "not_found");
       await destroyedCount(1);
       expect(destroyed).toEqual([publicIdOf(w.p, w.i, id)]);
+    });
+
+    it("destroys nothing for a non-member even when the idea is gone", async () => {
+      const w = await world();
+      await prisma.idea.delete({ where: { id: w.i } });
+      expectError(await record(w.stranger, w.p, w.i), 404, "not_found");
+      await new Promise((r) => setTimeout(r, 20));
+      expect(destroyed).toEqual([]);
     });
 
     it("destroys nothing for a stranger", async () => {

@@ -127,6 +127,9 @@ export function createIdeasRouter(deps: {
             if (existing.projectId !== projectId) {
               throw new AppError(409, "id_conflict", "That idea id is already taken.");
             }
+            // A retry of a create the phone already sent (offline queue) answers with what was saved.
+            // A body that differs from the saved idea is deliberately ignored, not an error: the idea
+            // may have been edited since, and a retry must never overwrite or fail on those edits.
             return { status: 200, idea: existing };
           }
           // Counted under the project lock, so concurrent creates can't pass the limit together.
@@ -243,10 +246,10 @@ export function createIdeasRouter(deps: {
         const { count } = await tx.idea.deleteMany({ where: { id: ideaId, projectId } });
         if (count === 0) throw notFound(); // someone else deleted it first
       });
-      // After the commit, so a refused or rolled-back delete never touches an image. Answered first:
-      // Cloudinary being slow must not hold the request (destroyImages logs and never throws).
+      // After the commit, so a refused or rolled-back delete never touches an image. Awaited before the
+      // answer, so a crash after the commit can't silently orphan them (destroyImages never throws).
+      await destroyImages(deps.photoStore, publicIds);
       res.status(204).end();
-      void destroyImages(deps.photoStore, publicIds);
     } catch (err) {
       next(err);
     }

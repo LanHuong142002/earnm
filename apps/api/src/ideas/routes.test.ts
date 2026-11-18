@@ -212,6 +212,16 @@ describe("/projects/:projectId/ideas", () => {
       expectError(await create(w.author, p2, { id }), 409, "id_conflict");
     });
 
+    it("ignores a differing body on a replay: 200 with the saved idea, nothing overwritten", async () => {
+      const w = await world();
+      const id = randomUUID();
+      await create(w.author, w.p, { id, title: "First", description: "one" });
+      const again = await create(w.author, w.p, { id, title: "Second", description: "two", labelIds: [] });
+      expect(again.status).toBe(200);
+      expect(again.body).toMatchObject({ title: "First", description: "one" });
+      expect(await prisma.idea.findUniqueOrThrow({ where: { id } })).toMatchObject({ title: "First", description: "one" });
+    });
+
     it("handles the same create sent twice at once", async () => {
       const w = await world();
       const id = randomUUID();
