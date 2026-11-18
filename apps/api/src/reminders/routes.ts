@@ -13,7 +13,6 @@ import { isFutureOnce, type ReminderRule } from "./occurrences.js";
 export const MAX_REMINDERS_PER_TASK = 5;
 /** A reminder goes to at most this many people. */
 export const MAX_REMINDER_RECIPIENTS = 20;
-/** How many "Nhắc kèm" comments ride along with a task's reminders. */
 
 // Accepts "Z" and offsets such as "+07:00".
 const editedAtSchema = z.iso.datetime({ offset: true }).transform((s) => new Date(s));

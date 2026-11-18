@@ -79,15 +79,15 @@ model ProjectMember {
 }
 
 model Project {
-  id                  String          @id
+  id                  String              @id
   name                String
-  description         String          @default("")
+  description         String              @default("")
   currency            Currency
   nameEditedAt        DateTime
   descriptionEditedAt DateTime
   currencyEditedAt    DateTime
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
   members             ProjectMember[]
   tasks               Task[]
   invites             Invite[]
@@ -284,18 +284,22 @@ model TaskReminderRecipient {
 }
 
 model DevicePushToken {
-  token        String    @id
+  token        String              @id
   userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /** Unused: per-project sync times live in DeviceProjectSync. */
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /**
+   * Unused: per-project sync times live in DeviceProjectSync.
+   */
   lastSyncedAt DateTime?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime            @default(now())
   projectSyncs DeviceProjectSync[]
 
   @@index([userId])
 }
 
-/** When a phone last fetched a project's reminders, so the tick knows it has them scheduled. */
+/**
+ * When a phone last fetched a project's reminders, so the tick knows it has them scheduled.
+ */
 model DeviceProjectSync {
   token        String
   device       DevicePushToken @relation(fields: [token], references: [token], onDelete: Cascade)
@@ -308,18 +312,18 @@ model DeviceProjectSync {
 }
 
 model ReminderPushSent {
-  reminderId   String
-  reminder     TaskReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  occurrenceAt DateTime
+  reminderId    String
+  reminder      TaskReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurrenceAt  DateTime
   /// When the claim was made.
   claimedAt     DateTime     @default(now())
   /// When the latest send attempt started; retries wait after it.
   lastAttemptAt DateTime     @default(now())
   /// Send attempts so far; a claim is retried while below 3.
   attempts      Int          @default(1)
-  /// Null while claimed but not yet delivered; set once the push service accepted it.
+  /// Null while claimed and not yet settled; set once the push service accepted a message, or when every failed message was for a token that is no longer registered (those tokens are deleted, so nothing is left to retry).
   sentAt        DateTime?
 
   @@id([reminderId, userId, occurrenceAt])
