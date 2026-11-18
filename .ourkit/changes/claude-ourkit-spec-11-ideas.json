@@ -275,5 +275,6 @@
       "steps": "Run npm run dev:phone from this branch checkout (after db:deploy on the dev DB), open in Expo Go, sign in as an Owner and, on another phone, as a member of the same project. 1) Project screen: Ý tưởng tile enabled with 'n mới' (mockup 1a). 2) Ideas list: highest score first, then newest; Đã bỏ collapsed at the end; status and label filters; empty, loading, and error with Thử lại when the API is stopped (1b-1d). 3) Idea screen, status sheet, vote buttons, Sửa only for author and Owner, comments without bells (2a, 2b). 4) Set an idea to Đã chọn, tap Tạo công việc từ ý tưởng: the form shows title, description and labels read-only (no Giao cho or Hạn chót, a known departure from mockup 2d); Tạo công việc opens the new task; back returns to the idea, which shows Đã tạo công việc (2e); the task shows Từ ý tưởng. 5) New and edit forms, delete confirm (3a-3b). 6) Airplane mode: create, edit, vote show Chờ lưu and sync after reconnect (3c). 7) Dark mode, English, VoiceOver on vote buttons (3d). 8) Recheck task comments and photos still work as before (shared components were refactored). Expected: all match the mockup, selections highlighted with no ticks."
     }
   ],
-  "shipApproval": "0149aa244d6289a492c15b3be115979a32b18214184711ae24347c2f63b29467"
+  "shipApproval": "0149aa244d6289a492c15b3be115979a32b18214184711ae24347c2f63b29467",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/45"
 }

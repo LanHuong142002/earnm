@@ -21,3 +21,4 @@
 - [cost] When running implementers in parallel, let only one run the API suite at a time; two on the shared test DB gave false failures again.
 - [quality] Write each acceptance criterion on its own number; ranged items like '17–25.' are skipped by ourkit qa criteria and would go unchecked
 - [quality] A cleanup added to one delete path (task) must be added to every path that cascades to the same rows (project delete); the Sensitive reviewer caught orphaned Cloudinary images
+- [quality] A cleanup that destroys external files on a refused request must first check that no recorded row owns them; an orphan-cleanup fix let any member destroy another person's photo
