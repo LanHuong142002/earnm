@@ -13,6 +13,7 @@ import { createMeRouter } from "./me/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 import { createChecklistsRouter } from "./checklists/routes.js";
 import { createCommentsRouter } from "./comments/routes.js";
+import { createProjectRemindersRouter, createRemindersRouter } from "./reminders/routes.js";
 import { createPhotosRouter } from "./photos/routes.js";
 import type { PhotoStore } from "./photos/cloudinary.js";
 import { createLabelsRouter } from "./labels/routes.js";
@@ -49,6 +50,8 @@ export function createApp(deps: AppDeps): Express {
   app.use("/projects/:projectId/tasks/:taskId/checklists", createChecklistsRouter(deps));
   app.use("/projects/:projectId/tasks/:taskId/comments", createCommentsRouter(deps));
   app.use("/projects/:projectId/tasks/:taskId/photos", createPhotosRouter(deps));
+  app.use("/projects/:projectId/tasks/:taskId/reminders", createRemindersRouter(deps));
+  app.use("/projects/:projectId/reminders", createProjectRemindersRouter(deps));
   app.use("/projects/:projectId/tasks", createTasksRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));

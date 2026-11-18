@@ -45,21 +45,25 @@ enum LabelColour {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  passwordHash   String
-  displayName    String
-  language       Language?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  sessions       Session[]
-  projects       ProjectMember[]
-  invitesCreated Invite[]        @relation("InviteCreatedBy")
-  invitesUsed    Invite[]        @relation("InviteUsedBy")
-  createdTasks   Task[]          @relation("TaskCreator")
-  assignments    TaskAssignee[]
-  taskComments   TaskComment[]
-  taskPhotos     TaskPhoto[]
+  id                 String                  @id @default(uuid())
+  email              String                  @unique
+  passwordHash       String
+  displayName        String
+  language           Language?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  sessions           Session[]
+  projects           ProjectMember[]
+  invitesCreated     Invite[]                @relation("InviteCreatedBy")
+  invitesUsed        Invite[]                @relation("InviteUsedBy")
+  createdTasks       Task[]                  @relation("TaskCreator")
+  assignments        TaskAssignee[]
+  taskComments       TaskComment[]
+  taskPhotos         TaskPhoto[]
+  remindersCreated   TaskReminder[]          @relation("ReminderCreator")
+  reminderRecipients TaskReminderRecipient[]
+  pushTokens         DevicePushToken[]
+  reminderPushes     ReminderPushSent[]
 }
 
 model ProjectMember {
@@ -125,6 +129,7 @@ model Task {
   labels              TaskLabel[]
   comments            TaskComment[]
   photos              TaskPhoto[]
+  reminders           TaskReminder[]
 
   @@index([projectId])
 }
@@ -236,4 +241,64 @@ model TaskLabel {
 
   @@id([taskId, labelId])
   @@index([labelId])
+}
+
+enum ReminderRepeat {
+  once
+  daily
+  weekly
+  monthly
+}
+
+model TaskReminder {
+  id                 String                  @id
+  taskId             String
+  task               Task                    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  startDate          DateTime                @db.Date
+  time               String
+  timezone           String
+  repeat             ReminderRepeat
+  weekdays           Int[]                   @default([])
+  endDate            DateTime?               @db.Date
+  scheduleEditedAt   DateTime                @default(now())
+  recipientsEditedAt DateTime                @default(now())
+  changedAt          DateTime                @default(now())
+  createdById        String?
+  createdBy          User?                   @relation("ReminderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime                @default(now())
+  recipients         TaskReminderRecipient[]
+  pushesSent         ReminderPushSent[]
+
+  @@index([taskId])
+}
+
+model TaskReminderRecipient {
+  reminderId String
+  reminder   TaskReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([reminderId, userId])
+  @@index([userId])
+}
+
+model DevicePushToken {
+  token        String    @id
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model ReminderPushSent {
+  reminderId   String
+  reminder     TaskReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurrenceAt DateTime
+  sentAt       DateTime     @default(now())
+
+  @@id([reminderId, userId, occurrenceAt])
 }
