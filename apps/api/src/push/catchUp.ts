@@ -84,7 +84,6 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
   for (const c of comments) byTask.set(c.taskId, [...(byTask.get(c.taskId) ?? []), c]);
 
   const messages: PushMessage[] = [];
-  const claims: { reminderId: string; userId: string; occurrenceAt: Date }[] = [];
   for (const reminder of reminders) {
     const occurrences = occurrencesBetween(
       {
@@ -127,7 +126,6 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
           skipDuplicates: true,
         });
         if (count === 0) continue;
-        claims.push({ reminderId: reminder.id, userId: user.id, occurrenceAt });
         for (const { token } of user.pushTokens) {
           messages.push({ to: token, title: task.title, body, data: { projectId: task.projectId, taskId: task.id } });
         }
@@ -139,10 +137,10 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
   let invalidTokens: string[] = [];
   try {
     ({ invalidTokens } = await sender.send(messages));
-  } catch {
-    console.error("push: sending failed");
-    // Release this batch's claims so the next tick retries it.
-    await prisma.reminderPushSent.deleteMany({ where: { OR: claims } });
+  } catch (err) {
+    // Delivery is at most once per occurrence per user: the claims stay, so a failed send is
+    // not retried by a later tick.
+    console.error("push: sending failed", err instanceof Error ? err.name : "unknown");
     return 0;
   }
   if (invalidTokens.length > 0) {

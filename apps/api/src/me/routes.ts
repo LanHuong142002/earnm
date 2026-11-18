@@ -73,7 +73,14 @@ export function createMeRouter(deps: {
           await tx.devicePushToken.create({ data: { token, userId } });
         } else if (existing.userId !== userId) {
           // A moved token starts over: the new owner's phone has not synced yet.
-          await tx.devicePushToken.update({ where: { token }, data: { userId, lastSyncedAt: null } });
+          await tx.deviceProjectSync.deleteMany({ where: { token } });
+          await tx.devicePushToken.update({
+            where: { token },
+            data: { userId, lastSyncedAt: null, createdAt: deps.now() },
+          });
+        } else {
+          // Registering again makes this the newest device, so the cap never drops it.
+          await tx.devicePushToken.update({ where: { token }, data: { createdAt: deps.now() } });
         }
         const newest = await tx.devicePushToken.findMany({
           where: { userId },

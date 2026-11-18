@@ -39,6 +39,35 @@ describe("push tokens (AC14)", () => {
     expect(rows[0]?.lastSyncedAt).toBeNull();
   });
 
+  it("clears the project syncs of a token that moves, so the new owner is not considered synced", async () => {
+    const a = await createSignedInUser(clock);
+    const b = await createSignedInUser(clock);
+    const t = clock.now();
+    const p = await prisma.project.create({
+      data: { id: randomUUID(), name: "P", currency: "VND", nameEditedAt: t, descriptionEditedAt: t, currencyEditedAt: t },
+    });
+    await addMember(p.id, a.id, "owner");
+    await request(app).put("/me/push-token").set(...bearer(a.token)).send({ token: TOKEN });
+    await request(app).get(`/projects/${p.id}/reminders`).set(...bearer(a.token)).set("X-Push-Token", TOKEN);
+    expect(await prisma.deviceProjectSync.count({ where: { token: TOKEN } })).toBe(1);
+    await request(app).put("/me/push-token").set(...bearer(b.token)).send({ token: TOKEN });
+    expect(await prisma.deviceProjectSync.count({ where: { token: TOKEN } })).toBe(0);
+  });
+
+  it("keeps the just-registered token when the per-user cap is exceeded", async () => {
+    const me = await createSignedInUser(clock);
+    const tokens = Array.from({ length: 11 }, (_, i) => `ExponentPushToken[t${i}]`);
+    for (const t of tokens) {
+      await prisma.devicePushToken.create({ data: { token: t, userId: me.id, createdAt: new Date("2026-01-01T00:00:00Z") } });
+    }
+    clock.advanceMs(1000);
+    const res = await request(app).put("/me/push-token").set(...bearer(me.token)).send({ token: tokens[0]! });
+    expect(res.status).toBe(204);
+    const left = await prisma.devicePushToken.findMany({ where: { userId: me.id } });
+    expect(left).toHaveLength(10);
+    expect(left.map((r) => r.token)).toContain(tokens[0]);
+  });
+
   it("unregisters only the caller's own token", async () => {
     const a = await createSignedInUser(clock);
     const b = await createSignedInUser(clock);

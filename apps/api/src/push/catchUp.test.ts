@@ -155,15 +155,15 @@ describe("runCatchUp", () => {
     expect(w.project.id).not.toBe(otherProject.id);
   });
 
-  it("leaves no claims when the sender throws, so the next tick retries", async () => {
+  it("keeps its claims when the sender throws: delivery is at most once, with no duplicate next tick", async () => {
     await world();
     const failing = { send: async () => { throw new Error("down"); } };
     await runCatchUp({ prisma, sender: failing, now: NOW });
-    expect(await prisma.reminderPushSent.count()).toBe(0);
+    expect(await prisma.reminderPushSent.count()).toBe(2);
     await prisma.tickState.deleteMany({});
-    const retry = createFakeSender();
-    await runCatchUp({ prisma, sender: retry, now: NOW });
-    expect(retry.sent.map((m) => m.to).sort()).toEqual(["ExponentPushToken[alice]", "ExponentPushToken[bob]"]);
+    const next = createFakeSender();
+    await runCatchUp({ prisma, sender: next, now: NOW });
+    expect(next.sent).toEqual([]);
   });
 
   it("sends an occurrence at most once across ticks", async () => {

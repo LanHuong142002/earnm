@@ -45,8 +45,8 @@ export function createExpoSender(options: { accessToken: string | null }): PushS
         try {
           const tickets = await expo.sendPushNotificationsAsync(chunk);
           invalidTokens.push(...invalidTokensFromTickets(chunk as { to: string }[], tickets));
-        } catch {
-          console.error("push: a chunk of notifications could not be sent");
+        } catch (err) {
+          console.error("push: a chunk of notifications could not be sent", err instanceof Error ? err.name : "unknown");
         }
       }
       return { invalidTokens };
