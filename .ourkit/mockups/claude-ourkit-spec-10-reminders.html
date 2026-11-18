@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup #10: nhắc việc</title>
+<style>
+  :root {
+    --bg:#FFFFFF; --surface:#FFFFFF; --field:#F3F4F6; --tile:#FFF1EB; --tileBorder:#FADCCB; --border:#EEEEEE;
+    --text:#141414; --text2:#5F5F5F; --ph:#6B6B6B; --accent:#F4511E; --accentStrong:#C2410C; --onAccent:#FFFFFF;
+    --danger:#B3261E; --dangerBg:#FDF0EF; --success:#1E7F4F;
+    /* label palette, light (R21) */
+    --l-gray-bg:#EEEEEE; --l-gray-tx:#3F3F3F;
+    --l-red-bg:#FBE4E2; --l-red-tx:#8C1D18;
+    --l-orange-bg:#FDE8D7; --l-orange-tx:#8A3A0B;
+    --l-yellow-bg:#FBF0C9; --l-yellow-tx:#6B5200;
+    --l-green-bg:#DFF1E6; --l-green-tx:#1B5E3A;
+    --l-teal-bg:#DCEFEE; --l-teal-tx:#155E5A;
+    --l-blue-bg:#E1EAF8; --l-blue-tx:#1E4A8A;
+    --l-purple-bg:#ECE4F6; --l-purple-tx:#5B2E8C;
+    --page:#F6F1EE; --note:#6B4A3A;
+  }
+  .dark {
+    --bg:#121212; --surface:#1C1C1C; --field:#1E1E1E; --tile:#2A1A14; --tileBorder:#3D261B; --border:#2A2A2A;
+    --text:#F2F2F2; --text2:#A3A3A3; --ph:#8F8F8F; --accent:#F4511E; --accentStrong:#F4511E; --onAccent:#141414;
+    --danger:#F2B8B5; --dangerBg:#3A1715; --success:#6FCF97;
+    --l-gray-bg:#2C2C2C; --l-gray-tx:#D6D6D6;
+    --l-red-bg:#3A1D1B; --l-red-tx:#F2B8B5;
+    --l-orange-bg:#3A2414; --l-orange-tx:#F5C29A;
+    --l-yellow-bg:#352C10; --l-yellow-tx:#EBD58A;
+    --l-green-bg:#17301F; --l-green-tx:#9ED8B4;
+    --l-teal-bg:#133130; --l-teal-tx:#93D4CF;
+    --l-blue-bg:#172639; --l-blue-tx:#A9C4EE;
+    --l-purple-bg:#2A1E3A; --l-purple-tx:#CDB6EE;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); font-family:"Plus Jakarta Sans",-apple-system,"Segoe UI",Roboto,sans-serif; color:#141414; }
+  header.page { padding:24px 32px 8px; max-width:1500px; margin:0 auto; }
+  header.page h1 { font-size:24px; font-weight:800; margin:0 0 6px; }
+  header.page p { margin:4px 0; color:#5F5F5F; font-size:14px; max-width:900px; line-height:1.5; }
+  h2.group { max-width:1500px; margin:28px auto 4px; padding:0 32px; font-size:17px; font-weight:800; }
+  .row { display:flex; flex-wrap:wrap; gap:28px; padding:12px 32px 8px; max-width:1500px; margin:0 auto; align-items:flex-start; }
+  .shot { width:375px; }
+  .cap { font-size:13px; font-weight:600; margin:0 0 8px; color:#141414; }
+  .cap small { display:block; font-weight:400; color:var(--note); margin-top:3px; line-height:1.4; }
+  .phone { width:375px; min-height:740px; background:var(--bg); border-radius:40px; border:10px solid #1b1b1b; overflow:hidden; position:relative; color:var(--text); }
+  .status-bar { height:44px; display:flex; justify-content:space-between; align-items:center; padding:0 26px; font-size:14px; font-weight:600; }
+  .nav { height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; position:relative; color:var(--accentStrong); font-size:15px; }
+  .nav .chev { font-size:26px; width:44px; line-height:44px; }
+  .nav .ttl { color:var(--text); font-weight:600; position:absolute; left:0; right:0; text-align:center; pointer-events:none; font-size:17px; }
+  .nav .right { color:var(--accentStrong); font-weight:600; font-size:15px; }
+  .scr { padding:4px 20px 28px; display:flex; flex-direction:column; gap:16px; }
+  .h1 { font-size:24px; font-weight:800; line-height:30px; margin:0; }
+  .h2 { font-size:17px; font-weight:800; line-height:22px; margin:0; }
+  .lbl { font-size:13px; font-weight:600; color:var(--text2); }
+  .cap12 { font-size:12px; color:var(--text2); }
+  .body { font-size:15px; line-height:21px; }
+  .strong { font-weight:600; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:12px 14px; }
+  .card.flush { padding:0 14px; }
+  .rowline { min-height:44px; display:flex; align-items:center; gap:10px; border-top:1px solid var(--border); }
+  .rowline:first-child { border-top:0; }
+  .grow { flex:1; min-width:0; }
+  .pill { display:inline-flex; align-items:center; gap:4px; height:44px; padding:0 14px; border-radius:999px; background:var(--field); border:1px solid var(--field); font-size:15px; }
+  .pill.sel { background:var(--tile); border-color:var(--tileBorder); font-weight:600; }
+  .pill.sel::before { content:"✓"; color:var(--accent); font-weight:800; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .switch { width:46px; height:28px; border-radius:14px; background:var(--field); position:relative; flex:none; }
+  .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+  .switch.on { background:var(--accentStrong); }
+  .switch.on::after { left:21px; }
+  .chev-r { color:var(--text2); font-size:18px; }
+  .status { display:inline-block; background:var(--tile); color:var(--accentStrong); border-radius:999px; padding:2px 8px; font-size:12px; font-weight:600; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chip { display:inline-flex; align-items:center; border-radius:999px; padding:2px 9px; font-size:12px; font-weight:600; line-height:18px; white-space:nowrap; }
+  .chip.lg { font-size:13px; padding:4px 11px; }
+  .chip.more { background:var(--field); color:var(--text2); }
+  .c-gray{background:var(--l-gray-bg);color:var(--l-gray-tx)} .c-red{background:var(--l-red-bg);color:var(--l-red-tx)}
+  .c-orange{background:var(--l-orange-bg);color:var(--l-orange-tx)} .c-yellow{background:var(--l-yellow-bg);color:var(--l-yellow-tx)}
+  .c-green{background:var(--l-green-bg);color:var(--l-green-tx)} .c-teal{background:var(--l-teal-bg);color:var(--l-teal-tx)}
+  .c-blue{background:var(--l-blue-bg);color:var(--l-blue-tx)} .c-purple{background:var(--l-purple-bg);color:var(--l-purple-tx)}
+  .meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .prog { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text2); font-weight:600; }
+  .prog .box { width:14px; height:14px; border:1.5px solid var(--text2); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:9px; }
+  .bar { height:4px; border-radius:2px; background:var(--field); overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--accent); }
+  .cb { width:20px; height:20px; border-radius:6px; border:1.5px solid var(--ph); flex:none; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+  .cb.on { background:var(--accent); border-color:var(--accent); color:var(--onAccent); }
+  .cb.on::after { content:"✓"; }
+  .done-t { color:var(--text2); text-decoration:line-through; }
+  .item { min-height:44px; display:flex; align-items:center; gap:12px; border-top:1px solid var(--border); font-size:15px; }
+  .clhead { display:flex; align-items:center; gap:8px; min-height:44px; }
+  .more-btn { width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--text2); font-size:20px; margin-right:-12px; }
+  .link { color:var(--accentStrong); font-weight:600; font-size:15px; min-height:44px; display:flex; align-items:center; gap:6px; }
+  .btn { height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; }
+  .btn.pri { background:var(--accentStrong); color:var(--onAccent); }
+  .btn.sec { background:var(--field); color:var(--text); }
+  .btn.dan { background:var(--field); color:var(--danger); }
+  .field { height:44px; border-radius:12px; background:var(--field); display:flex; align-items:center; padding:0 12px; gap:8px; font-size:15px; color:var(--text); }
+  .field.ph { color:var(--ph); }
+  .field.focus { border:1.5px solid var(--accent); background:var(--surface); }
+  .field.err { border:1.5px solid var(--danger); background:var(--dangerBg); }
+  .errmsg { color:var(--danger); font-size:13px; display:flex; gap:6px; align-items:center; margin-top:6px; }
+  .offline { font-size:12px; color:var(--text2); }
+  .notice { background:var(--dangerBg); color:var(--danger); border-radius:12px; padding:10px 12px; font-size:13px; line-height:18px; }
+  .sk { background:var(--field); border-radius:12px; }
+  .ann { position:absolute; background:#2F6FEB; color:#fff; font:700 10px/1 -apple-system,sans-serif; padding:3px 5px; border-radius:6px; z-index:5; }
+  .rel { position:relative; }
+  .sheet-dim { position:absolute; inset:0; background:rgba(0,0,0,.35); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--bg); border-radius:20px 20px 0 0; padding:8px 20px 28px; display:flex; flex-direction:column; gap:12px; }
+  .grab { width:36px; height:5px; border-radius:3px; background:var(--border); margin:0 auto 4px; }
+  .sheethead { display:flex; justify-content:space-between; align-items:center; min-height:44px; }
+  .kbd { position:absolute; left:0; right:0; bottom:0; height:250px; background:#D1D4DA; display:flex; align-items:center; justify-content:center; color:#555; font-size:13px; }
+  .dark .kbd { background:#2B2B2D; color:#aaa; }
+  .swatches { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .sw { height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:4px; font-size:13px; font-weight:600; border:2px solid transparent; }
+  .sw.sel { border-color:var(--text); }
+  .sw.sel::before { content:"✓"; font-weight:800; }
+  .dialog { position:absolute; left:40px; right:40px; top:250px; background:var(--surface); border-radius:14px; padding:18px 16px 8px; text-align:center; }
+  .dialog .t { font-weight:600; font-size:16px; margin-bottom:6px; }
+  .dialog .m { font-size:13px; color:var(--text2); line-height:18px; }
+  .dialog .acts { display:flex; border-top:1px solid var(--border); margin:14px -16px 0; }
+  .dialog .acts div { flex:1; height:44px; display:flex; align-items:center; justify-content:center; font-size:16px; color:#0A84FF; }
+  .dialog .acts div + div { border-left:1px solid var(--border); }
+  .dialog .acts .d { color:#E5372B; font-weight:600; }
+  .menu { position:absolute; left:10px; right:10px; bottom:20px; display:flex; flex-direction:column; gap:8px; }
+  .menu .grp { background:var(--surface); border-radius:14px; overflow:hidden; }
+  .menu .grp div { height:54px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#0A84FF; border-top:1px solid var(--border); }
+  .menu .grp div:first-child { border-top:0; }
+  .menu .grp .ttl { height:40px; font-size:13px; color:var(--text2); }
+  .menu .grp .d { color:#E5372B; }
+  table.pal { border-collapse:collapse; font-size:13px; }
+  table.pal td, table.pal th { padding:6px 10px; text-align:left; }
+  .legend { max-width:1500px; margin:0 auto; padding:0 32px; font-size:13px; color:var(--note); }
+</style>
+<style>
+  .ic { width:16px; height:16px; flex:none; vertical-align:-3px; }
+  .ic.sm { width:13px; height:13px; vertical-align:-2px; }
+  .ic.lg { width:22px; height:22px; }
+  .ann.q { background:#B7791F; }
+  .qs { max-width:900px; margin:10px 0 0; padding:12px 16px; background:#FFF8E6; border:1px solid #F0D9A6; border-radius:12px; font-size:14px; line-height:1.5; color:#3D2E10; }
+  .qs b { color:#7A4E00; }
+  .qs ol { margin:6px 0 0; padding-left:20px; }
+  .av { width:34px; height:34px; border-radius:50%; background:var(--field); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex:none; }
+  .cm { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--border); }
+  .cm:first-child { border-top:0; }
+  .cm .top { display:flex; align-items:center; gap:6px; min-height:20px; }
+  .cm .who { font-size:13px; font-weight:600; }
+  .cm .when { font-size:12px; color:var(--text2); }
+  .cm .txt { font-size:15px; line-height:21px; margin-top:2px; overflow-wrap:anywhere; }
+  .cm .sub { display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; }
+  .cm .more-btn { margin:-10px -12px 0 0; }
+  .rw { display:inline-flex; align-items:center; gap:4px; background:var(--tile); color:var(--accentStrong); border-radius:999px; padding:2px 8px; font-size:12px; font-weight:600; line-height:16px; }
+  .pend { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text2); }
+  .failtx { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--danger); font-weight:600; }
+  .composer { position:absolute; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--border); padding:8px 12px 30px; display:flex; flex-direction:column; gap:6px; }
+  .composer.up { bottom:250px; padding-bottom:8px; }
+  .cmp-row { display:flex; align-items:flex-end; gap:8px; }
+  .cmp-in { flex:1; min-height:44px; border-radius:22px; background:var(--field); padding:11px 16px; font-size:15px; line-height:21px; color:var(--text); }
+  .cmp-in.ph { color:var(--ph); }
+  .send { width:44px; height:44px; border-radius:50%; background:var(--accentStrong); color:var(--onAccent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .send.off { opacity:.5; }
+  .rwtoggle { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border-radius:999px; background:var(--field); color:var(--text2); font-size:13px; font-weight:600; align-self:flex-start; }
+  .rwtoggle.on { background:var(--tile); color:var(--accentStrong); border:1px solid var(--tileBorder); }
+  .editbar { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text2); min-height:32px; }
+  .cmscr { padding:4px 20px 0; }
+  .thumbs { display:flex; gap:8px; flex-wrap:wrap; }
+  .th { width:75px; height:75px; border-radius:14px; flex:none; position:relative; overflow:hidden; display:flex; align-items:flex-end; }
+  .th .tag { font-size:10px; font-weight:600; color:#fff; padding:5px 6px; text-shadow:0 1px 2px rgba(0,0,0,.4); }
+  .p1 { background:linear-gradient(160deg,#E8DCC8,#C9B28E); }
+  .p2 { background:linear-gradient(160deg,#F2C9A0,#D9822B); }
+  .p3 { background:linear-gradient(160deg,#D8E4C8,#8FAE6B); }
+  .p4 { background:linear-gradient(160deg,#EADFD6,#B39A88); }
+  .p5 { background:linear-gradient(160deg,#F6D7C9,#E0876A); }
+  .p6 { background:linear-gradient(160deg,#D4DCE6,#8B9DB3); }
+  .th .ov { position:absolute; inset:0; background:rgba(0,0,0,.45); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:#fff; font-size:11px; font-weight:600; text-align:center; }
+  .th.add { background:var(--tile); border:1px dashed var(--accent); color:var(--accentStrong); flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:12px; font-weight:600; }
+  .ring { width:24px; height:24px; border-radius:50%; border:3px solid rgba(255,255,255,.35); border-top-color:#fff; }
+  .viewer { background:#000; color:#fff; }
+  .viewer .nav { color:#fff; }
+  .viewer .nav .ttl { color:#fff; }
+  .bigphoto { margin:40px 0 0; height:440px; display:flex; align-items:flex-end; }
+  .vfoot { padding:14px 20px; display:flex; align-items:center; gap:12px; font-size:13px; color:#ccc; }
+  .vbtn { width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .push { background:rgba(245,245,245,.92); border-radius:18px; padding:12px 14px; color:#141414; font-size:13px; line-height:18px; }
+  .push .app { display:flex; align-items:center; gap:6px; font-size:12px; color:#666; margin-bottom:4px; }
+  .push .appic { width:18px; height:18px; border-radius:5px; background:#C2410C; }
+  .lock { background:linear-gradient(180deg,#5b4a40,#2b211c); }
+  .lock .clock { text-align:center; color:#fff; font-size:64px; font-weight:300; margin:30px 0 4px; }
+  .lock .date { text-align:center; color:#fff; font-size:16px; margin-bottom:24px; }
+</style>
+<style>
+  .cms { display:flex; flex-direction:column; gap:16px; }
+  .c2 { display:flex; gap:10px; align-items:flex-start; }
+  .c2 .col { flex:1; min-width:0; }
+  .bub { background:var(--field); border-radius:16px; padding:8px 12px 9px; display:inline-block; max-width:100%; }
+  .bub .nm { font-size:13px; font-weight:600; line-height:18px; }
+  .bub .tx { font-size:15px; line-height:21px; overflow-wrap:anywhere; }
+  .c2 .mt { display:flex; gap:14px; align-items:center; font-size:12px; color:var(--text2); padding:4px 12px 0; min-height:24px; }
+  .c2 .mt a { color:var(--accentStrong); font-weight:600; text-decoration:none; }
+  .c2 .mt a.d { color:var(--danger); }
+  .bell { width:44px; flex:none; display:flex; flex-direction:column; align-items:center; gap:2px; padding-top:2px; font-size:10px; font-weight:600; color:var(--text2); }
+  .bell .b { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); color:var(--text2); }
+  .bell.on { color:var(--accentStrong); }
+  .bell.on .b { background:var(--tile); border-color:var(--tileBorder); color:var(--accentStrong); }
+  .bell.ro .b { border:0; }
+  .sorter { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border-radius:999px; background:var(--field); font-size:13px; font-weight:600; color:var(--text); }
+  .cmp2 { display:flex; gap:10px; align-items:center; }
+  .bub.edit { display:block; background:var(--surface); border:1.5px solid var(--accent); }
+  .more-c { color:var(--accentStrong); font-weight:600; font-size:13px; min-height:44px; display:flex; align-items:center; padding-left:44px; }
+  .hl .bub { background:var(--tile); }
+  .menu2 { position:absolute; right:20px; top:150px; width:200px; background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; z-index:4; }
+  .menu2 div { min-height:44px; display:flex; align-items:center; padding:0 14px; font-size:15px; border-top:1px solid var(--border); gap:8px; }
+  .menu2 div:first-child { border-top:0; }
+  .menu2 .ck { color:var(--accent); font-weight:800; width:14px; }
+</style>
+
+<style>
+  .rem { display:flex; align-items:center; gap:12px; min-height:56px; border-top:1px solid var(--border); padding:8px 0; }
+  .rem:first-child { border-top:0; }
+  .rem .ib { width:36px; height:36px; border-radius:12px; background:var(--tile); border:1px solid var(--tileBorder); color:var(--accent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .rem.off .ib { background:var(--field); border-color:var(--field); color:var(--text2); }
+  .rem .t1 { font-size:15px; font-weight:600; line-height:21px; }
+  .rem .t2 { font-size:12px; color:var(--text2); line-height:16px; }
+  .rem.off .t1 { color:var(--text2); }
+  .sechead { display:flex; align-items:center; gap:8px; min-height:44px; margin-bottom:-8px; }
+  .days { display:flex; gap:6px; }
+  .day { flex:1; height:44px; border-radius:12px; background:var(--field); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
+  .day.sel { background:var(--tile); border:1.5px solid var(--accent); color:var(--accentStrong); }
+  .seg { display:flex; background:var(--field); border-radius:12px; padding:3px; gap:3px; }
+  .seg div { flex:1; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text2); }
+  .seg div.sel { background:var(--surface); color:var(--text); box-shadow:0 0 0 1px var(--border); }
+  .who { display:flex; align-items:center; gap:12px; min-height:48px; border-top:1px solid var(--border); font-size:15px; }
+  .who:first-child { border-top:0; }
+  .fl { display:flex; flex-direction:column; gap:6px; }
+  .tiles { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .tl { background:var(--tile); border:1px solid var(--tileBorder); border-radius:14px; padding:12px; min-height:84px; display:flex; flex-direction:column; justify-content:space-between; color:var(--accent); }
+  .tl b { color:var(--text); font-size:13px; font-weight:600; display:block; }
+  .tl span { color:var(--text2); font-size:12px; }
+  .tl.soon { opacity:.5; }
+  .cover { height:92px; border-radius:16px; background:var(--tile); border:1px solid var(--tileBorder); display:flex; align-items:center; justify-content:center; color:var(--accent); position:relative; }
+  .cover .cur { position:absolute; right:10px; top:10px; background:var(--surface); border-radius:999px; padding:4px 8px; font-size:12px; font-weight:600; color:var(--text); }
+  .idea { display:flex; gap:12px; }
+  .vote { width:44px; flex:none; display:flex; flex-direction:column; align-items:center; color:var(--text2); font-size:15px; font-weight:800; }
+  .vote .a { width:44px; height:34px; display:flex; align-items:center; justify-content:center; }
+  .vote .n { color:var(--text); line-height:18px; }
+  .vote.up .a.u, .vote.dn .a.d { color:var(--accentStrong); }
+  .vote.up .n { color:var(--accentStrong); }
+  .ititle { font-size:15px; font-weight:600; line-height:21px; }
+  .imeta { display:flex; gap:10px; align-items:center; font-size:12px; color:var(--text2); margin-top:6px; flex-wrap:wrap; }
+  .imeta span { display:inline-flex; align-items:center; gap:3px; }
+  .st { display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:2px 8px; font-size:12px; font-weight:600; }
+  .st.new { background:var(--tile); color:var(--accentStrong); }
+  .st.con { background:var(--l-blue-bg); color:var(--l-blue-tx); }
+  .st.acc { background:var(--l-green-bg); color:var(--l-green-tx); }
+  .st.dro { background:var(--field); color:var(--text2); }
+  .bigvote { display:flex; align-items:center; gap:8px; }
+  .vbt { height:44px; border-radius:12px; background:var(--field); display:flex; align-items:center; gap:6px; padding:0 14px; font-size:15px; font-weight:600; }
+  .vbt.on { background:var(--tile); border:1.5px solid var(--accent); color:var(--accentStrong); }
+  .collapse { display:flex; align-items:center; justify-content:space-between; min-height:44px; font-size:15px; font-weight:600; color:var(--text2); }
+  .okmsg { color:var(--success); font-size:13px; font-weight:600; display:flex; gap:6px; align-items:center; }
+  .linkrow { display:flex; align-items:center; gap:10px; min-height:52px; }
+  .pills.fl1 .pill { white-space:nowrap; padding:0 12px; flex:none; }
+  .pill.sel::before, .sw.sel::before { content:none; }
+  .pill.sel { border-color:var(--accent); color:var(--accentStrong); }
+  .rowline.selrow { background:var(--tile); margin:0 -14px; padding:0 14px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Mockup #10: nhắc việc bằng thông báo đẩy (bản 1)</h1>
+  <p>Hình tĩnh, chưa phải code. Mỗi khung là màn hình iPhone 375pt theo <code>DESIGN.md</code>, nối tiếp màn Công việc đã có (thông tin, Checklist, Ảnh, Bình luận). Mục mới <b>Nhắc nhở</b> nằm ngay dưới thẻ thông tin, vì nó gắn với hạn chót và người được giao.</p>
+  <div class="qs"><b>Mình đang giả định như sau, bạn sửa giúp chỗ nào không đúng:</b>
+    <ol>
+      <li><b>Ai thêm/sửa lời nhắc?</b> Mọi thành viên dự án (giống sửa công việc). Đề xuất của mình: giữ như vậy cho đơn giản.</li>
+      <li><b>Tối đa 5 lời nhắc</b> mỗi công việc.</li>
+      <li><b>Gửi cho</b> mặc định là người được giao; chọn thêm được bất kỳ thành viên nào. Công việc chưa giao ai thì mặc định là người tạo.</li>
+      <li>Lời nhắc mới mặc định <b>ngày hạn chót, 9:00</b> (hoặc giờ hạn chót nếu có); chưa có hạn chót thì là ngày mai 9:00.</li>
+      <li>Lần đầu bấm Lưu lời nhắc, app mới <b>xin quyền thông báo</b> (có một màn giải thích trước hộp thoại của iOS). Không hỏi lúc mở app.</li>
+      <li>Công việc <b>Xong</b> → mọi lời nhắc dừng; chuyển lại chưa xong → chạy lại các lần chưa tới. Không có hoãn (snooze) trong #10.</li>
+    </ol>
+  </div>
+</header>
+
+<h2 class="group">1. Mục Nhắc nhở trong màn Công việc</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">1a. Có 2 lời nhắc<small>Tiêu đề “Nhắc nhở 2/5” + “＋ Thêm”. Mỗi dòng: giờ và kiểu lặp, dòng nhỏ là người nhận và ngày kết thúc. Chạm dòng để sửa.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h1">Mua đào hộp và sả</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div class="fl"><span class="lbl">Trạng thái</span><span class="strong" style="color:var(--accentStrong)">Đang làm<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+          <div class="fl"><span class="lbl">Hạn chót</span><span class="body"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11 · 17:00</span></div>
+          <div class="fl"><span class="lbl">Giao cho</span><span class="body">Lan, Huy</span></div>
+        </div>
+        <div class="sechead"><div class="h2">Nhắc nhở</div><div class="cap12 strong grow">2/5</div><span class="link">＋ Thêm</span></div>
+        <div class="card flush">
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">8:00 · Hằng ngày</div><div class="t2">Lan, Huy · đến 21 Thg 11</div></div><span class="chev-r">›</span></div>
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">T6, 21 Thg 11 · 15:00 · Một lần</div><div class="t2">Lan, Huy, Mai</div></div><span class="chev-r">›</span></div>
+        </div>
+        <div class="sechead"><div class="h2">Checklist</div><div class="cap12 strong grow">1</div><span class="link">＋ Thêm</span></div>
+        <div class="card">
+          <div class="clhead"><span class="strong grow">Đồ cần mua</span><span class="prog">2/3</span></div>
+          <div class="bar"><i style="width:66%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="done-t">Đào hộp 820g × 2</span></div>
+          <div class="item"><span class="cb on"></span><span class="done-t">Sả 1 bó</span></div>
+          <div class="item"><span class="cb"></span><span>Cam vàng 1kg</span></div>
+        </div>
+        <div class="sechead"><div class="h2">Ảnh</div><div class="cap12 strong grow">2/10</div><span class="link">＋ Thêm</span></div>
+        <div class="thumbs"><div class="th p1"><span class="tag">Hoá đơn</span></div><div class="th p2"><span class="tag">Đào hộp</span></div></div>
+        <div class="sechead"><div class="h2">Bình luận</div><div class="cap12 strong grow">2</div><span class="sorter">Mới nhất<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+        <div class="c2"><span class="av">H</span><div class="col"><div class="bub"><div class="nm">Huy</div><div class="tx">Mua đào hộp loại 820g ở Bách Hoá Xanh, loại nhỏ hết rồi.</div></div><div class="mt"><span>Hôm qua 20:14</span></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1b. Chưa có lời nhắc<small>Một dòng mời và nút phụ “Thêm lời nhắc”.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h1">Mua đào hộp và sả</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div class="fl"><span class="lbl">Trạng thái</span><span class="strong" style="color:var(--accentStrong)">Đang làm<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+          <div class="fl"><span class="lbl">Hạn chót</span><span class="body"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11 · 17:00</span></div>
+          <div class="fl"><span class="lbl">Giao cho</span><span class="body">Lan, Huy</span></div>
+        </div>
+        <div class="h2" style="margin-bottom:-6px">Nhắc nhở</div>
+        <div class="body" style="color:var(--text2)">Chưa có lời nhắc. Thêm một lời nhắc để điện thoại báo cho người được giao.</div>
+        <div class="btn sec"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>&nbsp; Thêm lời nhắc</div>
+        <div class="sechead"><div class="h2">Checklist</div><div class="cap12 strong grow">1</div><span class="link">＋ Thêm</span></div>
+        <div class="card">
+          <div class="clhead"><span class="strong grow">Đồ cần mua</span><span class="prog">2/3</span></div>
+          <div class="bar"><i style="width:66%"></i></div>
+          <div class="item" style="margin-top:6px"><span class="cb on"></span><span class="done-t">Đào hộp 820g × 2</span></div>
+          <div class="item"><span class="cb on"></span><span class="done-t">Sả 1 bó</span></div>
+          <div class="item"><span class="cb"></span><span>Cam vàng 1kg</span></div>
+        </div>
+        <div class="sechead"><div class="h2">Ảnh</div><div class="cap12 strong grow">2/10</div><span class="link">＋ Thêm</span></div>
+        <div class="thumbs"><div class="th p1"><span class="tag">Hoá đơn</span></div><div class="th p2"><span class="tag">Đào hộp</span></div></div>
+        <div class="sechead"><div class="h2">Bình luận</div><div class="cap12 strong grow">2</div><span class="sorter">Mới nhất<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+        <div class="c2"><span class="av">H</span><div class="col"><div class="bub"><div class="nm">Huy</div><div class="tx">Mua đào hộp loại 820g ở Bách Hoá Xanh, loại nhỏ hết rồi.</div></div><div class="mt"><span>Hôm qua 20:14</span></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1c. Công việc đã Xong<small>Lời nhắc vẫn còn nhưng xám đi, có dòng giải thích. Chuyển công việc về chưa xong thì chúng chạy lại.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h1">Mua đào hộp và sả</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div class="fl"><span class="lbl">Trạng thái</span><span class="strong" style="color:var(--accentStrong)">Xong<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+          <div class="fl"><span class="lbl">Hạn chót</span><span class="body"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11 · 17:00</span></div>
+          <div class="fl"><span class="lbl">Giao cho</span><span class="body">Lan, Huy</span></div>
+        </div>
+        <div class="sechead"><div class="h2">Nhắc nhở</div><div class="cap12 strong grow">2/5</div><span class="link">＋ Thêm</span></div>
+        <div class="cap12" style="margin-bottom:-6px"><svg class="ic sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Đã dừng vì công việc đã xong.</div>
+        <div class="card flush">
+          <div class="rem off"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/><path d="M3 3l18 18"/></svg></span><div class="grow"><div class="t1">8:00 · Hằng ngày</div><div class="t2">Lan, Huy · đến 21 Thg 11</div></div><span class="chev-r">›</span></div>
+          <div class="rem off"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/><path d="M3 3l18 18"/></svg></span><div class="grow"><div class="t1">T6, 21 Thg 11 · 15:00 · Một lần</div><div class="t2">Lan, Huy, Mai</div></div><span class="chev-r">›</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1d. Thông báo đang bị tắt<small>Nếu bạn đã từ chối quyền thông báo (hoặc tắt trong Cài đặt iOS), mục này nói rõ và có nút mở Cài đặt. Lời nhắc vẫn gửi cho người khác.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h1">Mua đào hộp và sả</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div class="fl"><span class="lbl">Trạng thái</span><span class="strong" style="color:var(--accentStrong)">Đang làm<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+          <div class="fl"><span class="lbl">Hạn chót</span><span class="body"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11 · 17:00</span></div>
+          <div class="fl"><span class="lbl">Giao cho</span><span class="body">Lan, Huy</span></div>
+        </div>
+        <div class="sechead"><div class="h2">Nhắc nhở</div><div class="cap12 strong grow">2/5</div><span class="link">＋ Thêm</span></div>
+        <div class="notice" style="display:flex;flex-direction:column;gap:6px">
+          <div><b>Thông báo của earnm đang tắt</b>, nên điện thoại này sẽ không báo. Người khác vẫn nhận bình thường.</div>
+          <div style="color:var(--accentStrong);font-weight:600;min-height:32px;display:flex;align-items:center">Mở Cài đặt ›</div>
+        </div>
+        <div class="card flush">
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">8:00 · Hằng ngày</div><div class="t2">Lan, Huy · đến 21 Thg 11</div></div><span class="chev-r">›</span></div>
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">T6, 21 Thg 11 · 15:00 · Một lần</div><div class="t2">Lan, Huy, Mai</div></div><span class="chev-r">›</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="group">2. Thêm và sửa lời nhắc</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">2a. Lời nhắc mới, Một lần<small>Màn riêng, mở từ “＋ Thêm”. Ngày và giờ theo múi giờ của điện thoại. Nút Lưu ở dưới cùng.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Lời nhắc mới</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Ngày và giờ</span>
+          <div style="display:flex;gap:8px"><div class="field grow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11</div><div class="field" style="width:110px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 15:00</div></div></div>
+        <div class="fl"><span class="lbl">Lặp lại</span>
+          <div class="seg"><div class="sel">Một lần</div><div>Ngày</div><div>Tuần</div><div>Tháng</div></div></div>
+        <div class="fl"><span class="lbl">Gửi cho</span>
+          <div class="card flush">
+            <div class="who"><span class="cb on"></span><span class="av">L</span><span class="grow">Lan <span class="cap12">· được giao</span></span></div>
+            <div class="who"><span class="cb on"></span><span class="av">H</span><span class="grow">Huy <span class="cap12">· được giao</span></span></div>
+            <div class="who"><span class="cb"></span><span class="av">M</span><span class="grow">Mai</span></div>
+          </div></div>
+        <div style="height:120px"></div>
+        <div class="btn pri">Lưu lời nhắc</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2b. Hằng tuần, chọn thứ, có ngày kết thúc<small>Chọn “Tuần” thì hiện 7 ô thứ (chọn nhiều; ô được chọn có viền cam). “Kết thúc” mặc định Không bao giờ.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Lời nhắc mới</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Bắt đầu và giờ</span>
+          <div style="display:flex;gap:8px"><div class="field grow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T2, 17 Thg 11</div><div class="field" style="width:110px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 8:00</div></div></div>
+        <div class="fl"><span class="lbl">Lặp lại</span>
+          <div class="seg"><div>Một lần</div><div>Ngày</div><div class="sel">Tuần</div><div>Tháng</div></div></div>
+        <div class="fl"><span class="lbl">Vào các thứ</span>
+          <div class="days"><div class="day sel">T2</div><div class="day">T3</div><div class="day sel">T4</div><div class="day">T5</div><div class="day sel">T6</div><div class="day">T7</div><div class="day">CN</div></div></div>
+        <div class="fl"><span class="lbl">Kết thúc</span>
+          <div class="pills"><span class="pill">Không bao giờ</span><span class="pill sel">Vào ngày</span></div>
+          <div class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 12 Thg 12</div></div>
+        <div class="fl"><span class="lbl">Gửi cho</span><div class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg> Lan, Huy <span class="grow"></span><span class="chev-r">›</span></div></div>
+        <div class="btn pri" style="margin-top:12px">Lưu lời nhắc</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2c. Sửa lời nhắc, và xoá<small>Cùng form, tiêu đề “Sửa lời nhắc”, thêm nút “Xoá lời nhắc” (đỏ trên nền xám). Xoá hỏi lại một lần.</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Sửa lời nhắc</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Bắt đầu và giờ</span>
+          <div style="display:flex;gap:8px"><div class="field grow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T2, 17 Thg 11</div><div class="field" style="width:110px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 8:00</div></div></div>
+        <div class="fl"><span class="lbl">Lặp lại</span>
+          <div class="seg"><div>Một lần</div><div class="sel">Ngày</div><div>Tuần</div><div>Tháng</div></div></div>
+        <div class="fl"><span class="lbl">Kết thúc</span>
+          <div class="pills"><span class="pill">Không bao giờ</span><span class="pill sel">Vào ngày</span></div>
+          <div class="field"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11</div></div>
+        <div class="btn pri">Lưu</div>
+        <div class="btn dan">Xoá lời nhắc</div>
+      </div>
+      <div class="sheet-dim"></div>
+      <div class="dialog"><div class="t">Xoá lời nhắc?</div><div class="m">Lan và Huy sẽ không được nhắc lúc 8:00 hằng ngày nữa.</div><div class="acts"><div>Huỷ</div><div class="d">Xoá</div></div></div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2d. Lỗi trong form<small>Bỏ hết người nhận, hoặc giờ đã qua với “Một lần”: nút Lưu tắt, lỗi nằm dưới ô liên quan. Thêm lời nhắc thứ 6: “＋ Thêm” xám kèm chữ “Tối đa 5”.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Lời nhắc mới</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Ngày và giờ</span>
+          <div style="display:flex;gap:8px"><div class="field err grow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T2, 17 Thg 11</div><div class="field err" style="width:110px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 7:00</div></div>
+          <div class="errmsg"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg> Giờ này đã qua. Chọn một giờ sau bây giờ.</div></div>
+        <div class="fl"><span class="lbl">Lặp lại</span>
+          <div class="seg"><div class="sel">Một lần</div><div>Ngày</div><div>Tuần</div><div>Tháng</div></div></div>
+        <div class="fl"><span class="lbl">Gửi cho</span>
+          <div class="card flush" style="border-color:var(--danger)">
+            <div class="who"><span class="cb"></span><span class="av">L</span><span class="grow">Lan <span class="cap12">· được giao</span></span></div>
+            <div class="who"><span class="cb"></span><span class="av">H</span><span class="grow">Huy <span class="cap12">· được giao</span></span></div>
+            <div class="who"><span class="cb"></span><span class="av">M</span><span class="grow">Mai</span></div>
+          </div>
+          <div class="errmsg"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg> Chọn ít nhất một người.</div></div>
+        <div style="height:40px"></div>
+        <div class="btn pri" style="opacity:.5">Lưu lời nhắc</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="group">3. Xin quyền thông báo (lần đầu)</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">3a. Màn giải thích trước khi iOS hỏi<small>Hiện một lần, ngay sau lần đầu bấm Lưu lời nhắc. Lời nhắc vẫn được lưu dù bạn chọn “Để sau”.</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div style="display:flex;justify-content:center;padding-top:8px"><span class="rem" style="border:0;padding:0;min-height:0"><span class="ib" style="width:56px;height:56px;border-radius:14px"><svg class="ic lg" style="width:30px;height:30px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span></span></div>
+        <div class="h2" style="text-align:center">Cho phép earnm gửi thông báo?</div>
+        <div class="body" style="text-align:center;color:var(--text2)">Để điện thoại báo bạn lúc tới giờ nhắc, kể cả khi không mở app. Bạn có thể tắt lại trong Cài đặt.</div>
+        <div class="btn pri">Tiếp tục</div>
+        <div class="btn sec">Để sau</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">3b. Hộp thoại của iOS<small>Do iOS vẽ, app không đổi được chữ. Chọn “Không cho phép” → mục Nhắc nhở hiện như 1d.</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr"><div class="h1">Mua đào hộp và sả</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div class="fl"><span class="lbl">Trạng thái</span><span class="strong" style="color:var(--accentStrong)">Đang làm<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+          <div class="fl"><span class="lbl">Hạn chót</span><span class="body"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11 · 17:00</span></div>
+          <div class="fl"><span class="lbl">Giao cho</span><span class="body">Lan, Huy</span></div>
+        </div></div>
+      <div class="sheet-dim"></div>
+      <div class="dialog"><div class="t">“earnm” muốn gửi thông báo cho bạn</div><div class="m">Thông báo có thể bao gồm cảnh báo, âm thanh và biểu tượng.</div><div class="acts"><div>Không cho phép</div><div style="font-weight:600">Cho phép</div></div></div>
+    </div>
+  </div>
+</div>
+
+<h2 class="group">4. Khi tới giờ: thông báo trên màn khoá</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">4a. Lời nhắc có “Nhắc kèm”<small>Tiêu đề: tên công việc. Dòng 1: hạn chót. Sau đó tối đa 3 bình luận “Nhắc kèm” mới nhất (từ #8). Chạm vào → mở thẳng màn Công việc đó.</small></div>
+    <div class="phone lock">
+      <div class="status-bar" style="color:#fff"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="clock">8:00</div>
+      <div class="date">Thứ Sáu, 21 tháng 11</div>
+      <div style="padding:0 10px">
+        <div class="push">
+          <div class="app"><span class="appic"></span>EARNM <span style="margin-left:auto">bây giờ</span></div>
+          <div><b>Mua đào hộp và sả</b></div>
+          <div>Hạn hôm nay 17:00 · Quán trà Sân Thượng</div>
+          <div>Huy: Mua đào hộp loại 820g ở Bách Hoá Xanh, loại nhỏ hết rồi.</div>
+          <div>Lan: Nhớ lấy hoá đơn đỏ.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">4b. Không có hạn chót, không có “Nhắc kèm”<small>Chỉ tên công việc và tên dự án. Nhiều thông báo của earnm được iOS gom lại thành chồng.</small></div>
+    <div class="phone lock">
+      <div class="status-bar" style="color:#fff"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="clock">15:00</div>
+      <div class="date">Thứ Hai, 17 tháng 11</div>
+      <div style="padding:0 10px;display:flex;flex-direction:column;gap:8px">
+        <div class="push">
+          <div class="app"><span class="appic"></span>EARNM <span style="margin-left:auto">bây giờ</span></div>
+          <div><b>Gặp chủ nhà bàn hợp đồng</b></div>
+          <div>Quán trà Sân Thượng · Nhắc việc</div>
+        </div>
+        <div class="push" style="opacity:.8;transform:scale(.96);margin-top:-14px">
+          <div class="app"><span class="appic"></span>EARNM <span style="margin-left:auto">2 giờ trước</span></div>
+          <div><b>Thử công thức trà đào cam sả</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">4c. Ngoại tuyến<small>Thêm/sửa lời nhắc khi mất mạng vẫn được: dòng hiện “Chờ lưu”. Điện thoại này đã đặt giờ nhắc ngay; người khác nhận khi máy có mạng lại.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="offline">Đang ngoại tuyến</div>
+        <div class="h1">Mua đào hộp và sả</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div class="fl"><span class="lbl">Trạng thái</span><span class="strong" style="color:var(--accentStrong)">Đang làm<span style="display:inline-flex;vertical-align:middle;margin-left:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></span></div>
+          <div class="fl"><span class="lbl">Hạn chót</span><span class="body"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> T6, 21 Thg 11 · 17:00</span></div>
+          <div class="fl"><span class="lbl">Giao cho</span><span class="body">Lan, Huy</span></div>
+        </div>
+        <div class="sechead"><div class="h2">Nhắc nhở</div><div class="cap12 strong grow">3/5</div><span class="link">＋ Thêm</span></div>
+        <div class="card flush">
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">8:00 · Hằng ngày</div><div class="t2">Lan, Huy · đến 21 Thg 11</div></div><span class="chev-r">›</span></div>
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">T6, 21 Thg 11 · 15:00 · Một lần</div><div class="t2">Lan, Huy, Mai</div></div><span class="chev-r">›</span></div>
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">9:00 · T2, T4, T6</div><div class="t2"><span class="pend"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Chờ lưu</span> · Lan</div></div><span class="chev-r">›</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">4d. Chế độ tối<small>Cùng bố cục, màu theo bảng tối của DESIGN.md.</small></div>
+    <div class="phone dark">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Công việc</span><span class="right">Sửa</span></div>
+      <div class="scr">
+        <div class="h1">Mua đào hộp và sả</div>
+        <div class="sechead"><div class="h2">Nhắc nhở</div><div class="cap12 strong grow">2/5</div><span class="link">＋ Thêm</span></div>
+        <div class="card flush">
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">8:00 · Hằng ngày</div><div class="t2">Lan, Huy · đến 21 Thg 11</div></div><span class="chev-r">›</span></div>
+          <div class="rem"><span class="ib"><svg class="ic lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div class="grow"><div class="t1">T6, 21 Thg 11 · 15:00 · Một lần</div><div class="t2">Lan, Huy, Mai</div></div><span class="chev-r">›</span></div>
+        </div>
+        <div class="fl"><span class="lbl">Lặp lại</span>
+          <div class="seg"><div>Một lần</div><div>Ngày</div><div class="sel">Tuần</div><div>Tháng</div></div></div>
+        <div class="days"><div class="day sel">T2</div><div class="day">T3</div><div class="day sel">T4</div><div class="day">T5</div><div class="day sel">T6</div><div class="day">T7</div><div class="day">CN</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="height:40px"></div>
+</body>
+</html>

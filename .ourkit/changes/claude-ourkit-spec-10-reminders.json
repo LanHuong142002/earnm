@@ -1,0 +1,68 @@
+{
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "10",
+    "accepted": true
+  },
+  "ticket": "10",
+  "tier": "feature",
+  "tierReason": "One cycle from the MVP epic; adds reminder tables, push-token registration and API endpoints",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "#10: any project member may add, edit or delete reminders",
+      "why": "Matches task editing permissions; mockup assumption 1, user did not object"
+    },
+    {
+      "id": 2,
+      "decision": "#10: at most 5 reminders per task, 20 recipients",
+      "why": "Mockup assumption; keeps the 64-pending iOS local notification cap safe"
+    },
+    {
+      "id": 3,
+      "decision": "#10: occurrences scheduled locally 14 days ahead, server push only wakes phones and catches missed ones",
+      "why": "Decision 5; works offline and within iOS limits"
+    },
+    {
+      "id": 4,
+      "decision": "#10: monthly repeat uses start day, falling back to the month's last day",
+      "why": "Simplest predictable rule"
+    },
+    {
+      "id": 5,
+      "decision": "#10: reuse expo-notifications and expo-server-sdk; write a small occurrence calculator instead of rrule",
+      "why": "Official libs cover push; our 4 repeat rules don't justify rrule plus Luxon"
+    },
+    {
+      "id": 6,
+      "decision": "#10: remote push is off until EAS projectId and token are configured",
+      "why": "Local reminders still work, so the feature isn't blocked on the user's Apple setup"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#10: Confirm the mockup assumptions (any member edits reminders; max 5; default time due date 9:00; permission asked on first save; done stops reminders, no snooze)?",
+      "answer": null
+    },
+    {
+      "id": 2,
+      "question": "#10: Remote push needs an EAS project id and Apple push key (paid Apple Developer account). Do you have one, or should #10 ship with local reminders only and remote push disabled until set up?",
+      "answer": null
+    }
+  ],
+  "serviceActions": [
+    "Create an EAS project (eas init) and upload an APNs key via eas credentials, then put the projectId in apps/mobile/app.json; optionally create an Expo access token and set EXPO_ACCESS_TOKEN on Render"
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "4b4cfd180fc7198128dd564c9d229f55a425b714330915088adb06eee4d552c4"
+}
