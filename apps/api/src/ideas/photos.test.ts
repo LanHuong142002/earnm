@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SESSION_LIFETIME_MS } from "../auth/sessions.js";
 import { createApp } from "../app.js";
 import type { PhotoStore } from "../photos/cloudinary.js";
+import { destroyWait } from "../photos/destroy.js";
 import { addMember, createClock, createSignedInUser, expectError, prisma, useTestApp } from "../test/helpers.js";
 import { MAX_CAPTION_LENGTH, MAX_PHOTOS_PER_IDEA } from "./photos.js";
 
@@ -12,15 +13,17 @@ const SECRET = "fake-api-secret-must-never-leak";
 /** An in-memory PhotoStore: no network. `destroyed` lists the public ids it was asked to remove. */
 function fakeStore() {
   const destroyed: string[] = [];
-  const store: PhotoStore & { failDestroy: boolean } = {
+  const store: PhotoStore & { failDestroy: boolean; hang: boolean } = {
     cloudName: "demo",
     apiKey: "key123",
     failDestroy: false,
+    hang: false,
     sign: (publicId, timestamp) => `sig(${publicId},${timestamp})`,
     thumbUrl: (publicId) => `https://img.test/thumb/${publicId}`,
     url: (publicId) => `https://img.test/full/${publicId}`,
     async destroy(publicId) {
       destroyed.push(publicId);
+      if (store.hang) await new Promise<never>(() => {});
       if (store.failDestroy) throw new Error(`boom with ${SECRET}`);
     },
   };
@@ -37,6 +40,7 @@ describe("/projects/:projectId/ideas/:ideaId/photos", () => {
   afterEach(() => {
     destroyed.length = 0;
     store.failDestroy = false;
+    store.hang = false;
   });
 
   const destroyedCount = (n: number) => vi.waitFor(() => expect(destroyed.length).toBeGreaterThanOrEqual(n));
@@ -182,6 +186,16 @@ describe("/projects/:projectId/ideas/:ideaId/photos", () => {
       expect(destroyed).toEqual([publicIdOf(w.p, w.i, id)]);
     });
 
+    it("never destroys an existing photo's image when a non-manager re-records its id (403)", async () => {
+      const w = await world();
+      const id = (await record(w.author, w.p, w.i)).body.id as string;
+      expectError(await record(w.other, w.p, w.i, { id }), 403, "forbidden");
+      // Give a wrongly started destroy time to show up.
+      await new Promise((r) => setTimeout(r, 100));
+      expect(destroyed).toEqual([]);
+      expect(await prisma.ideaPhoto.count({ where: { id } })).toBe(1);
+    });
+
     it("destroys the image when the id is already used on another idea (409)", async () => {
       const w = await world();
       const id = randomUUID();
@@ -296,6 +310,21 @@ describe("/projects/:projectId/ideas/:ideaId/photos", () => {
       await destroyedCount(2);
       expect(destroyed.sort()).toEqual([publicIdOf(w.p, w.i, a), publicIdOf(w.p, w.i, b)].sort());
       expectError(await del(w.author, w.p, w.i, a), 404, "not_found");
+    });
+
+    it("still answers 204 when the image store never answers", async () => {
+      const w = await world();
+      const a = (await record(w.author, w.p, w.i)).body.id as string;
+      store.hang = true;
+      const saved = destroyWait.ms;
+      destroyWait.ms = 50;
+      try {
+        expect((await del(w.author, w.p, w.i, a)).status).toBe(204);
+      } finally {
+        destroyWait.ms = saved;
+      }
+      expect(await prisma.ideaPhoto.count()).toBe(0);
+      expect(destroyed.length).toBe(1);
     });
 
     it("still answers 204 when the image store fails to destroy", async () => {

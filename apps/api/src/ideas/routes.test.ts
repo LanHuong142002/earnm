@@ -5,12 +5,14 @@ import { SESSION_LIFETIME_MS } from "../auth/sessions.js";
 import { createApp } from "../app.js";
 import type { PhotoStore } from "../photos/cloudinary.js";
 import { addMember, createClock, createSignedInUser, expectError, prisma, useTestApp } from "../test/helpers.js";
+import { destroyWait } from "../photos/destroy.js";
 import { MAX_IDEAS_PER_PROJECT } from "./routes.js";
 
 /** An in-memory PhotoStore: no network. `destroyed` lists the public ids it was asked to remove. */
 function fakeStore() {
   const destroyed: string[] = [];
-  const store: PhotoStore = {
+  const store: PhotoStore & { hang: boolean } = {
+    hang: false,
     cloudName: "demo",
     apiKey: "key123",
     sign: (publicId, timestamp) => `sig(${publicId},${timestamp})`,
@@ -18,6 +20,7 @@ function fakeStore() {
     url: (publicId) => `https://img.test/full/${publicId}`,
     async destroy(publicId) {
       destroyed.push(publicId);
+      if (store.hang) await new Promise<never>(() => {});
     },
   };
   return { store, destroyed };
@@ -31,6 +34,7 @@ describe("/projects/:projectId/ideas", () => {
 
   afterEach(() => {
     destroyed.length = 0;
+    store.hang = false;
   });
 
   const bearer = (token: string): [string, string] => ["Authorization", `Bearer ${token}`];
@@ -441,6 +445,22 @@ describe("/projects/:projectId/ideas", () => {
       expect((await del(w.owner, w.p, b)).status).toBe(204);
       expect(await prisma.idea.count()).toBe(0);
       expectError(await del(w.author, w.p, a), 404, "not_found");
+    });
+
+    it("still answers 204 when the image store never answers", async () => {
+      const w = await world();
+      const i = await seedIdea(w.p, w.author.id);
+      await seedPhoto(w.p, i, w.author.id);
+      store.hang = true;
+      const saved = destroyWait.ms;
+      destroyWait.ms = 50;
+      try {
+        expect((await del(w.author, w.p, i)).status).toBe(204);
+      } finally {
+        destroyWait.ms = saved;
+      }
+      expect(await prisma.idea.count({ where: { id: i } })).toBe(0);
+      expect(destroyed.length).toBe(1);
     });
 
     it("lets only an Owner delete an idea whose author is gone", async () => {

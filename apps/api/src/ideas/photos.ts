@@ -7,7 +7,7 @@ import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { multiLineText } from "../http/text.js";
 import { findForMember } from "../projects/access.js";
 import { UPLOAD_TYPE, type PhotoStore } from "../photos/cloudinary.js";
-import { destroyImages } from "../photos/destroy.js";
+import { destroyImages, destroyImagesWithin } from "../photos/destroy.js";
 import {
   canManage,
   change,
@@ -223,15 +223,16 @@ export function createIdeaPhotosRouter(deps: {
               throw err;
             });
             if (!canManage(idea, userId, role)) {
-              // The signed upload can never be recorded by this caller, so the image is removed.
-              orphaned = true;
+              // The signed upload can never be recorded by this caller, so the image is removed,
+              // unless a recorded photo already owns it (the public id is computable by any member).
+              orphaned = !(await tx.ideaPhoto.findFirst({ where: { publicId: body.publicId }, select: { id: true } }));
               throw forbidden("Only the author or an owner can do this.");
             }
             const existing = await tx.ideaPhoto.findUnique({ where: { id: body.id }, include });
             if (existing) {
               if (existing.ideaId !== ideaId) {
                 // That id belongs to another idea's photo, whose image has a different public id.
-                orphaned = true;
+                orphaned = !(await tx.ideaPhoto.findFirst({ where: { publicId: body.publicId }, select: { id: true } }));
                 throw new AppError(409, "id_conflict", "That photo id is already taken.");
               }
               return { status: 200, photo: existing };
@@ -321,7 +322,7 @@ export function createIdeaPhotosRouter(deps: {
       });
       // After the commit, awaited before the answer so a crash can't silently orphan the image;
       // a failed destroy is only logged (destroyImages never throws).
-      await destroyImages(store, [publicId]);
+      await destroyImagesWithin(store, [publicId]);
       res.status(204).end();
     } catch (err) {
       next(err);

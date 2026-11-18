@@ -6,7 +6,7 @@ import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { multiLineText, singleLineText } from "../http/text.js";
 import type { PhotoStore } from "../photos/cloudinary.js";
-import { destroyImages } from "../photos/destroy.js";
+import { destroyImagesWithin } from "../photos/destroy.js";
 import { findForMember } from "../projects/access.js";
 import {
   canManage,
@@ -248,7 +248,7 @@ export function createIdeasRouter(deps: {
       });
       // After the commit, so a refused or rolled-back delete never touches an image. Awaited before the
       // answer, so a crash after the commit can't silently orphan them (destroyImages never throws).
-      await destroyImages(deps.photoStore, publicIds);
+      await destroyImagesWithin(deps.photoStore, publicIds);
       res.status(204).end();
     } catch (err) {
       next(err);
