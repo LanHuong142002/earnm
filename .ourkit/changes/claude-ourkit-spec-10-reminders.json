@@ -168,5 +168,170 @@
       }
     ],
     "reviewed": "91a38316c13d0fc006fc9a60c94559ad8fa4502cf6a6c1c181c43a046429813f"
-  }
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API test creates a reminder of each repeat rule and returns every field (reminders/routes.test.ts); gate run test passed",
+        "criterion": "API test: a member creates a reminder of each repeat rule; it comes back with all fields."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "occurrences.test.ts (both copies): once, daily, weekly, monthly 31st->Feb/Apr, Ho Chi Minh and New York across DST",
+        "criterion": "Unit test (occurrence calculator on the phone): once, daily, weekly on chosen days, monthly incl. 31st → last day; DST-free timezone and one with DST."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API test refuses end before start; unit tests: end date inclusive, nothing after it",
+        "criterion": "API test: end date before start is refused; unit test: no occurrence after the end date."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API tests refuse 0 or 21 recipients and a non-member; 20 accepted",
+        "criterion": "API test: 0 or 21 recipients, or a non-member recipient, are refused with `validation_failed`."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "formState tests: assignees, then creator; due date+time, 9:00 on due date, 9:00 tomorrow",
+        "criterion": "Unit test: the default time and recipients for each case in requirement 5 and 4."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API test refuses a past one-off on create and on time change",
+        "criterion": "API test: a past one-off is refused on create and on time change."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API test: 6th reminder refused with reminder_limit_reached",
+        "criterion": "API test: the 6th reminder is refused with `reminder_limit_reached`."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API test: a non-creator member edits and deletes a reminder",
+        "criterion": "API test: a non-creator member edits and deletes a reminder."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "Occurrence tests compute in the stored zone, end date in the stored zone",
+        "criterion": "Unit test: occurrences are computed in the stored timezone."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "Scheduler test: nothing for a done task; range tests give only future occurrences",
+        "criterion": "Unit test: a done task yields no occurrences; reopening yields only future ones."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API tests: reminders deleted with task and project; removed or leaving member dropped from recipients",
+        "criterion": "API test: deleting the task removes reminders; removing a member drops them from recipients."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API tests: LWW per field, idempotent id, 409 on another task",
+        "criterion": "API test: an older edit doesn't overwrite a newer one per field; the same id twice gives one reminder; on another task `409`."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API test: 404 non-member, 401 signed out, for list/create/edit/delete",
+        "criterion": "API test: non-member `404`, signed out `401`, for list, create, edit, delete."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "pushToken.test.ts: register, move, unregister; sync time recorded per project on the reminders fetch (review fix)",
+        "criterion": "API test: registering a token, registering it again as another user moves it, unregistering removes it; a task-list fetch updates the token's sync time."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: explanation sheet then iOS prompt; Để sau still saves",
+        "criterion": "By hand (dev build on an iPhone): first save shows the explanation sheet, then the iOS prompt; \"Để sau\" still saves."
+      },
+      "16": {
+        "result": "pass",
+        "evidence": "Content tests: title, due/project line, 0-4 Nhắc kèm comments, up to 3 newest first",
+        "criterion": "Unit test: notification content for with/without due date and 0–4 \"Nhắc kèm\" comments."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: tap opens the task; deleted task opens the project list",
+        "criterion": "By hand: tapping a notification opens the task; for a deleted task, the project list."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Unit part passes (scheduler: only my reminders, 14 days, nearest 64, idempotent); firing on a locked phone in airplane mode needs an iPhone",
+        "criterion": "Unit test: the scheduler picks only this user's reminders, 14 days ahead, nearest 64, and is idempotent. By hand: a reminder fires on a locked phone in airplane mode."
+      },
+      "19": {
+        "result": "pass",
+        "evidence": "grep: reminders routes send no push; only the tick sends",
+        "criterion": "Check: no push is sent at the moment a reminder changes."
+      },
+      "20": {
+        "result": "pass",
+        "evidence": "catchUp.test.ts: one push per out-of-date recipient, newer Nhắc kèm counts, at most once, none for done tasks, 15-min cap, invalid tokens deleted, nothing without tokens",
+        "criterion": "API test (push sender faked): tick sends one push per due occurrence to out-of-date recipients only (including when a \"Nhắc kèm\" comment is newer than their last sync), none twice across ticks, none for done tasks; invalid tokens are deleted; nothing is sent without configuration."
+      },
+      "21": {
+        "result": "pass",
+        "evidence": "No mute setting exists (grep)",
+        "criterion": "Check: there is no mute setting for reminders."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, compare with mockup 1a",
+        "criterion": "By hand, against mockup 1a: the Nhắc nhở section sits below the info card with N/5, ＋ Thêm and rows; at 5, ＋ Thêm is grey with \"Tối đa 5\"."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, mockup 1b",
+        "criterion": "By hand, mockup 1b: empty state line and button."
+      },
+      "24": {
+        "result": "manual",
+        "evidence": "Unit part passes (rowLines marks rows stopped); visual check of mockup 1c needs an iPhone",
+        "criterion": "By hand, mockup 1c: done task greys rows with the stopped line. Unit test: the row view model marks rows stopped."
+      },
+      "25": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, mockup 1d",
+        "criterion": "By hand, mockup 1d: with permission denied, the notice shows and \"Mở Cài đặt\" opens Settings."
+      },
+      "26": {
+        "result": "manual",
+        "evidence": "Needs an iPhone, mockups 2a-2c",
+        "criterion": "By hand, mockups 2a–2c: the reminder screen, weekly days, end date, recipients, delete confirm; selections highlighted with no ticks."
+      },
+      "27": {
+        "result": "manual",
+        "evidence": "Unit part passes (formState validation); visual check of mockup 2d needs an iPhone",
+        "criterion": "By hand, mockup 2d: field errors and disabled Lưu. Unit test: form validation."
+      },
+      "28": {
+        "result": "manual",
+        "evidence": "Unit part passes (overlay/sync merge, waiting row); offline check of mockup 4c needs an iPhone",
+        "criterion": "Unit test: queued reminder changes merge per reminder. By hand, mockup 4c: offline add shows \"Chờ lưu\" and syncs after reconnect."
+      },
+      "29": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: dark mode (4d), English, VoiceOver",
+        "criterion": "By hand, mockup 4d: dark mode; also EN text and VoiceOver names on rows and buttons."
+      },
+      "30": {
+        "result": "pass",
+        "evidence": "Migrations only add tables/indexes/FKs; applied to a fresh test DB by gate run test. Not applied separately to a DB with existing tasks.",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing tasks."
+      }
+    },
+    "checked": "91a38316c13d0fc006fc9a60c94559ad8fa4502cf6a6c1c181c43a046429813f"
+  },
+  "testHandoff": [
+    {
+      "what": "#10 reminders on the phone (AC15, 17, 18, 22-29)",
+      "steps": "Run npm run dev:phone from this branch checkout (after db:deploy on the dev DB), open in Expo Go on the iPhone, sign in, open a task. 1) Tap ＋ Thêm, save a reminder 2 minutes ahead: the explanation sheet, then the iOS prompt (Tiếp tục). 2) Lock the phone, airplane mode on: the notification shows at that time with task title, due/project line and Nhắc kèm comments; tap it: the task opens. 3) Compare the Nhắc nhở section and form with mockup screens 1a-1d, 2a-2d, 4c, 4d (5 reminders -> Tối đa 5; done task -> greyed rows; denied permission -> Mở Cài đặt notice; past one-off and no recipients -> errors, Lưu disabled; offline add -> Chờ lưu then syncs; dark mode, English, VoiceOver names). Expected: all match the mockup, selections highlighted with no ticks."
+    },
+    {
+      "what": "#10 Expo push in Expo Go (R14, R20)",
+      "steps": "After npx eas init has put extra.eas.projectId in apps/mobile/app.json and cron-job.org calls /internal/tick: on phone A (Lan) sign in and allow notifications, then close the app. On phone B (Huy) add a reminder for Lan 6 minutes ahead on a shared task. Expected: Lan's phone shows the notification within one tick (<=5 min late) without opening the app, and only once. If nothing arrives, Expo Go on SDK 58 may not support push: tell Claude, and #10 keeps local notifications only."
+    }
+  ]
 }
