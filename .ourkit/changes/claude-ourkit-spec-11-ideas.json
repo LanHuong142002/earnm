@@ -142,7 +142,7 @@
         "resolved": true
       }
     ],
-    "reviewed": "0149aa244d6289a492c15b3be115979a32b18214184711ae24347c2f63b29467"
+    "reviewed": "089adb014eeb2932236cc258afea6e1bdbb6695da783877fe2b6508860897f87"
   },
   "qa": {
     "results": {
@@ -267,7 +267,7 @@
         "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing data."
       }
     },
-    "checked": "0149aa244d6289a492c15b3be115979a32b18214184711ae24347c2f63b29467"
+    "checked": "089adb014eeb2932236cc258afea6e1bdbb6695da783877fe2b6508860897f87"
   },
   "testHandoff": [
     {
