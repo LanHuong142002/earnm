@@ -35,7 +35,7 @@ Today a project has tasks with labels (#7), comments (#8) and photos (#9) (`apps
 
 ### Create task from idea
 
-12. When an idea is **Accepted**, its screen shows "Tạo công việc từ ý tưởng". It opens the new-task form prefilled with title, description and labels, with a line "Từ ý tưởng “…”". Photos are not carried over (user, 2026-11-18; #43), so the mockup 2d text "· kèm 2 ảnh" is dropped.
+12. When an idea is **Accepted**, its screen shows "Tạo công việc từ ý tưởng". It opens the new-task form prefilled with title, description and labels (title and description editable), plus the "Giao cho" (assignees) and "Hạn chót" (due date and optional time) fields, with a line "Từ ý tưởng “…”". Photos are not carried over (user, 2026-11-18; #43), so the mockup 2d text "· kèm 2 ảnh" is dropped.
 13. Saving creates the task (without the idea's photos), and links the idea to the task. An idea can create only one task; afterwards its screen shows "Đã tạo công việc" with the task's title and status, opening the task. The task screen shows "Từ ý tưởng …" opening the idea.
 14. If the task is later deleted, the idea's link clears and the button shows again (if still Accepted). If the idea is deleted, the task's back-link disappears.
 15. Creating a task from an idea requires network (the task and both links are written together on the server); offline, the button shows a short "Cần có mạng" note.

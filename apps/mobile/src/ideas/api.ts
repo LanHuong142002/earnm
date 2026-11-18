@@ -33,8 +33,24 @@ export const deleteIdea = (token: string, projectId: string, ideaId: string) =>
   request<void>(one(projectId, ideaId), { method: "DELETE", token });
 
 /** Makes the task of an accepted idea, once, and links both ways (spec R13). Needs the network: nothing is queued. */
-export const createTaskFromIdea = (token: string, projectId: string, ideaId: string, taskId: string) =>
-  request<{ task: Task; idea: Idea }>(`${one(projectId, ideaId)}/task`, { method: "POST", body: { taskId }, token });
+export const createTaskFromIdea = (
+  token: string,
+  projectId: string,
+  ideaId: string,
+  taskId: string,
+  fields: {
+    title: string;
+    description: string;
+    assigneeIds: string[];
+    dueDate: string | null;
+    dueTime: string | null;
+  },
+) =>
+  request<{ task: Task; idea: Idea }>(`${one(projectId, ideaId)}/task`, {
+    method: "POST",
+    body: { taskId, ...fields },
+    token,
+  });
 
 /** Sets the caller's vote; 0 takes it back. */
 export const putVote = (token: string, projectId: string, ideaId: string, value: Vote) =>

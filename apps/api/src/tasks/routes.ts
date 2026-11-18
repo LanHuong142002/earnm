@@ -13,16 +13,16 @@ import { destroyImages } from "../photos/destroy.js";
 /** A project holds at most this many tasks. */
 export const MAX_TASKS_PER_PROJECT = 1000;
 
-const titleSchema = singleLineText(120);
-const descriptionSchema = multiLineText(2000);
+export const titleSchema = singleLineText(120);
+export const descriptionSchema = multiLineText(2000);
 const statusSchema = z.enum(["todo", "doing", "done"]);
 // Accepts "Z" and offsets such as "+07:00".
 const editedAtSchema = z.iso.datetime({ offset: true }).transform((s) => new Date(s));
 
-const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 /** "YYYY-MM-DD" naming a real calendar day, parsed as UTC midnight (the column is a plain date). */
-const realDate = z
+export const realDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   // Compares the round trip so "2026-02-30" is refused rather than rolled into March.
@@ -35,7 +35,7 @@ const realDate = z
   .refine((s) => Number(s.slice(0, 4)) >= 1900)
   .transform((s) => new Date(`${s}T00:00:00.000Z`));
 
-const assigneeIdsSchema = z
+export const assigneeIdsSchema = z
   .array(z.uuid())
   .max(20)
   .refine((ids) => new Set(ids).size === ids.length, "Each person can be listed once.");
@@ -66,6 +66,21 @@ const createSchema = z
     message: "A time needs a day.",
     path: ["dueTime"],
   });
+
+/** Throws 400 unless every id is a member of the project. Run inside the write's transaction. */
+export async function assertAssigneesAreMembers(
+  tx: Pick<PrismaClient, "projectMember">,
+  projectId: string,
+  userIds: string[],
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const count = await tx.projectMember.count({
+    where: { projectId, userId: { in: userIds } },
+  });
+  if (count !== userIds.length) {
+    throw new AppError(400, "validation_failed", "Invalid fields: assignees.");
+  }
+}
 
 /** One field change from the phone: the new value and when the person made it. */
 const change = <T extends z.ZodType>(value: T) =>
@@ -189,21 +204,6 @@ export function createTasksRouter(deps: {
     });
     if (!member) throw notFound();
     return member.role;
-  }
-
-  /** Throws 400 unless every id is a member of the project. Run inside the write's transaction. */
-  async function assertAssigneesAreMembers(
-    tx: Pick<PrismaClient, "projectMember">,
-    projectId: string,
-    userIds: string[],
-  ): Promise<void> {
-    if (userIds.length === 0) return;
-    const count = await tx.projectMember.count({
-      where: { projectId, userId: { in: userIds } },
-    });
-    if (count !== userIds.length) {
-      throw new AppError(400, "validation_failed", "Invalid fields: assignees.");
-    }
   }
 
   router.get("/", async (req, res, next) => {

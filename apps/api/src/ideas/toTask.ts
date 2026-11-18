@@ -3,11 +3,35 @@ import { z } from "zod";
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
-import { MAX_TASKS_PER_PROJECT, taskInclude, taskResponse } from "../tasks/routes.js";
+import {
+  MAX_TASKS_PER_PROJECT,
+  assertAssigneesAreMembers,
+  assigneeIdsSchema,
+  descriptionSchema,
+  realDate,
+  taskInclude,
+  taskResponse,
+  timeSchema,
+  titleSchema,
+} from "../tasks/routes.js";
 import { lockedMember, notFound, requireIdea } from "./common.js";
 import { ideaInclude, ideaResponse } from "./response.js";
 
-const bodySchema = z.object({ taskId: z.uuid() }).strict();
+// Everything but taskId is optional: the idea's own title and description are used when they are left out.
+const bodySchema = z
+  .object({
+    taskId: z.uuid(),
+    title: titleSchema.optional(),
+    description: descriptionSchema.optional(),
+    assigneeIds: assigneeIdsSchema.default([]),
+    dueDate: realDate.nullable().default(null),
+    dueTime: timeSchema.nullable().default(null),
+  })
+  .strict()
+  .refine((b) => b.dueTime === null || b.dueDate !== null, {
+    message: "A time needs a day.",
+    path: ["dueTime"],
+  });
 
 /** `POST /projects/:projectId/ideas/:ideaId/task`: turns an accepted idea into a task, once. */
 export function createIdeaToTaskRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
@@ -19,7 +43,8 @@ export function createIdeaToTaskRouter(deps: { prisma: PrismaClient; now: () => 
     try {
       const userId = getAuth(res.locals).userId;
       const { projectId, ideaId } = await requireIdea(prisma, req, userId);
-      const { taskId } = bodySchema.parse(req.body);
+      const body = bodySchema.parse(req.body);
+      const { taskId } = body;
 
       // The task, the link and the checks are one transaction under the project lock, so two
       // requests at once can't both make a task and the task limit can't be passed.
@@ -46,14 +71,17 @@ export function createIdeaToTaskRouter(deps: { prisma: PrismaClient; now: () => 
             `A project can hold at most ${MAX_TASKS_PER_PROJECT} tasks.`,
           );
         }
+        await assertAssigneesAreMembers(tx, projectId, body.assigneeIds);
         const at = now();
         // No photos are copied: the task starts without any (#43).
         const task = await tx.task.create({
           data: {
             id: taskId,
             projectId,
-            title: idea.title,
-            description: idea.description,
+            title: body.title ?? idea.title,
+            description: body.description ?? idea.description,
+            dueDate: body.dueDate,
+            dueTime: body.dueTime,
             status: "todo",
             titleEditedAt: at,
             descriptionEditedAt: at,
@@ -62,6 +90,7 @@ export function createIdeaToTaskRouter(deps: { prisma: PrismaClient; now: () => 
             assigneesEditedAt: at,
             labelsEditedAt: at,
             createdById: userId,
+            assignees: { create: body.assigneeIds.map((id) => ({ userId: id })) },
             labels: { create: idea.labels.map((l) => ({ labelId: l.labelId })) },
           },
         });

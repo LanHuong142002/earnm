@@ -5,8 +5,8 @@ import type { Idea } from "./types";
 
 /**
  * What the New task form shows when it is opened from an idea (spec R12): the idea's title, description and labels,
- * and the idea's name for the line "Từ ý tưởng “…”". The server makes the task from the idea itself, so these are
- * shown as they will be saved, not edited.
+ * and the idea's name for the line "Từ ý tưởng “…”". The server makes the task from the idea itself, so title and description can be
+ * edited here, while the assignees and the due date start empty and are set on the form (mockup 2d).
  */
 export type PrefilledTask = {
   ideaId: string;
@@ -15,6 +15,9 @@ export type PrefilledTask = {
   description: string;
   /** In the idea's order; a label that no longer exists is left out. */
   labels: Label[];
+  assigneeIds: string[];
+  dueDate: string | null;
+  dueTime: string | null;
 };
 
 export function prefilledTaskForm(idea: Pick<Idea, "id" | "title" | "description" | "labelIds">, labels: readonly Label[]): PrefilledTask {
@@ -24,6 +27,9 @@ export function prefilledTaskForm(idea: Pick<Idea, "id" | "title" | "description
     title: idea.title,
     description: idea.description,
     labels: resolveLabels(idea.labelIds, labels),
+    assigneeIds: [],
+    dueDate: null,
+    dueTime: null,
   };
 }
 

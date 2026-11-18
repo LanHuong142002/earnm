@@ -60,6 +60,38 @@ describe("POST /projects/:projectId/ideas/:ideaId/task", () => {
   const toTask = (u: User, p: string, i: string, body: Record<string, unknown> = { taskId: randomUUID() }) =>
     request(app).post(`/projects/${p}/ideas/${i}/task`).set(...bearer(u.token)).send(body);
 
+  it("applies the given title, description, assignees and due date", async () => {
+    const w = await world();
+    const taskId = randomUUID();
+    const res = await toTask(w.other, w.p, w.i, {
+      taskId,
+      title: "Dark mode v2",
+      description: "",
+      assigneeIds: [w.owner.id, w.author.id],
+      dueDate: "2030-05-01",
+      dueTime: "09:30",
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.task).toMatchObject({ title: "Dark mode v2", description: "", dueDate: "2030-05-01", dueTime: "09:30" });
+    expect(res.body.task.assignees.map((a: { id: string }) => a.id).sort()).toEqual([w.owner.id, w.author.id].sort());
+  });
+
+  it("refuses an assignee who is not a member, a time without a day, and a long title, creating nothing", async () => {
+    const w = await world();
+    expectError(await toTask(w.owner, w.p, w.i, { taskId: randomUUID(), assigneeIds: [w.stranger.id] }), 400, "validation_failed");
+    expectError(await toTask(w.owner, w.p, w.i, { taskId: randomUUID(), dueTime: "09:30" }), 400, "validation_failed");
+    expectError(await toTask(w.owner, w.p, w.i, { taskId: randomUUID(), title: "x".repeat(121) }), 400, "validation_failed");
+    expect(await prisma.task.count({ where: { projectId: w.p } })).toBe(0);
+    expect((await prisma.idea.findUniqueOrThrow({ where: { id: w.i } })).taskId).toBeNull();
+  });
+
+  it("falls back to the idea's title and description when they are left out", async () => {
+    const w = await world();
+    const res = await toTask(w.owner, w.p, w.i, { taskId: randomUUID(), assigneeIds: [w.other.id] });
+    expect(res.status).toBe(201);
+    expect(res.body.task).toMatchObject({ title: "Dark mode", description: "Looks nicer", dueDate: null, dueTime: null });
+  });
+
   it("answers 401 signed out and 404 to a non-member or a missing idea", async () => {
     const w = await world();
     expectError(await request(app).post(`/projects/${w.p}/ideas/${w.i}/task`).send({ taskId: randomUUID() }), 401, "not_signed_in");

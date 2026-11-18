@@ -19,12 +19,22 @@ describe("prefilledTaskForm", () => {
       title: "Trà đào",
       description: "Ly 700ml",
       labels: [labels[1], labels[0]],
+      assigneeIds: [],
+      dueDate: null,
+      dueTime: null,
     });
   });
 
   it("leaves out a label that is gone", () => {
     const i = idea({ id: "i1", labelIds: ["a", "deleted"] });
     expect(prefilledTaskForm(i, labels).labels).toEqual([labels[0]]);
+  });
+
+  it("starts with no assignees and no due date, for the person to set", () => {
+    const form = prefilledTaskForm(idea({ id: "i1", title: "T" }), labels);
+    expect(form.assigneeIds).toEqual([]);
+    expect(form.dueDate).toBeNull();
+    expect(form.dueTime).toBeNull();
   });
 
   it("copes with no description and no labels", () => {
