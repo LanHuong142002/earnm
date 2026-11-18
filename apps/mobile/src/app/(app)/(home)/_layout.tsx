@@ -58,6 +58,20 @@ export default function HomeStackLayout() {
         name="projects/[id]/tasks/labels/form"
         options={{ ...sheet, sheetAllowedDetents: [0.8, 1], title: t("tasks.labels.newTitle") }}
       />
+      <Stack.Screen name="projects/[id]/ideas/index" options={{ title: t("ideas.title") }} />
+      <Stack.Screen name="projects/[id]/ideas/new" options={{ title: t("ideas.newTitle") }} />
+      <Stack.Screen
+        name="projects/[id]/ideas/[ideaId]/index"
+        options={{ title: t("ideas.detailsTitle"), headerTitleAlign: "center" }}
+      />
+      <Stack.Screen name="projects/[id]/ideas/[ideaId]/edit" options={{ title: t("ideas.editTitle") }} />
+      {/* The status sheet: iOS formSheet with a grabber; Android falls back to a modal. It draws its own head. */}
+      <Stack.Screen name="projects/[id]/ideas/[ideaId]/status" options={{ ...sheet, title: t("ideas.statusSheetTitle") }} />
+      {/* The photo viewer: full screen on black, with its own close button. */}
+      <Stack.Screen
+        name="projects/[id]/ideas/[ideaId]/photos"
+        options={{ presentation: "fullScreenModal", headerShown: false, animation: "fade", title: t("tasks.photos.viewerTitle") }}
+      />
       <Stack.Screen name="projects/[id]/members" options={{ title: t("members.title") }} />
     </Stack>
   );

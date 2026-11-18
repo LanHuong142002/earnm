@@ -11,6 +11,8 @@ import { RejectedNoticeBanner } from "../../../../../projects/RejectedNotice";
 import { useProjects } from "../../../../../projects/ProjectsProvider";
 import { useGoToProjectList, useTapOnce } from "../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../projects/routing";
+import { newIdeaCount } from "../../../../../ideas/counts";
+import { useIdeas } from "../../../../../ideas/IdeasProvider";
 import { countNotDone } from "../../../../../tasks/counts";
 import { useTasks } from "../../../../../tasks/TasksProvider";
 import { useTheme } from "../../../../../theme/useTheme";
@@ -47,6 +49,20 @@ export default function ProjectScreen() {
     }, [ready, refresh, id]),
   );
   const { members } = useMembers(id, focused);
+  // The Ideas tile counts New ideas, once this project's ideas have been loaded at least once.
+  const ideas = useIdeas();
+  const [ideasLoaded, setIdeasLoaded] = useState(false);
+  const { ready: ideasReady, refresh: refreshIdeas } = ideas;
+  useFocusEffect(
+    useCallback(() => {
+      if (!ideasReady || !id) return;
+      void refreshIdeas(id)
+        .then((result) => {
+          if (result === "ok") setIdeasLoaded(true);
+        })
+        .catch(() => undefined);
+    }, [ideasReady, refreshIdeas, id]),
+  );
 
   // Unknown or vanished project: back to the list (which shows the notice). Only while this
   // screen is the one in front, so a delete started on Edit isn't raced from underneath.
@@ -74,6 +90,7 @@ export default function ProjectScreen() {
   }
 
   const tasks = tasksFor(project.id);
+  const projectIdeas = ideasReady ? ideas.ideasFor(project.id) : [];
 
   return (
     <Screen edges={[]}>
@@ -111,7 +128,15 @@ export default function ProjectScreen() {
               }
               onPress={() => once(() => router.push({ pathname: "/projects/[id]/tasks", params: { id: project.id } }))}
             />
-            <AreaTile shape="wide" icon="bulb-outline" label={t("home.areaIdeas")} comingSoon={t("home.comingSoon")} />
+            <AreaTile
+              shape="wide"
+              icon="bulb-outline"
+              label={t("home.areaIdeas")}
+              caption={
+                projectIdeas.length > 0 || ideasLoaded ? t("ideas.newCount", { count: newIdeaCount(projectIdeas) }) : undefined
+              }
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/ideas", params: { id: project.id } }))}
+            />
           </View>
           <View style={{ flexDirection: "row", gap: spacing[2] }}>
             <AreaTile shape="wide" icon="cube-outline" label={t("projects.areaProducts")} comingSoon={t("home.comingSoon")} />
