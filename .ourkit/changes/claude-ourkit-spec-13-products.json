@@ -40,5 +40,6 @@
       "decision": "Hint rounds up to 1.000 VND or 0,10 USD; target margin 1-95 per project, default 65",
       "why": "Approved assumption 9; USD needs its own step"
     }
-  ]
+  ],
+  "planApproval": "e85704cf9e41062ea209b04c9bcae9f2c257149de5b36480c2c3d0707d8fa7ff"
 }
