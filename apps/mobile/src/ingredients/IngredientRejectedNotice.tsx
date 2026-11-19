@@ -5,6 +5,7 @@ import { useTheme } from "../theme/useTheme";
 import { Enter } from "../ui/Enter";
 import { PressableScale } from "../ui/PressableScale";
 import { useIngredients } from "./IngredientsProvider";
+import { joinNames } from "../products/view";
 import { ingredientNoticeKeys } from "./outcomes";
 
 /** Tells the person an ingredient change could not be saved (spec R17). Same look as the idea notice. */
@@ -23,7 +24,9 @@ export function IngredientRejectedNotice() {
         <Text style={[typography.bodyStrong, { color: colors.danger }]}>
           {t(keys.headline, { name: rejectedNotice.ingredientName ?? "" })}
         </Text>
-        <Text style={[typography.label, { color: colors.danger }]}>{t(keys.reason)}</Text>
+        <Text style={[typography.label, { color: colors.danger }]}>
+          {t(keys.reason, { products: joinNames(rejectedNotice.products ?? [], t("products.and")) })}
+        </Text>
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t("projects.dismiss")}

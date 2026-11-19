@@ -41,5 +41,16 @@
       "why": "Approved assumption 9; USD needs its own step"
     }
   ],
-  "planApproval": "e85704cf9e41062ea209b04c9bcae9f2c257149de5b36480c2c3d0707d8fa7ff"
+  "planApproval": "e85704cf9e41062ea209b04c9bcae9f2c257149de5b36480c2c3d0707d8fa7ff",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    }
+  }
 }
