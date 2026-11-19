@@ -111,6 +111,7 @@ describe("/projects", () => {
         name: "Trà sữa",
         description: "",
         currency: "VND",
+        targetMargin: 65,
         role: "owner",
       });
       const m = await prisma.projectMember.findUnique({
@@ -191,6 +192,7 @@ describe("/projects", () => {
         "id",
         "name",
         "role",
+        "targetMargin",
       ]);
     });
   });
@@ -202,7 +204,7 @@ describe("/projects", () => {
       clock.advanceMs(1000);
       let res = await patch(o, id, { name: { value: "N", editedAt: iso() } });
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ id, name: "N", description: "", currency: "VND", role: "owner" });
+      expect(res.body).toEqual({ id, name: "N", description: "", currency: "VND", targetMargin: 65, role: "owner" });
       clock.advanceMs(1000);
       res = await patch(o, id, { description: { value: "D", editedAt: iso() } });
       expect(res.body.description).toBe("D");

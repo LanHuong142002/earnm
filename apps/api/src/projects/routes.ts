@@ -37,6 +37,7 @@ const patchSchema = z
         name: change(nameSchema).optional(),
         description: change(descriptionSchema).optional(),
         currency: change(currencySchema).optional(),
+        targetMargin: change(z.number().int().min(1).max(95)).optional(),
       })
       .strict()
       .refine((f) => Object.keys(f).length > 0, "At least one field is required."),
@@ -52,6 +53,7 @@ interface ProjectRow {
   name: string;
   description: string;
   currency: "VND" | "USD";
+  targetMargin: number;
 }
 
 /** The exact shape the mobile app expects. */
@@ -61,6 +63,7 @@ export function toResponse(project: ProjectRow, role: Role) {
     name: project.name,
     description: project.description,
     currency: project.currency,
+    targetMargin: project.targetMargin,
     role,
   };
 }
@@ -121,6 +124,8 @@ export function createProjectsRouter(deps: {
               nameEditedAt: editedAt,
               descriptionEditedAt: editedAt,
               currencyEditedAt: editedAt,
+              // Epoch, so a margin edit queued right after the create always wins.
+              targetMarginEditedAt: new Date(0),
               members: { create: { userId, role: "owner" } },
             },
           });
@@ -149,14 +154,21 @@ export function createProjectsRouter(deps: {
       // Check the id first so a bad id is a 404 even when the body is also wrong.
       if (!parsedId.success) throw notFound();
       const { fields } = patchSchema.parse(req.body);
-      const id = await requireOwner(prisma, parsedId.data, userId);
+      // Any member may change the target margin; everything else is the owner's.
+      const memberMayEdit = Object.keys(fields).every((k) => k === "targetMargin");
+      const check = async (db: Parameters<typeof requireOwner>[0]) => {
+        if (!memberMayEdit) return requireOwner(db, parsedId.data, userId);
+        if (!(await findForMember(db as PrismaClient, parsedId.data, userId))) throw notFound();
+        return parsedId.data;
+      };
+      const id = await check(prisma);
 
       // Last write wins per field, all in one transaction. The column names come from the
       // field names, so TypeScript can't check them here; the route tests do.
       await prisma.$transaction(async (tx) => {
         if (!(await lockProject(tx, id))) throw notFound();
         // The caller may have been demoted or removed since the check above.
-        await requireOwner(tx, id, userId);
+        await check(tx);
         // Ingredient prices are minor units of this currency, so it can't change once there are any.
         // Only a change that would really win (different value, newer than the stored one) is refused.
         if (fields.currency) {
