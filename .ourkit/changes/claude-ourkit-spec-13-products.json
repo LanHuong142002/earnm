@@ -1,0 +1,236 @@
+{
+  "mode": "hands-off",
+  "ticket": "13",
+  "intake": {
+    "ticket": "13",
+    "accepted": true
+  },
+  "tier": "feature",
+  "tierReason": "Products with recipe costs, selling price and profit are new persisted money data; fits one cycle after #12",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "d50cb610d8f4925b2ec8924053d9d0a55e7919f6a101272d38170c5e1d6140d7",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Costs are computed on the phone from current ingredient prices; only inputs are stored",
+      "why": "A price change then needs no backfill and R12 holds automatically"
+    },
+    {
+      "id": 2,
+      "decision": "Default lines start ticked with amount 1 for portion and 0 for weight/volume",
+      "why": "A default weight ingredient has no sensible amount; 0 makes the member fill it in"
+    },
+    {
+      "id": 3,
+      "decision": "Project extra costs are copied into a size; later changes don't touch existing sizes",
+      "why": "Approved assumption 8; per-size amounts differ (S/M/L ice)"
+    },
+    {
+      "id": 4,
+      "decision": "Hint rounds up to 1.000 VND or 0,10 USD; target margin 1-95 per project, default 65",
+      "why": "Approved assumption 9; USD needs its own step"
+    },
+    {
+      "id": 5,
+      "decision": "Default recipe lines are tappable to set their amount and tickable",
+      "why": "Weight/volume defaults start at 0 and must be filled in"
+    },
+    {
+      "id": 6,
+      "decision": "Non-default extra costs can be removed from a size",
+      "why": "Spec silent; mirrors non-default ingredient lines"
+    },
+    {
+      "id": 7,
+      "decision": "Ingredient delete is checked locally first and shows the 1g dialog at once; server 409 remains the guard",
+      "why": "Immediate feedback offline"
+    }
+  ],
+  "planApproval": "e85704cf9e41062ea209b04c9bcae9f2c257149de5b36480c2c3d0707d8fa7ff",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "B1 money: projects/routes.ts ~L172-182 currency lock only counts ingredients; extra costs, size extras and selling prices are also minor units, so VND 30.000 price becomes 300 USD after a switch; also refuse when any ExtraCost, SizeExtra or non-null sellingPrice exists, with a route test",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "N1 api: products/routes.ts ~L190 and extraCosts POST return 409 id_conflict for another project's id (deliberate, as ideas/ingredients)",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "N2 data: editSize/prepareLines replace line and extra rows on each winning write; foreign extra id gives 409 id_conflict; acceptable",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "N3 api: products/routes.ts L361-366 price/lines validated before LWW, so a stale losing edit can be refused (400/409) instead of ignored; phone shows rejected notice",
+        "resolved": false
+      }
+    ],
+    "reviewed": "088753777f1900c102e5dd88b8d30b17bba230b14dee420914c19b7e9c2f4ffe"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: create with name and sizes; empty/duplicate name and no sizes refused; rename, remove a size (not the last), delete keeps ingredients."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: the 201st product is refused with `product_limit_reached`."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: selling price stored as integer; out-of-range refused."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: recipe line with a foreign ingredient, duplicate ingredient or amount 0 on a non-default line refused."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: a new size gets ticked default ingredient lines (portion amount 1, others 0); unticking works; removing a default line refused."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: a new size copies default extra costs; changing the project extra cost leaves the size unchanged; 51st extra cost refused."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: marking an ingredient default later doesn't change existing sizes."
+      },
+      "8": {
+        "result": "manual",
+        "evidence": "API in_use 409 with names passed; dialog 1g on phone (#47 G)",
+        "criterion": "API test: deleting a used ingredient returns `409 ingredient_in_use` with product names. By hand, mockup 1g."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "Unit test: line and size cost with rounding; unticked lines excluded."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "Unit test: profit and margin; no-price case."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "Unit test: hint rounding VND to 1.000 and USD to 0,10; target 1–95 enforced (API test)."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "Unit test: cost recomputes after an ingredient price change and the update line names the latest one."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API 708 / mobile 1120 vitest passed; QA subagent read the named tests",
+        "criterion": "API test: per-field LWW for name, sizes, price and recipe list; same id twice idempotent; non-member `404`; signed out `401`."
+      },
+      "14": {
+        "result": "manual",
+        "evidence": "Sync/overlay unit tests passed; offline Chờ lưu on phone (#47 G)",
+        "criterion": "Unit test: queued product changes merge per field. By hand: offline \"Chờ lưu\" then sync."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "By hand, mockup 1a: Sản phẩm tile enabled with count."
+      },
+      "16": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "Unit test: list order and which size is summarised. By hand, mockup 2a."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "By hand, mockups 2b and 2g′."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "By hand, mockup 2c."
+      },
+      "19": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "By hand, mockups 2d, 2e, 2f."
+      },
+      "20": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "By hand, mockup 2g: round size pills."
+      },
+      "21": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "By hand, mockup 2h."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "Phone only vs mockup group 2 / 1a (#47 section G)",
+        "criterion": "By hand, mockups 2i, 2j, 2k; EN text; VoiceOver."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "Migrations applied on test DB; deploy on DB with #12 data not run",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with #12's data."
+      }
+    },
+    "checked": "088753777f1900c102e5dd88b8d30b17bba230b14dee420914c19b7e9c2f4ffe"
+  },
+  "testHandoff": [
+    {
+      "what": "#13 screens on a real iPhone (AC 8, 14-22)",
+      "steps": "Follow ticket #47 section G with mockup .ourkit/mockups/claude-ourkit-spec-13-products.html group 2. Run npm run db:deploy on the dev DB, then npm run dev:phone from branch claude/ourkit-spec-13-products. Expected: each item matches its frame."
+    },
+    {
+      "what": "#13 migration on DB with #12 data (AC 23)",
+      "steps": "From apps/api run npm run db:deploy on the dev DB after #12's migration has data. Expected: succeeds; projects get targetMargin 65."
+    }
+  ],
+  "shipApproval": "088753777f1900c102e5dd88b8d30b17bba230b14dee420914c19b7e9c2f4ffe",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/49"
+}

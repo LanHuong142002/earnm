@@ -107,6 +107,11 @@ model Project {
   deviceSyncs         DeviceProjectSync[]
   ideas               Idea[]
   ingredients         Ingredient[]
+  products            Product[]
+  extraCosts          ExtraCost[]
+  /// Whole percent, 1-95. Drives the price hint on products.
+  targetMargin         Int                @default(65)
+  targetMarginEditedAt DateTime           @default(now())
 }
 
 model Session {
@@ -452,6 +457,7 @@ model Ingredient {
   defaultEditedAt  DateTime          @default(now())
   createdAt        DateTime          @default(now())
   prices           IngredientPrice[]
+  recipeLines      RecipeLine[]
 
   @@unique([projectId, nameKey])
   @@index([projectId, createdAt])
@@ -470,4 +476,93 @@ model IngredientPrice {
   recordedAt   DateTime   @default(now())
 
   @@index([ingredientId, recordedAt])
+}
+
+enum ProductSize {
+  S
+  M
+  L
+}
+
+model Product {
+  id            String           @id
+  projectId     String
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name          String
+  nameKey       String
+  nameEditedAt  DateTime         @default(now())
+  /// The set of sizes is one last-write-wins field.
+  sizesEditedAt DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+  sizes         ProductSizeRow[]
+
+  @@unique([projectId, nameKey])
+  @@index([projectId, createdAt])
+}
+
+/// One size (S, M or L) of a product. The recipe lines and extra lines together are one
+/// last-write-wins field, `lines`.
+model ProductSizeRow {
+  id            String       @id
+  productId     String
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size          ProductSize
+  /// Integer in the currency's smallest unit; null until set.
+  sellingPrice  Int?
+  priceEditedAt DateTime     @default(now())
+  linesEditedAt DateTime     @default(now())
+  lines         RecipeLine[]
+  extras        SizeExtra[]
+
+  @@unique([productId, size])
+}
+
+/// Amount is in the ingredient's base unit (g, ml, portion). An ingredient used here can't be deleted.
+model RecipeLine {
+  id           String         @id
+  sizeId       String
+  sizeRow      ProductSizeRow @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient     @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  amount       Decimal        @db.Decimal(12, 3)
+  included     Boolean        @default(true)
+  isDefault    Boolean        @default(false)
+  position     Int            @default(0)
+
+  @@unique([sizeId, ingredientId])
+  @@index([ingredientId])
+}
+
+/// A copy of an extra cost on one size; later changes to the project's extra cost don't touch it.
+model SizeExtra {
+  id          String         @id
+  sizeId      String
+  sizeRow     ProductSizeRow @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+  name        String
+  amount      Int
+  included    Boolean        @default(true)
+  isDefault   Boolean        @default(false)
+  position    Int            @default(0)
+  extraCostId String?
+  extraCost   ExtraCost?     @relation(fields: [extraCostId], references: [id], onDelete: SetNull)
+
+  @@index([sizeId])
+  @@index([extraCostId])
+}
+
+/// A project-wide cost per cup (ice, water...). Integer amount in the currency's smallest unit.
+model ExtraCost {
+  id              String      @id
+  projectId       String
+  project         Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name            String
+  amount          Int
+  isDefault       Boolean     @default(false)
+  nameEditedAt    DateTime    @default(now())
+  amountEditedAt  DateTime    @default(now())
+  defaultEditedAt DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  sizeExtras      SizeExtra[]
+
+  @@index([projectId, createdAt])
 }

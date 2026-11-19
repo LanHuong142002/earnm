@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import i18n from "../i18n";
 import { IdeasProvider } from "../ideas/IdeasProvider";
 import { IngredientsProvider } from "../ingredients/IngredientsProvider";
+import { ProductsProvider } from "../products/ProductsProvider";
 import { ProjectsProvider } from "../projects/ProjectsProvider";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { NotificationGlue } from "../tasks/reminders/NotificationGlue";
@@ -80,7 +81,9 @@ export default function RootLayout() {
           <TasksProvider>
             <IdeasProvider>
               <IngredientsProvider>
-                <RootNavigator />
+                <ProductsProvider>
+                  <RootNavigator />
+                </ProductsProvider>
               </IngredientsProvider>
             </IdeasProvider>
           </TasksProvider>

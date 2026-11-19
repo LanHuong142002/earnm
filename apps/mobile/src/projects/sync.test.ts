@@ -72,6 +72,12 @@ describe("registerProjectEntity", () => {
     });
   });
 
+  it("update sends the target margin with its own editedAt", async () => {
+    const { senders, deps } = setup();
+    await senders.update({ ...base, kind: "update", data: { targetMargin: 70 }, fieldTimes: { targetMargin: T2 } }, "tok");
+    expect(deps.patchProject).toHaveBeenCalledWith("tok", "p1", { targetMargin: { value: 70, editedAt: T2 } });
+  });
+
   it("update sends only changed fields, each with its own editedAt", async () => {
     const { senders, deps } = setup();
     await senders.update(

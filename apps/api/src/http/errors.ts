@@ -6,6 +6,8 @@ export class AppError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** Optional extra fields for the phone, sent as `error.details`. */
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "AppError";
@@ -48,7 +50,9 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
     return;
   }
   if (err instanceof AppError) {
-    res.status(err.status).json({ error: { code: err.code, message: err.message } });
+    res
+      .status(err.status)
+      .json({ error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) } });
     return;
   }
   if (err instanceof ZodError) {

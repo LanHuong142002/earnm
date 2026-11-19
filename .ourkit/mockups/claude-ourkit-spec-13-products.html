@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup #12 và #13: nguyên liệu, sản phẩm</title>
+<style>
+  :root {
+    --bg:#FFFFFF; --surface:#FFFFFF; --field:#F3F4F6; --tile:#FFF1EB; --tileBorder:#FADCCB; --border:#EEEEEE;
+    --text:#141414; --text2:#5F5F5F; --ph:#6B6B6B; --accent:#F4511E; --accentStrong:#C2410C; --onAccent:#FFFFFF;
+    --danger:#B3261E; --dangerBg:#FDF0EF; --success:#1E7F4F;
+    /* label palette, light (R21) */
+    --l-gray-bg:#EEEEEE; --l-gray-tx:#3F3F3F;
+    --l-red-bg:#FBE4E2; --l-red-tx:#8C1D18;
+    --l-orange-bg:#FDE8D7; --l-orange-tx:#8A3A0B;
+    --l-yellow-bg:#FBF0C9; --l-yellow-tx:#6B5200;
+    --l-green-bg:#DFF1E6; --l-green-tx:#1B5E3A;
+    --l-teal-bg:#DCEFEE; --l-teal-tx:#155E5A;
+    --l-blue-bg:#E1EAF8; --l-blue-tx:#1E4A8A;
+    --l-purple-bg:#ECE4F6; --l-purple-tx:#5B2E8C;
+    --page:#F6F1EE; --note:#6B4A3A;
+  }
+  .dark {
+    --bg:#121212; --surface:#1C1C1C; --field:#1E1E1E; --tile:#2A1A14; --tileBorder:#3D261B; --border:#2A2A2A;
+    --text:#F2F2F2; --text2:#A3A3A3; --ph:#8F8F8F; --accent:#F4511E; --accentStrong:#F4511E; --onAccent:#141414;
+    --danger:#F2B8B5; --dangerBg:#3A1715; --success:#6FCF97;
+    --l-gray-bg:#2C2C2C; --l-gray-tx:#D6D6D6;
+    --l-red-bg:#3A1D1B; --l-red-tx:#F2B8B5;
+    --l-orange-bg:#3A2414; --l-orange-tx:#F5C29A;
+    --l-yellow-bg:#352C10; --l-yellow-tx:#EBD58A;
+    --l-green-bg:#17301F; --l-green-tx:#9ED8B4;
+    --l-teal-bg:#133130; --l-teal-tx:#93D4CF;
+    --l-blue-bg:#172639; --l-blue-tx:#A9C4EE;
+    --l-purple-bg:#2A1E3A; --l-purple-tx:#CDB6EE;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); font-family:"Plus Jakarta Sans",-apple-system,"Segoe UI",Roboto,sans-serif; color:#141414; }
+  header.page { padding:24px 32px 8px; max-width:1500px; margin:0 auto; }
+  header.page h1 { font-size:24px; font-weight:800; margin:0 0 6px; }
+  header.page p { margin:4px 0; color:#5F5F5F; font-size:14px; max-width:900px; line-height:1.5; }
+  h2.group { max-width:1500px; margin:28px auto 4px; padding:0 32px; font-size:17px; font-weight:800; }
+  .row { display:flex; flex-wrap:wrap; gap:28px; padding:12px 32px 8px; max-width:1500px; margin:0 auto; align-items:flex-start; }
+  .shot { width:375px; }
+  .cap { font-size:13px; font-weight:600; margin:0 0 8px; color:#141414; }
+  .cap small { display:block; font-weight:400; color:var(--note); margin-top:3px; line-height:1.4; }
+  .phone { width:375px; min-height:740px; background:var(--bg); border-radius:40px; border:10px solid #1b1b1b; overflow:hidden; position:relative; color:var(--text); }
+  .status-bar { height:44px; display:flex; justify-content:space-between; align-items:center; padding:0 26px; font-size:14px; font-weight:600; }
+  .nav { height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; position:relative; color:var(--accentStrong); font-size:15px; }
+  .nav .chev { font-size:26px; width:44px; line-height:44px; }
+  .nav .ttl { color:var(--text); font-weight:600; position:absolute; left:0; right:0; text-align:center; pointer-events:none; font-size:17px; }
+  .nav .right { color:var(--accentStrong); font-weight:600; font-size:15px; }
+  .scr { padding:4px 20px 28px; display:flex; flex-direction:column; gap:16px; }
+  .h1 { font-size:24px; font-weight:800; line-height:30px; margin:0; }
+  .h2 { font-size:17px; font-weight:800; line-height:22px; margin:0; }
+  .lbl { font-size:13px; font-weight:600; color:var(--text2); }
+  .cap12 { font-size:12px; color:var(--text2); }
+  .body { font-size:15px; line-height:21px; }
+  .strong { font-weight:600; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:12px 14px; }
+  .card.flush { padding:0 14px; }
+  .rowline { min-height:44px; display:flex; align-items:center; gap:10px; border-top:1px solid var(--border); }
+  .rowline:first-child { border-top:0; }
+  .grow { flex:1; min-width:0; }
+  .pill { display:inline-flex; align-items:center; gap:4px; height:44px; padding:0 14px; border-radius:999px; background:var(--field); border:1px solid var(--field); font-size:15px; }
+  .pill.sel { background:var(--tile); border-color:var(--tileBorder); font-weight:600; }
+  .pill.sel::before { content:"✓"; color:var(--accent); font-weight:800; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .switch { width:46px; height:28px; border-radius:14px; background:var(--field); position:relative; flex:none; }
+  .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+  .switch.on { background:var(--accentStrong); }
+  .switch.on::after { left:21px; }
+  .chev-r { color:var(--text2); font-size:18px; }
+  .status { display:inline-block; background:var(--tile); color:var(--accentStrong); border-radius:999px; padding:2px 8px; font-size:12px; font-weight:600; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chip { display:inline-flex; align-items:center; border-radius:999px; padding:2px 9px; font-size:12px; font-weight:600; line-height:18px; white-space:nowrap; }
+  .chip.lg { font-size:13px; padding:4px 11px; }
+  .chip.more { background:var(--field); color:var(--text2); }
+  .c-gray{background:var(--l-gray-bg);color:var(--l-gray-tx)} .c-red{background:var(--l-red-bg);color:var(--l-red-tx)}
+  .c-orange{background:var(--l-orange-bg);color:var(--l-orange-tx)} .c-yellow{background:var(--l-yellow-bg);color:var(--l-yellow-tx)}
+  .c-green{background:var(--l-green-bg);color:var(--l-green-tx)} .c-teal{background:var(--l-teal-bg);color:var(--l-teal-tx)}
+  .c-blue{background:var(--l-blue-bg);color:var(--l-blue-tx)} .c-purple{background:var(--l-purple-bg);color:var(--l-purple-tx)}
+  .meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .prog { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text2); font-weight:600; }
+  .prog .box { width:14px; height:14px; border:1.5px solid var(--text2); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:9px; }
+  .bar { height:4px; border-radius:2px; background:var(--field); overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--accent); }
+  .cb { width:20px; height:20px; border-radius:6px; border:1.5px solid var(--ph); flex:none; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+  .cb.on { background:var(--accent); border-color:var(--accent); color:var(--onAccent); }
+  .cb.on::after { content:"✓"; }
+  .done-t { color:var(--text2); text-decoration:line-through; }
+  .item { min-height:44px; display:flex; align-items:center; gap:12px; border-top:1px solid var(--border); font-size:15px; }
+  .clhead { display:flex; align-items:center; gap:8px; min-height:44px; }
+  .more-btn { width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--text2); font-size:20px; margin-right:-12px; }
+  .link { color:var(--accentStrong); font-weight:600; font-size:15px; min-height:44px; display:flex; align-items:center; gap:6px; }
+  .btn { height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; }
+  .btn.pri { background:var(--accentStrong); color:var(--onAccent); }
+  .btn.sec { background:var(--field); color:var(--text); }
+  .btn.dan { background:var(--field); color:var(--danger); }
+  .field { height:44px; border-radius:12px; background:var(--field); display:flex; align-items:center; padding:0 12px; gap:8px; font-size:15px; color:var(--text); }
+  .field.ph { color:var(--ph); }
+  .field.focus { border:1.5px solid var(--accent); background:var(--surface); }
+  .field.err { border:1.5px solid var(--danger); background:var(--dangerBg); }
+  .errmsg { color:var(--danger); font-size:13px; display:flex; gap:6px; align-items:center; margin-top:6px; }
+  .offline { font-size:12px; color:var(--text2); }
+  .notice { background:var(--dangerBg); color:var(--danger); border-radius:12px; padding:10px 12px; font-size:13px; line-height:18px; }
+  .sk { background:var(--field); border-radius:12px; }
+  .ann { position:absolute; background:#2F6FEB; color:#fff; font:700 10px/1 -apple-system,sans-serif; padding:3px 5px; border-radius:6px; z-index:5; }
+  .rel { position:relative; }
+  .sheet-dim { position:absolute; inset:0; background:rgba(0,0,0,.35); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--bg); border-radius:20px 20px 0 0; padding:8px 20px 28px; display:flex; flex-direction:column; gap:12px; }
+  .grab { width:36px; height:5px; border-radius:3px; background:var(--border); margin:0 auto 4px; }
+  .sheethead { display:flex; justify-content:space-between; align-items:center; min-height:44px; }
+  .kbd { position:absolute; left:0; right:0; bottom:0; height:250px; background:#D1D4DA; display:flex; align-items:center; justify-content:center; color:#555; font-size:13px; }
+  .dark .kbd { background:#2B2B2D; color:#aaa; }
+  .swatches { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .sw { height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:4px; font-size:13px; font-weight:600; border:2px solid transparent; }
+  .sw.sel { border-color:var(--text); }
+  .sw.sel::before { content:"✓"; font-weight:800; }
+  .dialog { position:absolute; left:40px; right:40px; top:250px; background:var(--surface); border-radius:14px; padding:18px 16px 8px; text-align:center; }
+  .dialog .t { font-weight:600; font-size:16px; margin-bottom:6px; }
+  .dialog .m { font-size:13px; color:var(--text2); line-height:18px; }
+  .dialog .acts { display:flex; border-top:1px solid var(--border); margin:14px -16px 0; }
+  .dialog .acts div { flex:1; height:44px; display:flex; align-items:center; justify-content:center; font-size:16px; color:#0A84FF; }
+  .dialog .acts div + div { border-left:1px solid var(--border); }
+  .dialog .acts .d { color:#E5372B; font-weight:600; }
+  .menu { position:absolute; left:10px; right:10px; bottom:20px; display:flex; flex-direction:column; gap:8px; }
+  .menu .grp { background:var(--surface); border-radius:14px; overflow:hidden; }
+  .menu .grp div { height:54px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#0A84FF; border-top:1px solid var(--border); }
+  .menu .grp div:first-child { border-top:0; }
+  .menu .grp .ttl { height:40px; font-size:13px; color:var(--text2); }
+  .menu .grp .d { color:#E5372B; }
+  table.pal { border-collapse:collapse; font-size:13px; }
+  table.pal td, table.pal th { padding:6px 10px; text-align:left; }
+  .legend { max-width:1500px; margin:0 auto; padding:0 32px; font-size:13px; color:var(--note); }
+  .pills.sizes .pill { border-radius:999px !important; width:44px; justify-content:center; padding:0; }
+</style>
+<style>
+  .ic { width:16px; height:16px; flex:none; vertical-align:-3px; }
+  .ic.sm { width:13px; height:13px; vertical-align:-2px; }
+  .ic.lg { width:22px; height:22px; }
+  .ann.q { background:#B7791F; }
+  .qs { max-width:900px; margin:10px 0 0; padding:12px 16px; background:#FFF8E6; border:1px solid #F0D9A6; border-radius:12px; font-size:14px; line-height:1.5; color:#3D2E10; }
+  .qs b { color:#7A4E00; }
+  .qs ol { margin:6px 0 0; padding-left:20px; }
+  .av { width:34px; height:34px; border-radius:50%; background:var(--field); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex:none; }
+  .cm { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--border); }
+  .cm:first-child { border-top:0; }
+  .cm .top { display:flex; align-items:center; gap:6px; min-height:20px; }
+  .cm .who { font-size:13px; font-weight:600; }
+  .cm .when { font-size:12px; color:var(--text2); }
+  .cm .txt { font-size:15px; line-height:21px; margin-top:2px; overflow-wrap:anywhere; }
+  .cm .sub { display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; }
+  .cm .more-btn { margin:-10px -12px 0 0; }
+  .rw { display:inline-flex; align-items:center; gap:4px; background:var(--tile); color:var(--accentStrong); border-radius:999px; padding:2px 8px; font-size:12px; font-weight:600; line-height:16px; }
+  .pend { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text2); }
+  .failtx { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--danger); font-weight:600; }
+  .composer { position:absolute; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--border); padding:8px 12px 30px; display:flex; flex-direction:column; gap:6px; }
+  .composer.up { bottom:250px; padding-bottom:8px; }
+  .cmp-row { display:flex; align-items:flex-end; gap:8px; }
+  .cmp-in { flex:1; min-height:44px; border-radius:22px; background:var(--field); padding:11px 16px; font-size:15px; line-height:21px; color:var(--text); }
+  .cmp-in.ph { color:var(--ph); }
+  .send { width:44px; height:44px; border-radius:50%; background:var(--accentStrong); color:var(--onAccent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .send.off { opacity:.5; }
+  .rwtoggle { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border-radius:999px; background:var(--field); color:var(--text2); font-size:13px; font-weight:600; align-self:flex-start; }
+  .rwtoggle.on { background:var(--tile); color:var(--accentStrong); border:1px solid var(--tileBorder); }
+  .editbar { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text2); min-height:32px; }
+  .cmscr { padding:4px 20px 0; }
+  .thumbs { display:flex; gap:8px; flex-wrap:wrap; }
+  .th { width:75px; height:75px; border-radius:14px; flex:none; position:relative; overflow:hidden; display:flex; align-items:flex-end; }
+  .th .tag { font-size:10px; font-weight:600; color:#fff; padding:5px 6px; text-shadow:0 1px 2px rgba(0,0,0,.4); }
+  .p1 { background:linear-gradient(160deg,#E8DCC8,#C9B28E); }
+  .p2 { background:linear-gradient(160deg,#F2C9A0,#D9822B); }
+  .p3 { background:linear-gradient(160deg,#D8E4C8,#8FAE6B); }
+  .p4 { background:linear-gradient(160deg,#EADFD6,#B39A88); }
+  .p5 { background:linear-gradient(160deg,#F6D7C9,#E0876A); }
+  .p6 { background:linear-gradient(160deg,#D4DCE6,#8B9DB3); }
+  .th .ov { position:absolute; inset:0; background:rgba(0,0,0,.45); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:#fff; font-size:11px; font-weight:600; text-align:center; }
+  .th.add { background:var(--tile); border:1px dashed var(--accent); color:var(--accentStrong); flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:12px; font-weight:600; }
+  .ring { width:24px; height:24px; border-radius:50%; border:3px solid rgba(255,255,255,.35); border-top-color:#fff; }
+  .viewer { background:#000; color:#fff; }
+  .viewer .nav { color:#fff; }
+  .viewer .nav .ttl { color:#fff; }
+  .bigphoto { margin:40px 0 0; height:440px; display:flex; align-items:flex-end; }
+  .vfoot { padding:14px 20px; display:flex; align-items:center; gap:12px; font-size:13px; color:#ccc; }
+  .vbtn { width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .push { background:rgba(245,245,245,.92); border-radius:18px; padding:12px 14px; color:#141414; font-size:13px; line-height:18px; }
+  .push .app { display:flex; align-items:center; gap:6px; font-size:12px; color:#666; margin-bottom:4px; }
+  .push .appic { width:18px; height:18px; border-radius:5px; background:#C2410C; }
+  .lock { background:linear-gradient(180deg,#5b4a40,#2b211c); }
+  .lock .clock { text-align:center; color:#fff; font-size:64px; font-weight:300; margin:30px 0 4px; }
+  .lock .date { text-align:center; color:#fff; font-size:16px; margin-bottom:24px; }
+  .pills.sizes .pill { border-radius:999px !important; width:44px; justify-content:center; padding:0; }
+</style>
+<style>
+  .cms { display:flex; flex-direction:column; gap:16px; }
+  .c2 { display:flex; gap:10px; align-items:flex-start; }
+  .c2 .col { flex:1; min-width:0; }
+  .bub { background:var(--field); border-radius:16px; padding:8px 12px 9px; display:inline-block; max-width:100%; }
+  .bub .nm { font-size:13px; font-weight:600; line-height:18px; }
+  .bub .tx { font-size:15px; line-height:21px; overflow-wrap:anywhere; }
+  .c2 .mt { display:flex; gap:14px; align-items:center; font-size:12px; color:var(--text2); padding:4px 12px 0; min-height:24px; }
+  .c2 .mt a { color:var(--accentStrong); font-weight:600; text-decoration:none; }
+  .c2 .mt a.d { color:var(--danger); }
+  .bell { width:44px; flex:none; display:flex; flex-direction:column; align-items:center; gap:2px; padding-top:2px; font-size:10px; font-weight:600; color:var(--text2); }
+  .bell .b { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); color:var(--text2); }
+  .bell.on { color:var(--accentStrong); }
+  .bell.on .b { background:var(--tile); border-color:var(--tileBorder); color:var(--accentStrong); }
+  .bell.ro .b { border:0; }
+  .sorter { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border-radius:999px; background:var(--field); font-size:13px; font-weight:600; color:var(--text); }
+  .cmp2 { display:flex; gap:10px; align-items:center; }
+  .bub.edit { display:block; background:var(--surface); border:1.5px solid var(--accent); }
+  .more-c { color:var(--accentStrong); font-weight:600; font-size:13px; min-height:44px; display:flex; align-items:center; padding-left:44px; }
+  .hl .bub { background:var(--tile); }
+  .menu2 { position:absolute; right:20px; top:150px; width:200px; background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; z-index:4; }
+  .menu2 div { min-height:44px; display:flex; align-items:center; padding:0 14px; font-size:15px; border-top:1px solid var(--border); gap:8px; }
+  .menu2 div:first-child { border-top:0; }
+  .menu2 .ck { color:var(--accent); font-weight:800; width:14px; }
+  .pills.sizes .pill { border-radius:999px !important; width:44px; justify-content:center; padding:0; }
+</style>
+
+<style>
+  .rem { display:flex; align-items:center; gap:12px; min-height:56px; border-top:1px solid var(--border); padding:8px 0; }
+  .rem:first-child { border-top:0; }
+  .rem .ib { width:36px; height:36px; border-radius:12px; background:var(--tile); border:1px solid var(--tileBorder); color:var(--accent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .rem.off .ib { background:var(--field); border-color:var(--field); color:var(--text2); }
+  .rem .t1 { font-size:15px; font-weight:600; line-height:21px; }
+  .rem .t2 { font-size:12px; color:var(--text2); line-height:16px; }
+  .rem.off .t1 { color:var(--text2); }
+  .sechead { display:flex; align-items:center; gap:8px; min-height:44px; margin-bottom:-8px; }
+  .days { display:flex; gap:6px; }
+  .day { flex:1; height:44px; border-radius:12px; background:var(--field); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
+  .day.sel { background:var(--tile); border:1.5px solid var(--accent); color:var(--accentStrong); }
+  .seg { display:flex; background:var(--field); border-radius:12px; padding:3px; gap:3px; }
+  .seg div { flex:1; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text2); }
+  .seg div.sel { background:var(--surface); color:var(--text); box-shadow:0 0 0 1px var(--border); }
+  .who { display:flex; align-items:center; gap:12px; min-height:48px; border-top:1px solid var(--border); font-size:15px; }
+  .who:first-child { border-top:0; }
+  .fl { display:flex; flex-direction:column; gap:6px; }
+  .tiles { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .tl { background:var(--tile); border:1px solid var(--tileBorder); border-radius:14px; padding:12px; min-height:84px; display:flex; flex-direction:column; justify-content:space-between; color:var(--accent); }
+  .tl b { color:var(--text); font-size:13px; font-weight:600; display:block; }
+  .tl span { color:var(--text2); font-size:12px; }
+  .tl.soon { opacity:.5; }
+  .cover { height:92px; border-radius:16px; background:var(--tile); border:1px solid var(--tileBorder); display:flex; align-items:center; justify-content:center; color:var(--accent); position:relative; }
+  .cover .cur { position:absolute; right:10px; top:10px; background:var(--surface); border-radius:999px; padding:4px 8px; font-size:12px; font-weight:600; color:var(--text); }
+  .idea { display:flex; gap:12px; }
+  .vote { width:44px; flex:none; display:flex; flex-direction:column; align-items:center; color:var(--text2); font-size:15px; font-weight:800; }
+  .vote .a { width:44px; height:34px; display:flex; align-items:center; justify-content:center; }
+  .vote .n { color:var(--text); line-height:18px; }
+  .vote.up .a.u, .vote.dn .a.d { color:var(--accentStrong); }
+  .vote.up .n { color:var(--accentStrong); }
+  .ititle { font-size:15px; font-weight:600; line-height:21px; }
+  .imeta { display:flex; gap:10px; align-items:center; font-size:12px; color:var(--text2); margin-top:6px; flex-wrap:wrap; }
+  .imeta span { display:inline-flex; align-items:center; gap:3px; }
+  .st { display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:2px 8px; font-size:12px; font-weight:600; }
+  .st.new { background:var(--tile); color:var(--accentStrong); }
+  .st.con { background:var(--l-blue-bg); color:var(--l-blue-tx); }
+  .st.acc { background:var(--l-green-bg); color:var(--l-green-tx); }
+  .st.dro { background:var(--field); color:var(--text2); }
+  .bigvote { display:flex; align-items:center; gap:8px; }
+  .vbt { height:44px; border-radius:12px; background:var(--field); display:flex; align-items:center; gap:6px; padding:0 14px; font-size:15px; font-weight:600; }
+  .vbt.on { background:var(--tile); border:1.5px solid var(--accent); color:var(--accentStrong); }
+  .collapse { display:flex; align-items:center; justify-content:space-between; min-height:44px; font-size:15px; font-weight:600; color:var(--text2); }
+  .okmsg { color:var(--success); font-size:13px; font-weight:600; display:flex; gap:6px; align-items:center; }
+  .linkrow { display:flex; align-items:center; gap:10px; min-height:52px; }
+  .pills.fl1 .pill { white-space:nowrap; padding:0 12px; flex:none; }
+  .pill.sel::before, .sw.sel::before { content:none; }
+  .pill.sel { border-color:var(--accent); color:var(--accentStrong); }
+  .rowline.selrow { background:var(--tile); margin:0 -14px; padding:0 14px; }
+  .pills.sizes .pill { border-radius:999px !important; width:44px; justify-content:center; padding:0; }
+</style>
+<style>
+  .hero { background:linear-gradient(135deg,#C2410C,#7A2A12); color:#fff; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:4px; }
+  .hero .k { font-size:13px; font-weight:600; opacity:.9; }
+  .hero .v { font-size:28px; font-weight:800; line-height:34px; }
+  .hero .s { font-size:13px; opacity:.9; }
+  .hero .two { display:flex; gap:16px; margin-top:8px; padding-top:10px; border-top:1px solid rgba(255,255,255,.25); }
+  .hero .two div { flex:1; } .hero .two b { display:block; font-size:17px; font-weight:800; }
+  .ing { display:flex; gap:12px; align-items:center; min-height:60px; border-top:1px solid var(--border); padding:8px 0; }
+  .ing:first-child { border-top:0; }
+  .ib { width:36px; height:36px; border-radius:12px; background:var(--tile); border:1px solid var(--tileBorder); color:var(--accent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .ing .t1 { font-size:15px; font-weight:600; line-height:21px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .ing .t2 { font-size:12px; color:var(--text2); line-height:16px; }
+  .uc { text-align:right; flex:none; }
+  .uc b { display:block; font-size:15px; font-weight:600; }
+  .uc span { font-size:12px; color:var(--text2); }
+  .def { display:inline-flex; align-items:center; border-radius:999px; padding:1px 7px; font-size:11px; font-weight:600; background:var(--tile); color:var(--accentStrong); line-height:16px; }
+  .res { background:var(--tile); border:1px solid var(--tileBorder); border-radius:14px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; }
+  .res b { font-size:20px; font-weight:800; color:var(--text); } .res span { font-size:13px; color:var(--text2); }
+  .unit { display:flex; gap:8px; } .unit .field { flex:1; } .unit .seg { width:120px; }
+  .ln { display:flex; align-items:center; gap:10px; min-height:48px; border-top:1px solid var(--border); font-size:15px; }
+  .ln:first-child { border-top:0; }
+  .ln .q { color:var(--text2); font-size:13px; }
+  .ln .c { margin-left:auto; font-weight:600; white-space:nowrap; }
+  .ln.off .grow, .ln.off .c { color:var(--text2); } .ln.off .c { text-decoration:line-through; }
+  .tot { display:flex; justify-content:space-between; min-height:40px; align-items:center; font-weight:800; font-size:15px; border-top:1px solid var(--border); }
+  .hint { font-size:12px; color:var(--text2); line-height:16px; }
+  .sumrow { display:flex; align-items:center; gap:10px; min-height:48px; font-size:15px; }
+  .sumrow .v { margin-left:auto; font-weight:600; }
+  .secbox { border-top:1px solid var(--border); }
+  .secbox:first-child { border-top:0; }
+  .collapse .r { display:flex; gap:8px; align-items:center; color:var(--text); }
+  .prod { display:flex; gap:12px; align-items:center; min-height:64px; border-top:1px solid var(--border); padding:8px 0; }
+  .prod:first-child { border-top:0; }
+  .prod .t1 { font-size:15px; font-weight:600; line-height:21px; }
+  .prod .t2 { font-size:12px; color:var(--text2); line-height:16px; }
+  .prod .pf { font-size:13px; font-weight:600; color:var(--success); }
+  .hist { display:flex; gap:10px; min-height:48px; align-items:center; border-top:1px solid var(--border); font-size:15px; }
+  .hist:first-child { border-top:0; }
+  .hist .d { font-size:12px; color:var(--text2); }
+  .hist .c { margin-left:auto; text-align:right; }
+  .hist .c span { display:block; font-size:12px; color:var(--text2); }
+  .dis { opacity:.5; }
+  .seg3 div { font-size:12px; }
+  .pills.sizes .pill { border-radius:999px !important; width:44px; justify-content:center; padding:0; }
+</style>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24"><path d="M6 8h12l-1.5 13h-9z"/><path d="M5 8h14M9 8l1-5h4"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2l-3 2-3-2-3 2-3-2-3 2z"/><path d="M8 8h8M8 12h8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M6 7h12l2 13H4z"/><circle cx="12" cy="4.5" r="2"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-snow" viewBox="0 0 24 24"><path d="M12 2v20M4 7l16 10M4 17L20 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+
+<header class="page">
+  <h1>Mockup #12 và #13: nguyên liệu và sản phẩm (bản 1)</h1>
+  <p>Hình tĩnh, chưa phải code. Mỗi khung là màn hình iPhone 375pt theo <code>DESIGN.md</code>. Hai ô <b>Nguyên liệu</b> và <b>Sản phẩm</b> trên màn Dự án được mở ra. Màn nào cũng là danh sách dọc, mục gấp lại lúc đầu, không có bảng (Quyết định 10). Số tiền theo đơn vị của dự án (ở đây là VND). Chưa tính chi phí cố định (đó là #14).</p>
+  <div class="qs"><b>Mình đang giả định như sau, bạn sửa giúp chỗ nào không đúng:</b>
+    <ol>
+      <li><b>Hai ô riêng</b> trên màn Dự án: “Nguyên liệu” (mới) và “Sản phẩm” (đang “Sắp có”). “Chi phí cố định” vẫn “Sắp có”.</li>
+      <li><b>“Tổng tiền mua” ở đầu danh sách</b> = cộng lần mua gần nhất của mỗi nguyên liệu, không cộng dồn các lần mua cũ.</li>
+      <li><b>Kiểu Đếm</b> luôn gọi là “phần” (không tự đặt “cái”, “gói”, “lon”). Kiểu Cân đổi được kg/g, kiểu Đo đổi được l/ml, nhưng giá luôn tính theo g, ml hoặc phần.</li>
+      <li><b>Làm tròn:</b> giá cho 1 đơn vị giữ tối đa 2 số lẻ (63,16 ₫/g), giá cho 10 đơn vị và giá vốn làm tròn tới đồng.</li>
+      <li><b>Lịch sử giá:</b> chỉ thêm một dòng khi đổi giá hoặc lượng mua, giữ 5 lần gần nhất. Sản phẩm luôn tính theo giá mới nhất, nên đổi giá là giá vốn mọi sản phẩm dùng nó đổi theo.</li>
+      <li><b>Không xoá được nguyên liệu đang có trong công thức</b>; phải bỏ nó khỏi các sản phẩm trước.</li>
+      <li><b>Mặc định:</b> nguyên liệu và chi phí thêm “Mặc định” tự có sẵn (đã tick) trong mỗi size mới; với chúng chỉ có bỏ tick, không xoá. Nguyên liệu thường thì tự thêm và xoá.</li>
+      <li><b>Chi phí thêm</b> (đá, nước…) có một danh sách chung của dự án với số tiền mỗi ly. Mỗi size sửa được số riêng (ly L tốn đá hơn). Đổi số ở danh sách chung chỉ áp cho size tạo sau, không đổi sản phẩm cũ.</li>
+      <li><b>Lãi</b> = giá bán − giá vốn, <b>% lãi</b> tính trên giá bán. <b>Gợi ý giá</b> dùng một mức lãi mong muốn chung của dự án (mặc định 65%, bấm vào để đổi), làm tròn lên 1.000 ₫.</li>
+      <li>Mọi thành viên đều thêm, sửa, xoá được nguyên liệu và sản phẩm. Danh sách sản phẩm hiện số của size M (không có M thì size nhỏ nhất).</li>
+    </ol>
+  </div>
+</header>
+
+<!-- ============ 1. NGUYÊN LIỆU (#12) ============ -->
+<h2 class="group">1. Nguyên liệu (#12)</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">1a. Màn Dự án (đã có), hai ô mới mở ra<small>“Nguyên liệu” đếm số loại, “Sản phẩm” đếm số món. “Chi phí cố định” vẫn mờ, “Sắp có”.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Dự án</span><span></span></div>
+      <div class="scr">
+        <div class="cover"><svg class="ic" style="width:30px;height:30px" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><use href="#i-cup"/></svg><span class="cur">VND</span></div>
+        <div><div class="h1">Quán trà Sân Thượng</div><div class="cap12">Chủ dự án</div></div>
+        <div class="tiles">
+          <div class="tl"><svg class="ic lg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><use href="#i-check"/></svg><div><b>Công việc</b><span>5 chưa xong</span></div></div>
+          <div class="tl"><svg class="ic lg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><use href="#i-bulb"/></svg><div><b>Ý tưởng</b><span>3 mới</span></div></div>
+          <div class="tl rel"><span class="ann" style="right:8px;top:8px">MỚI</span><svg class="ic lg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><use href="#i-cube"/></svg><div><b>Nguyên liệu</b><span>9 loại</span></div></div>
+          <div class="tl rel"><span class="ann" style="right:8px;top:8px">MỚI</span><svg class="ic lg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><use href="#i-cup"/></svg><div><b>Sản phẩm</b><span>5 món</span></div></div>
+          <div class="tl soon"><svg class="ic lg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><use href="#i-receipt"/></svg><div><b>Chi phí cố định</b><span>Sắp có</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1b. Danh sách nguyên liệu<small>Thẻ cam ở đầu: tổng tiền mua. Mỗi dòng: lần mua gần nhất bên trái, giá 1 và 10 đơn vị bên phải. Xếp A–Z.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Nguyên liệu</span><span class="right">＋ Thêm</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="hero"><span class="k">Tổng tiền mua nguyên liệu</span><span class="v">534.000 ₫</span><span class="s">9 loại · tính lần mua gần nhất</span></div>
+        <div class="card flush">
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-scale"/></svg></div><div class="grow"><div class="t1">Bột kem béo</div><div class="t2">1 kg · 95.000 ₫</div></div><div class="uc"><b>95 ₫/g</b><span>950 ₫/10 g</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-scale"/></svg></div><div class="grow"><div class="t1">Đường</div><div class="t2">1 kg · 22.000 ₫</div></div><div class="uc"><b>22 ₫/g</b><span>220 ₫/10 g</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-grid"/></svg></div><div class="grow"><div class="t1">Ly nhựa 500ml <span class="def">Mặc định</span></div><div class="t2">50 phần · 75.000 ₫</div></div><div class="uc"><b>1.500 ₫/phần</b><span>15.000 ₫/10 phần</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-grid"/></svg></div><div class="grow"><div class="t1">Nắp ly <span class="def">Mặc định</span></div><div class="t2">50 phần · 25.000 ₫</div></div><div class="uc"><b>500 ₫/phần</b><span>5.000 ₫/10 phần</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-grid"/></svg></div><div class="grow"><div class="t1">Ống hút <span class="def">Mặc định</span></div><div class="t2">100 phần · 30.000 ₫</div></div><div class="uc"><b>300 ₫/phần</b><span>3.000 ₫/10 phần</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-scale"/></svg></div><div class="grow"><div class="t1">Sữa đặc</div><div class="t2">380 g · 24.000 ₫</div></div><div class="uc"><b>63,16 ₫/g</b><span>632 ₫/10 g</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-drop"/></svg></div><div class="grow"><div class="t1">Sữa tươi</div><div class="t2">1 l · 38.000 ₫</div></div><div class="uc"><b>38 ₫/ml</b><span>380 ₫/10 ml</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-scale"/></svg></div><div class="grow"><div class="t1">Trà đen</div><div class="t2">1 kg · 180.000 ₫</div></div><div class="uc"><b>180 ₫/g</b><span>1.800 ₫/10 g</span></div></div>
+          <div class="ing"><div class="ib"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-scale"/></svg></div><div class="grow"><div class="t1">Trân châu đen</div><div class="t2">1 kg · 45.000 ₫</div></div><div class="uc"><b>45 ₫/g</b><span>450 ₫/10 g</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1c. Thêm nguyên liệu: kiểu Cân<small>Chọn kiểu trước, form chỉ hiện ô của kiểu đó. Ô cam bên dưới tự tính khi gõ.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev" style="font-size:15px;color:var(--accentStrong);width:60px">Huỷ</span><span class="ttl">Nguyên liệu mới</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Tên</span><div class="field">Trà đen</div></div>
+        <div class="fl"><span class="lbl">Tính theo</span><div class="seg seg3"><div class="sel">Cân (g)</div><div>Đo (ml)</div><div>Đếm (phần)</div></div></div>
+        <div class="fl"><span class="lbl">Mua bao nhiêu</span><div class="unit"><div class="field">1</div><div class="seg"><div class="sel">kg</div><div>g</div></div></div></div>
+        <div class="fl"><span class="lbl">Giá mua</span><div class="field focus">180.000 ₫</div></div>
+        <div class="res"><div><b>180 ₫</b> <span>/ 1 g</span></div><div><b>1.800 ₫</b> <span>/ 10 g</span></div></div>
+        <div class="card flush"><div class="rowline" style="border-top:0;min-height:60px"><div class="grow"><div class="strong" style="font-size:15px">Mặc định</div><div class="cap12">Tự thêm vào mỗi sản phẩm mới, bỏ tick được</div></div><span class="switch"></span></div></div>
+        <div class="btn pri">Lưu</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1d. Thêm nguyên liệu: kiểu Đếm<small>Không có ô kg/g, chỉ “Số phần trong gói”. Bật Mặc định cho thứ ly nào cũng dùng (ly, nắp, ống hút).</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev" style="font-size:15px;color:var(--accentStrong);width:60px">Huỷ</span><span class="ttl">Nguyên liệu mới</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Tên</span><div class="field">Ly nhựa 500ml</div></div>
+        <div class="fl"><span class="lbl">Tính theo</span><div class="seg seg3"><div>Cân (g)</div><div>Đo (ml)</div><div class="sel">Đếm (phần)</div></div></div>
+        <div class="fl"><span class="lbl">Số phần trong gói</span><div class="field">50 <span style="color:var(--text2)">phần</span></div></div>
+        <div class="fl"><span class="lbl">Giá mua</span><div class="field">75.000 ₫</div></div>
+        <div class="res"><div><b>1.500 ₫</b> <span>/ phần</span></div><div><b>15.000 ₫</b> <span>/ 10 phần</span></div></div>
+        <div class="card flush"><div class="rowline" style="border-top:0;min-height:60px"><div class="grow"><div class="strong" style="font-size:15px">Mặc định</div><div class="cap12">Tự thêm vào mỗi sản phẩm mới, bỏ tick được</div></div><span class="switch on"></span></div></div>
+        <div class="btn pri">Lưu</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1e. Nhập sai (kiểu Đo)<small>Báo lỗi dưới từng ô sau khi bấm Lưu. Ô cam ẩn đi khi chưa tính được.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev" style="font-size:15px;color:var(--accentStrong);width:60px">Huỷ</span><span class="ttl">Nguyên liệu mới</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Tên</span><div class="field">Sữa tươi</div></div>
+        <div class="fl"><span class="lbl">Tính theo</span><div class="seg seg3"><div>Cân (g)</div><div class="sel">Đo (ml)</div><div>Đếm (phần)</div></div></div>
+        <div class="fl"><span class="lbl">Mua bao nhiêu</span><div class="unit"><div class="field err">0</div><div class="seg"><div class="sel">l</div><div>ml</div></div></div><span class="errmsg">Nhập số lớn hơn 0</span></div>
+        <div class="fl"><span class="lbl">Giá mua</span><div class="field err ph">0 ₫</div><span class="errmsg">Nhập giá đã mua</span></div>
+        <div class="card flush"><div class="rowline" style="border-top:0;min-height:60px"><div class="grow"><div class="strong" style="font-size:15px">Mặc định</div><div class="cap12">Tự thêm vào mỗi sản phẩm mới, bỏ tick được</div></div><span class="switch"></span></div></div>
+        <div class="btn pri">Lưu</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">1f. Sửa nguyên liệu, có lịch sử giá<small>Đang gõ giá mới 195.000 ₫. Dòng nhỏ báo trước sẽ đổi giá vốn sản phẩm nào. Lịch sử giữ 5 lần gần nhất (ở đây mở ra để xem).</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà đen</span><span class="right">Lưu</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="fl"><span class="lbl">Mua bao nhiêu</span><div class="unit"><div class="field">1</div><div class="seg"><div class="sel">kg</div><div>g</div></div></div></div>
+        <div class="fl"><span class="lbl">Giá mua</span><div class="field focus">195.000 ₫</div></div>
+        <div class="res"><div><b>195 ₫</b> <span>/ 1 g</span></div><div><b>1.950 ₫</b> <span>/ 10 g</span></div></div>
+        <div class="hint">Lưu sẽ thêm giá mới vào lịch sử và cập nhật giá vốn của 2 sản phẩm.</div>
+        <div class="card flush">
+          <div class="collapse"><span>Lịch sử giá (3)</span><span>⌄</span></div>
+          <div class="hist"><div class="grow"><div>180.000 ₫ · 1 kg</div><div class="d">15 Thg 11 · Mai · đang dùng</div></div><div class="c">180 ₫/g</div></div>
+          <div class="hist"><div class="grow"><div>170.000 ₫ · 1 kg</div><div class="d">2 Thg 10 · Huy</div></div><div class="c">170 ₫/g</div></div>
+          <div class="hist"><div class="grow"><div>90.000 ₫ · 500 g</div><div class="d">20 Thg 8 · Mai</div></div><div class="c">180 ₫/g</div></div>
+        </div>
+        <div class="card flush"><div class="collapse"><span>Dùng trong 2 sản phẩm</span><span>›</span></div></div>
+        <div class="link" style="color:var(--danger);justify-content:center">Xoá nguyên liệu</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1g. Xoá nguyên liệu đang dùng<small>Không xoá được, kể tên sản phẩm đang dùng. Nguyên liệu chưa dùng thì hỏi “Xoá Nắp ly? Không hoàn tác được.” như các chỗ xoá khác.</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà đen</span><span class="right">Lưu</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="fl"><span class="lbl">Mua bao nhiêu</span><div class="unit"><div class="field">1</div><div class="seg"><div class="sel">kg</div><div>g</div></div></div></div>
+        <div class="fl"><span class="lbl">Giá mua</span><div class="field">180.000 ₫</div></div>
+        <div class="res"><div><b>180 ₫</b> <span>/ 1 g</span></div><div><b>1.800 ₫</b> <span>/ 10 g</span></div></div>
+      </div>
+      <div class="sheet-dim"></div>
+      <div class="dialog">
+        <div class="t">Chưa xoá được Trà đen</div>
+        <div class="m">Trà đen đang có trong công thức của Trà sữa trân châu và Trà đào cam sả. Bỏ nó khỏi các món này trước rồi xoá.</div>
+        <div class="acts"><div style="color:var(--accentStrong);font-weight:600">Đã hiểu</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1h. Chưa có nguyên liệu<small>Một tiêu đề, một dòng, một nút. Không có thẻ tổng tiền.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Nguyên liệu</span><span class="right">＋ Thêm</span></div>
+      <div class="scr" style="align-items:center;text-align:center;padding-top:140px">
+        <div class="ib" style="width:56px;height:56px;border-radius:16px"><svg class="ic lg" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-cube"/></svg></div>
+        <div class="h2">Chưa có nguyên liệu nào</div>
+        <div class="body" style="color:var(--text2)">Ghi lại thứ đã mua và giá, app tính sẵn mỗi gram, ml hay phần tốn bao nhiêu.</div>
+        <div class="btn sec" style="padding:0 20px">Thêm nguyên liệu</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">1i. Đang tải và lỗi<small>Khối xám thay cho vòng quay. Lỗi nói bằng lời thường, có nút thử lại. Màn Sản phẩm dùng y như vậy.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Nguyên liệu</span><span class="right">＋ Thêm</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="sk" style="height:100px;border-radius:16px"></div>
+        <div class="sk" style="height:56px"></div>
+        <div class="sk" style="height:56px"></div>
+        <div class="sk" style="height:56px"></div>
+        <div class="notice" style="display:flex;flex-direction:column;gap:8px;margin-top:12px">Không tải được nguyên liệu. Kiểm tra mạng rồi thử lại.<div class="btn sec" style="height:36px">Thử lại</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ 2. SẢN PHẨM (#13) ============ -->
+<h2 class="group">2. Sản phẩm và giá vốn mỗi ly (#13)</h2>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">2a. Danh sách sản phẩm<small>Mỗi món: các size, giá bán và lãi của size M. Món lãi dưới mức mong muốn chỉ ghi nhỏ, không tô đỏ. Dòng trên cùng mở danh sách chi phí thêm (2h).</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Sản phẩm</span><span class="right">＋ Mới</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="card flush"><div class="linkrow"><div class="ib" style="width:32px;height:32px;border-radius:10px"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-snow"/></svg></div><div class="grow"><div class="strong" style="font-size:15px">Chi phí thêm</div><div class="cap12">Đá viên, Nước, Khăn giấy</div></div><span class="chev-r">›</span></div></div>
+        <div class="card flush">
+          <div class="prod"><div class="grow"><div class="t1">Cà phê sữa đá</div><div class="t2">M, L · M bán 25.000 ₫</div><div class="pf">Lãi 15.200 ₫ (61%) <span class="hint" style="font-weight:400">· dưới 65%</span></div></div><span class="chev-r">›</span></div>
+          <div class="prod"><div class="grow"><div class="t1">Matcha latte</div><div class="t2">M · bán 45.000 ₫</div><div class="pf">Lãi 30.100 ₫ (67%)</div></div><span class="chev-r">›</span></div>
+          <div class="prod"><div class="grow"><div class="t1">Nước chanh tươi</div><div class="t2">M · bán 20.000 ₫</div><div class="pf">Lãi 11.400 ₫ (57%) <span class="hint" style="font-weight:400">· dưới 65%</span></div></div><span class="chev-r">›</span></div>
+          <div class="prod"><div class="grow"><div class="t1">Trà đào cam sả</div><div class="t2">M, L · M bán 39.000 ₫</div><div class="pf">Lãi 26.300 ₫ (67%)</div></div><span class="chev-r">›</span></div>
+          <div class="prod"><div class="grow"><div class="t1">Trà sữa trân châu</div><div class="t2">S, M, L · M bán 35.000 ₫</div><div class="pf">Lãi 23.965 ₫ (68%)</div></div><span class="chev-r">›</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2b. Chi tiết sản phẩm, size M<small>Đổi size ở thanh trên cùng. Thẻ cam: lãi mỗi ly. Công thức và chi phí thêm gấp lại, đầu mục đã ghi tổng. Gợi ý giá là một dòng nhỏ.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà sữa trân châu</span><span class="right">•••</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="seg"><div>S</div><div class="sel">M</div><div>L</div></div>
+        <div class="hero"><span class="k">Lãi mỗi ly · size M</span><span class="v">23.965 ₫</span><span class="s">68% giá bán</span>
+          <div class="two"><div><span class="s">Giá bán</span><b>35.000 ₫</b></div><div><span class="s">Giá vốn</span><b>11.035 ₫</b></div></div></div>
+        <div class="card flush">
+          <div class="sumrow"><span>Giá bán</span><span class="v">35.000 ₫</span><span class="chev-r">›</span></div>
+          <div class="hint" style="margin:-8px 0 10px">Muốn lãi <u>65%</u>: bán từ 32.000 ₫</div>
+        </div>
+        <div class="card flush">
+          <div class="secbox"><div class="collapse"><span>Công thức · 7</span><span class="r">10.235 ₫ <span class="chev-r">›</span></span></div></div>
+          <div class="secbox"><div class="collapse"><span>Chi phí thêm · 2</span><span class="r">800 ₫ <span class="chev-r">›</span></span></div></div>
+        </div>
+        <div class="hint">Giá vốn cập nhật 15 Thg 11 theo giá mới của Trà đen.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2c. Công thức và chi phí thêm mở ra<small>Dòng “Mặc định” có ô tick: bỏ tick thì không tính (Ống hút). Dòng thường bấm vào để sửa lượng hoặc bỏ (2d). Tổng cuối là giá vốn size M.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà sữa trân châu</span><span class="right">•••</span></div>
+      <div class="scr" style="gap:10px;padding-top:0">
+        <div class="card flush">
+          <div class="collapse"><span>Công thức · 7</span><span>⌄</span></div>
+          <div class="ln"><span class="cb on"></span><span class="grow">Ly nhựa 500ml <span class="def">Mặc định</span><br><span class="q">1 phần</span></span><span class="c">1.500 ₫</span></div>
+          <div class="ln"><span class="cb on"></span><span class="grow">Nắp ly <span class="def">Mặc định</span><br><span class="q">1 phần</span></span><span class="c">500 ₫</span></div>
+          <div class="ln off"><span class="cb"></span><span class="grow">Ống hút <span class="def">Mặc định</span><br><span class="q">không tính</span></span><span class="c">300 ₫</span></div>
+          <div class="ln"><span class="grow">Trà đen<br><span class="q">6 g</span></span><span class="c">1.080 ₫</span></div>
+          <div class="ln"><span class="grow">Sữa tươi<br><span class="q">80 ml</span></span><span class="c">3.040 ₫</span></div>
+          <div class="ln"><span class="grow">Bột kem béo<br><span class="q">15 g</span></span><span class="c">1.425 ₫</span></div>
+          <div class="ln"><span class="grow">Đường<br><span class="q">20 g</span></span><span class="c">440 ₫</span></div>
+          <div class="ln"><span class="grow">Trân châu đen<br><span class="q">50 g</span></span><span class="c">2.250 ₫</span></div>
+          <div class="link" style="border-top:1px solid var(--border)">＋ Thêm nguyên liệu</div>
+        </div>
+        <div class="card flush">
+          <div class="collapse"><span>Chi phí thêm · 2</span><span>⌄</span></div>
+          <div class="ln"><span class="cb on"></span><span class="grow">Đá viên <span class="def">Mặc định</span></span><span class="c">600 ₫</span></div>
+          <div class="ln"><span class="cb on"></span><span class="grow">Nước <span class="def">Mặc định</span></span><span class="c">200 ₫</span></div>
+          <div class="link" style="border-top:1px solid var(--border)">＋ Thêm chi phí</div>
+        </div>
+        <div class="tot" style="border:0"><span>Giá vốn size M</span><span>11.035 ₫</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2d. Sửa một dòng công thức<small>Bấm “Trà đen” ở 2c. Gõ lượng, thấy ngay tiền. Đơn vị theo kiểu của nguyên liệu (g, ml hoặc phần).</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà sữa trân châu</span><span class="right">•••</span></div>
+      <div class="scr"><div class="sk" style="height:200px;opacity:.4"></div></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet" style="bottom:250px;border-radius:20px">
+        <div class="grab"></div>
+        <div class="sheethead"><span class="h2">Trà đen · size M</span><span class="link" style="min-height:0">Lưu</span></div>
+        <div class="field focus">6 <span style="color:var(--text2)">g</span></div>
+        <div class="res"><span>180 ₫/g × 6 g</span><b>1.080 ₫</b></div>
+        <div class="link" style="color:var(--danger);justify-content:center">Bỏ khỏi công thức</div>
+      </div>
+      <div class="kbd"></div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2e. Chọn nguyên liệu để thêm<small>Bấm “＋ Thêm nguyên liệu”. Có ô tìm. Thứ đã có trong size này mờ đi. Chọn xong thì mở ô nhập lượng như 2d.</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà sữa trân châu</span><span class="right">•••</span></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet" style="top:90px">
+        <div class="grab"></div>
+        <div class="sheethead"><span class="h2">Thêm vào size M</span><span class="link" style="min-height:0">Xong</span></div>
+        <div class="field ph"><svg class="ic sm" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-search"/></svg>Tìm nguyên liệu</div>
+        <div>
+          <div class="ing dis"><div class="grow"><div class="t1">Bột kem béo</div><div class="t2">Đã có</div></div><div class="uc"><b>95 ₫/g</b></div></div>
+          <div class="ing dis"><div class="grow"><div class="t1">Đường</div><div class="t2">Đã có</div></div><div class="uc"><b>22 ₫/g</b></div></div>
+          <div class="ing"><div class="grow"><div class="t1">Sữa đặc</div><div class="t2">Cân (g)</div></div><div class="uc"><b>63,16 ₫/g</b></div></div>
+          <div class="ing dis"><div class="grow"><div class="t1">Sữa tươi</div><div class="t2">Đã có</div></div><div class="uc"><b>38 ₫/ml</b></div></div>
+          <div class="ing dis"><div class="grow"><div class="t1">Trà đen</div><div class="t2">Đã có</div></div><div class="uc"><b>180 ₫/g</b></div></div>
+          <div class="ing dis"><div class="grow"><div class="t1">Trân châu đen</div><div class="t2">Đã có</div></div><div class="uc"><b>45 ₫/g</b></div></div>
+          <div class="link">＋ Nguyên liệu mới</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">2f. Đặt giá bán<small>Gõ giá, lãi và % đổi ngay. Gợi ý giá nằm nhỏ dưới ô; bấm “65%” để đổi mức lãi mong muốn của cả dự án.</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà sữa trân châu</span><span class="right">•••</span></div>
+      <div class="scr"><div class="sk" style="height:200px;opacity:.4"></div></div>
+      <div class="sheet-dim"></div>
+      <div class="sheet" style="bottom:250px;border-radius:20px">
+        <div class="grab"></div>
+        <div class="sheethead"><span class="h2">Giá bán · size M</span><span class="link" style="min-height:0">Lưu</span></div>
+        <div class="field focus">35.000 ₫</div>
+        <div class="hint">Muốn lãi <u>65%</u>: bán từ 32.000 ₫</div>
+        <div class="card flush">
+          <div class="sumrow"><span>Giá vốn</span><span class="v">11.035 ₫</span></div>
+          <div class="sumrow" style="border-top:1px solid var(--border)"><span>Lãi mỗi ly</span><span class="v" style="color:var(--success)">23.965 ₫ · 68%</span></div>
+        </div>
+      </div>
+      <div class="kbd"></div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2g. Tạo sản phẩm mới<small>Chỉ cần tên và chọn size. Bấm Tạo thì mở chi tiết (2g′) với nguyên liệu và chi phí mặc định đã có sẵn.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev" style="font-size:15px;color:var(--accentStrong);width:60px">Huỷ</span><span class="ttl">Sản phẩm mới</span><span></span></div>
+      <div class="scr">
+        <div class="fl"><span class="lbl">Tên</span><div class="field focus">Trà vải</div></div>
+        <div class="fl"><span class="lbl">Có size nào</span><div class="pills sizes"><span class="pill">S</span><span class="pill sel">M</span><span class="pill sel">L</span></div><span class="cap12">Mỗi size có công thức và giá bán riêng. Thêm, bớt size sau được.</span></div>
+        <div class="card" style="background:var(--tile);border-color:var(--tileBorder)"><div class="body">Sẽ có sẵn trong mỗi size: <b>Ly nhựa 500ml, Nắp ly, Ống hút, Đá viên, Nước</b>. Bỏ tick món không dùng.</div></div>
+        <div class="btn pri">Tạo sản phẩm</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2g′. Sản phẩm vừa tạo, chưa có giá bán<small>Thẻ cam hiện giá vốn thay cho lãi. Gợi ý giá vẫn có, tính từ giá vốn hiện tại.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà vải</span><span class="right">•••</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="seg"><div class="sel">M</div><div>L</div></div>
+        <div class="hero"><span class="k">Giá vốn mỗi ly · size M</span><span class="v">3.100 ₫</span><span class="s">Chưa có giá bán nên chưa tính lãi</span></div>
+        <div class="card flush">
+          <div class="sumrow"><span>Giá bán</span><span class="v link" style="min-height:0">Đặt giá</span><span class="chev-r">›</span></div>
+          <div class="hint" style="margin:-8px 0 10px">Muốn lãi <u>65%</u>: bán từ 9.000 ₫</div>
+        </div>
+        <div class="card flush">
+          <div class="secbox"><div class="collapse"><span>Công thức · 3</span><span class="r">2.300 ₫ <span class="chev-r">›</span></span></div></div>
+          <div class="secbox"><div class="collapse"><span>Chi phí thêm · 2</span><span class="r">800 ₫ <span class="chev-r">›</span></span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2h. Chi phí thêm của dự án<small>Danh sách chung: tên, số tiền mỗi ly, có mặc định không. Số ở đây chỉ là số khởi đầu cho size mới; mỗi size sửa riêng được.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Chi phí thêm</span><span class="right">＋ Thêm</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="card flush">
+          <div class="ing"><div class="grow"><div class="t1">Đá viên</div><div class="t2">600 ₫ mỗi ly · Mặc định</div></div><span class="switch on"></span></div>
+          <div class="ing"><div class="grow"><div class="t1">Nước</div><div class="t2">200 ₫ mỗi ly · Mặc định</div></div><span class="switch on"></span></div>
+          <div class="ing"><div class="grow"><div class="t1">Khăn giấy</div><div class="t2">150 ₫ mỗi ly</div></div><span class="switch"></span></div>
+        </div>
+        <div class="hint">Công tắc là “Mặc định”: bật thì tự có trong mỗi size mới. Bấm vào tên để sửa hoặc xoá.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2i. Menu ••• và xoá<small>Đổi tên, thêm/bớt size, xoá cả món. Xoá luôn hỏi lại.</small></div>
+    <div class="phone rel">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà sữa trân châu</span><span class="right">•••</span></div>
+      <div class="scr"><div class="sk" style="height:200px;opacity:.4"></div></div>
+      <div class="sheet-dim"></div>
+      <div class="dialog">
+        <div class="t">Xoá Trà sữa trân châu?</div>
+        <div class="m">Mất cả 3 size cùng công thức và giá bán. Không hoàn tác được. Nguyên liệu vẫn giữ nguyên.</div>
+        <div class="acts"><div>Huỷ</div><div class="d">Xoá</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="row">
+
+  <div class="shot">
+    <div class="cap">2j. Chưa có sản phẩm<small>Nếu cũng chưa có nguyên liệu thì có thêm dòng dẫn sang Nguyên liệu.</small></div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Sản phẩm</span><span class="right">＋ Mới</span></div>
+      <div class="scr" style="align-items:center;text-align:center;padding-top:140px">
+        <div class="ib" style="width:56px;height:56px;border-radius:16px"><svg class="ic lg" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><use href="#i-cup"/></svg></div>
+        <div class="h2">Chưa có sản phẩm nào</div>
+        <div class="body" style="color:var(--text2)">Tạo món, ghi công thức từng size, app tính giá vốn và lãi mỗi ly.</div>
+        <div class="btn sec" style="padding:0 20px">Tạo sản phẩm</div>
+        <div class="link">Thêm nguyên liệu trước ›</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="cap">2k. Chế độ tối (2b)<small>Cùng bố cục, bảng màu tối. Thẻ cam giữ chữ trắng.</small></div>
+    <div class="phone dark">
+      <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+      <div class="nav"><span class="chev">‹</span><span class="ttl">Trà sữa trân châu</span><span class="right">•••</span></div>
+      <div class="scr" style="gap:12px">
+        <div class="seg"><div>S</div><div class="sel">M</div><div>L</div></div>
+        <div class="hero"><span class="k">Lãi mỗi ly · size M</span><span class="v">23.965 ₫</span><span class="s">68% giá bán</span>
+          <div class="two"><div><span class="s">Giá bán</span><b>35.000 ₫</b></div><div><span class="s">Giá vốn</span><b>11.035 ₫</b></div></div></div>
+        <div class="card flush">
+          <div class="sumrow"><span>Giá bán</span><span class="v">35.000 ₫</span><span class="chev-r">›</span></div>
+          <div class="hint" style="margin:-8px 0 10px">Muốn lãi <u>65%</u>: bán từ 32.000 ₫</div>
+        </div>
+        <div class="card flush">
+          <div class="secbox"><div class="collapse"><span>Công thức · 7</span><span class="r">10.235 ₫ <span class="chev-r">›</span></span></div></div>
+          <div class="secbox"><div class="collapse"><span>Chi phí thêm · 2</span><span class="r">800 ₫ <span class="chev-r">›</span></span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

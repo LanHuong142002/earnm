@@ -14,6 +14,7 @@ import { projectView } from "../../../../../projects/routing";
 import { newIdeaCount } from "../../../../../ideas/counts";
 import { useIdeas } from "../../../../../ideas/IdeasProvider";
 import { useIngredients } from "../../../../../ingredients/IngredientsProvider";
+import { useProducts } from "../../../../../products/ProductsProvider";
 import { countNotDone } from "../../../../../tasks/counts";
 import { useTasks } from "../../../../../tasks/TasksProvider";
 import { useTheme } from "../../../../../theme/useTheme";
@@ -80,6 +81,21 @@ export default function ProjectScreen() {
     }, [ingredientsReady, refreshIngredients, id]),
   );
 
+  // The Sản phẩm tile counts the products, once this project's have been loaded at least once.
+  const products = useProducts();
+  const [productsLoaded, setProductsLoaded] = useState(false);
+  const { ready: productsReady, refresh: refreshProducts } = products;
+  useFocusEffect(
+    useCallback(() => {
+      if (!productsReady || !id) return;
+      void refreshProducts(id)
+        .then((result) => {
+          if (result === "ok") setProductsLoaded(true);
+        })
+        .catch(() => undefined);
+    }, [productsReady, refreshProducts, id]),
+  );
+
   // Unknown or vanished project: back to the list (which shows the notice). Only while this
   // screen is the one in front, so a delete started on Edit isn't raced from underneath.
   useEffect(() => {
@@ -107,6 +123,7 @@ export default function ProjectScreen() {
 
   const tasks = tasksFor(project.id);
   const projectIdeas = ideasReady ? ideas.ideasFor(project.id) : [];
+  const projectProducts = productsReady ? products.productsFor(project.id) : [];
   const projectIngredients = ingredientsReady ? ingredients.ingredientsFor(project.id) : [];
 
   return (
@@ -167,7 +184,13 @@ export default function ProjectScreen() {
               }
               onPress={() => once(() => router.push({ pathname: "/projects/[id]/ingredients", params: { id: project.id } }))}
             />
-            <AreaTile shape="wide" icon="cube-outline" label={t("projects.areaProducts")} comingSoon={t("home.comingSoon")} />
+            <AreaTile
+              shape="wide"
+              icon="cube-outline"
+              label={t("projects.areaProducts")}
+              caption={projectProducts.length > 0 || productsLoaded ? t("products.count", { count: projectProducts.length }) : undefined}
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/products", params: { id: project.id } }))}
+            />
           </View>
           <View style={{ flexDirection: "row", gap: spacing[2] }}>
             <AreaTile

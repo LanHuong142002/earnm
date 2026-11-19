@@ -29,4 +29,11 @@ describe("ingredientNoticeKeys", () => {
       "ingredients.reasons.generic",
     );
   });
+
+  it("has a reason line for an ingredient still used in products", () => {
+    expect(ingredientNoticeKeys({ kind: "delete", ingredientName: "Đường", reason: "inUse", products: ["Trà"] })).toEqual({
+      headline: "ingredients.rejected",
+      reason: "ingredients.reasons.inUse",
+    });
+  });
 });

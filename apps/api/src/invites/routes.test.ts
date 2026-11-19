@@ -261,7 +261,7 @@ describe("invites", () => {
       const inv = await createInvite(owner, pid);
       const res = await join(joiner, inv.body.code);
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ id: pid, name: "Trà sữa", description: "", currency: "VND", role: "member" });
+      expect(res.body).toEqual({ id: pid, name: "Trà sữa", description: "", currency: "VND", targetMargin: 65, role: "member" });
       const listed = await request(app).get("/projects").set(...auth(joiner));
       expect(listed.body).toEqual([res.body]);
       const row = await prisma.invite.findUniqueOrThrow({ where: { id: inv.body.id } });

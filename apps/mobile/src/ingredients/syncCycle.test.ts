@@ -131,4 +131,13 @@ describe("ingredientReasonFor", () => {
     expect(ingredientReasonFor(new ApiError("validation_failed", 400))).toBe("invalid");
     expect(ingredientReasonFor(new ApiError("forbidden", 403))).toBe("forbidden");
   });
+
+  it("a delete refused because products use the ingredient carries the product names", async () => {
+    const s = setup();
+    const error = new ApiError("ingredient_in_use", 409, "used", { products: ["Trà sữa", "Cà phê", 3] });
+    s.cycle.handlers.onRejected(change({ kind: "delete" }), error);
+    await s.cycle.idle();
+    expect(s.notices).toEqual([{ kind: "delete", ingredientName: "Cũ", reason: "inUse", products: ["Trà sữa", "Cà phê"] }]);
+    expect(ingredientReasonFor(error)).toBe("inUse");
+  });
 });

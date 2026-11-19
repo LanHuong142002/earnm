@@ -334,6 +334,15 @@ export function createIngredientsRouter(deps: { prisma: PrismaClient; now: () =>
       const { projectId, ingredientId } = await requireIngredient(req, userId);
       await prisma.$transaction(async (tx) => {
         await lockedMember(tx, projectId, userId);
+        // A recipe line keeps its ingredient: refuse, and say which products use it.
+        const used = await tx.recipeLine.findMany({
+          where: { ingredientId, sizeRow: { product: { projectId } } },
+          select: { sizeRow: { select: { product: { select: { name: true } } } } },
+        });
+        if (used.length > 0) {
+          const products = [...new Set(used.map((l) => l.sizeRow.product.name))].sort((a, b) => a.localeCompare(b));
+          throw new AppError(409, "ingredient_in_use", "That ingredient is used in a product recipe.", { products });
+        }
         // The price history goes with it by the database cascade.
         const { count } = await tx.ingredient.deleteMany({ where: { id: ingredientId, projectId } });
         if (count === 0) throw notFound(); // someone else deleted it first

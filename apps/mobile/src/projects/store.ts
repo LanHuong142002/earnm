@@ -45,6 +45,7 @@ export type ProjectInputErrors = {
   name?: "required" | "too_long";
   description?: "too_long";
   currency?: "invalid";
+  targetMargin?: "invalid";
 };
 export type ProjectValidation =
   | { ok: true; value: { name: string; description: string; currency: Currency } }

@@ -82,6 +82,10 @@ export default function HomeStackLayout() {
       <Stack.Screen name="projects/[id]/ingredients/index" options={{ title: t("ingredients.title") }} />
       <Stack.Screen name="projects/[id]/ingredients/new" options={{ title: t("ingredients.newTitle") }} />
       <Stack.Screen name="projects/[id]/ingredients/[ingredientId]" options={{ title: t("ingredients.editTitle") }} />
+      <Stack.Screen name="projects/[id]/products/index" options={{ title: t("products.title") }} />
+      <Stack.Screen name="projects/[id]/products/new" options={{ title: t("products.newTitle") }} />
+      <Stack.Screen name="projects/[id]/products/[productId]" options={{ title: t("products.title") }} />
+      <Stack.Screen name="projects/[id]/products/extra-costs" options={{ title: t("products.extra.title") }} />
       <Stack.Screen name="projects/[id]/members" options={{ title: t("members.title") }} />
     </Stack>
   );

@@ -15,13 +15,16 @@ export class ApiError extends Error {
   readonly status: number;
   /** The server's human-readable message, when it sent one (used to find invalid fields). */
   readonly serverMessage: string | null;
+  /** Extra fields the server sent with the error (`error.details`), e.g. the products that use an ingredient. */
+  readonly details: Record<string, unknown> | null;
 
-  constructor(code: string, status = 0, serverMessage: string | null = null) {
+  constructor(code: string, status = 0, serverMessage: string | null = null, details: Record<string, unknown> | null = null) {
     super(code);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
     this.serverMessage = serverMessage;
+    this.details = details;
   }
 }
 
@@ -62,14 +65,17 @@ export async function request<T>(
       }
       let code = "internal_error";
       let serverMessage: string | null = null;
+      let details: Record<string, unknown> | null = null;
       try {
-        const data = JSON.parse(text) as { error?: { code?: unknown; message?: unknown } };
+        const data = JSON.parse(text) as { error?: { code?: unknown; message?: unknown; details?: unknown } };
+        const d = data?.error?.details;
+        if (typeof d === "object" && d !== null && !Array.isArray(d)) details = d as Record<string, unknown>;
         if (typeof data?.error?.code === "string") code = data.error.code;
         if (typeof data?.error?.message === "string") serverMessage = data.error.message;
       } catch {
         // Non-JSON error body: keep the fallback code.
       }
-      throw new ApiError(code, response.status, serverMessage);
+      throw new ApiError(code, response.status, serverMessage, details);
     }
 
     if (response.status === 204) return undefined as T;
