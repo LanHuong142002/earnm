@@ -45,5 +45,6 @@
       "decision": "Add a small ui/Segmented control",
       "why": "No segmented control exists and #13 needs it for S/M/L"
     }
-  ]
+  ],
+  "planApproval": "56389b76d9c7508b9a50fd31f879cbdb55800b949fb95b5552f1bd978d7b5a4a"
 }
