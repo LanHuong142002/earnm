@@ -7,6 +7,7 @@ const REASON_KEY: Partial<Record<IngredientRejectedReason, string>> = {
   invalid: "ingredients.reasons.invalid",
   limit: "ingredients.reasons.limit",
   nameTaken: "ingredients.reasons.nameTaken",
+  inUse: "ingredients.reasons.inUse",
   generic: "ingredients.reasons.generic",
 };
 

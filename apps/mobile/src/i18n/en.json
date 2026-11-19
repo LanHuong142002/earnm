@@ -739,6 +739,7 @@
       "projectGone": "This project no longer exists.",
       "forbidden": "You aren't allowed to do this.",
       "limit": "This project already has 300 ingredients.",
+      "inUse": "This ingredient is used in recipes: {{products}}.",
       "nameTaken": "An ingredient with this name already exists.",
       "conflict": "Couldn't create the ingredient. Please try again.",
       "invalid": "Couldn't save the ingredient. Check the fields and try again.",

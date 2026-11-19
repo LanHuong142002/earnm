@@ -124,6 +124,13 @@ describe("editing only what the person changed (R13)", () => {
     expect(planUpdate(p("1", "B"), { name: " B " })).toEqual({ ok: true, changed: { name: "B" } });
   });
 
+  it("queues a target margin of 1 to 95 and refuses one outside it", () => {
+    expect(planUpdate(p("1"), { targetMargin: 70 })).toEqual({ ok: true, changed: { targetMargin: 70 } });
+    expect(planUpdate(p("1"), { targetMargin: 0 })).toEqual({ ok: false, errors: { targetMargin: "invalid" } });
+    expect(planUpdate(p("1"), { targetMargin: 96 })).toEqual({ ok: false, errors: { targetMargin: "invalid" } });
+    expect(planUpdate(p("1"), { targetMargin: 50.5 })).toEqual({ ok: false, errors: { targetMargin: "invalid" } });
+  });
+
   it("validates the merged result", () => {
     expect(planUpdate(p("1"), { name: "  " })).toEqual({ ok: false, errors: { name: "required" } });
   });

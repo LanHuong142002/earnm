@@ -16,7 +16,7 @@ import { createQueue, type Queue } from "../sync/queue";
 import { startSyncTriggers } from "../sync/triggers";
 import { clearMemberCache, pruneProjectMembers, removeProjectMembers } from "../members/memberCache";
 import { listProjects, type Project } from "./api";
-import { cacheOwnerToSave, cacheStep, initialView, planUpdate } from "./optimistic";
+import { cacheOwnerToSave, cacheStep, initialView, planUpdate, type ProjectEdit } from "./optimistic";
 import { withJoined, withoutProject, type RejectedNotice } from "./outcomes";
 import { newProjectId } from "./newProjectId";
 import {
@@ -45,7 +45,7 @@ type ProjectsContextValue = {
   currentProjectId: string | null;
   setCurrentProject: (id: string | null) => Promise<void>;
   create: (input: ProjectInput) => Promise<MutationResult<{ id: string }>>;
-  update: (id: string, fields: Partial<ProjectInput>) => Promise<MutationResult>;
+  update: (id: string, fields: ProjectEdit) => Promise<MutationResult>;
   remove: (id: string) => Promise<void>;
   /** The person just joined `project` (the server's item): show it, make it current, then refresh in the background. */
   addJoinedProject: (project: Project) => Promise<void>;

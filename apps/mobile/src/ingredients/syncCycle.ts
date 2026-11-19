@@ -16,7 +16,7 @@ import type { Ingredient } from "./types";
 
 export type IngredientRefreshResult = "ok" | "offline" | "error" | "gone" | "skipped";
 
-export type IngredientRejectedReason = RejectedReason | "nameTaken";
+export type IngredientRejectedReason = RejectedReason | "nameTaken" | "inUse";
 
 /** A refused ingredient change, for the notice at the top of the screen. */
 export type IngredientRejectedNotice = {
@@ -24,12 +24,21 @@ export type IngredientRejectedNotice = {
   /** The ingredient's name, when the phone knows it. */
   ingredientName: string | null;
   reason: IngredientRejectedReason;
+  /** For "inUse": the names of the products whose recipes still use the ingredient. */
+  products?: string[];
 };
+
+/** The product names a 409 ingredient_in_use carries in `error.details.products`; empty when it sent none. */
+export function productsInUse(error: ApiError): string[] {
+  const list = error.details?.products;
+  return Array.isArray(list) ? list.filter((n): n is string => typeof n === "string") : [];
+}
 
 /** Why the server refused an ingredient change for good. */
 export function ingredientReasonFor(error: ApiError): IngredientRejectedReason {
   if (error.code === "ingredient_name_taken") return "nameTaken";
   if (error.code === "ingredient_limit_reached") return "limit";
+  if (error.code === "ingredient_in_use") return "inUse";
   return reasonFor(error);
 }
 
@@ -76,7 +85,13 @@ export function createIngredientSyncCycle(deps: IngredientSyncCycleDeps) {
         const projectId = String(change.data.projectId);
         const known = deps.getIngredients(projectId)?.find((i) => i.id === change.entityId)?.name;
         const name = known ?? (typeof change.data.name === "string" ? change.data.name : null);
-        deps.setNotice({ kind: change.kind, ingredientName: name, reason: ingredientReasonFor(error) });
+        const reason = ingredientReasonFor(error);
+        deps.setNotice({
+          kind: change.kind,
+          ingredientName: name,
+          reason,
+          ...(reason === "inUse" ? { products: productsInUse(error) } : {}),
+        });
         marked.add(projectId);
       });
     },

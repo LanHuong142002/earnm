@@ -10,7 +10,7 @@ import {
 
 export const PROJECT_ENTITY = "project";
 
-const FIELDS: ProjectField[] = ["name", "description", "currency"];
+const FIELDS: ProjectField[] = ["name", "description", "currency", "targetMargin"];
 
 type Deps = {
   createProject: (token: string, body: CreateProjectBody) => Promise<unknown>;

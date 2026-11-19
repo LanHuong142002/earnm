@@ -737,6 +737,7 @@
       "projectGone": "Dự án này không còn nữa.",
       "forbidden": "Bạn không có quyền thực hiện thao tác này.",
       "limit": "Dự án này đã có 300 nguyên liệu.",
+      "inUse": "Nguyên liệu này đang được dùng trong công thức: {{products}}.",
       "nameTaken": "Đã có nguyên liệu tên này.",
       "conflict": "Không tạo được nguyên liệu. Vui lòng thử lại.",
       "invalid": "Không lưu được nguyên liệu. Hãy kiểm tra lại các trường và thử lại.",

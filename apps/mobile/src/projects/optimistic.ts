@@ -2,7 +2,11 @@ import type { Change } from "../sync/queue";
 import type { Project, ProjectField } from "./api";
 import { validateProjectInput, type ProjectCache, type ProjectInput, type ProjectInputErrors } from "./store";
 
-const FIELDS: ProjectField[] = ["name", "description", "currency"];
+const FIELDS: (keyof ProjectInput)[] = ["name", "description", "currency"];
+
+/** An edit may also carry the target margin: a whole percent from 1 to 95 (the server's range). */
+export type ProjectEdit = Partial<ProjectInput> & { targetMargin?: number };
+export const isValidTargetMargin = (v: number) => Number.isInteger(v) && v >= 1 && v <= 95;
 
 /** Only the fields whose value differs from `current` (the values a form opened with, or a project). */
 export function changedFields(
@@ -23,16 +27,20 @@ export function changedFields(
  */
 export function planUpdate(
   current: Project,
-  fields: Partial<ProjectInput>,
+  fields: ProjectEdit,
 ): { ok: true; changed: Partial<Pick<Project, ProjectField>> } | { ok: false; errors: ProjectInputErrors } {
   const result = validateProjectInput({
     name: fields.name ?? current.name,
     description: fields.description ?? current.description,
     currency: fields.currency ?? current.currency,
   });
+  if (fields.targetMargin !== undefined && !isValidTargetMargin(fields.targetMargin)) {
+    return { ok: false, errors: { ...(result.ok ? {} : result.errors), targetMargin: "invalid" } };
+  }
   if (!result.ok) return result;
   const changed: Record<string, unknown> = {};
   for (const field of FIELDS) if (fields[field] !== undefined) changed[field] = result.value[field];
+  if (fields.targetMargin !== undefined) changed.targetMargin = fields.targetMargin;
   return { ok: true, changed: changed as Partial<Pick<Project, ProjectField>> };
 }
 
