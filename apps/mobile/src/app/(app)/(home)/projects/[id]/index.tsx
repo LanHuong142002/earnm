@@ -13,6 +13,7 @@ import { useGoToProjectList, useTapOnce } from "../../../../../projects/useProje
 import { projectView } from "../../../../../projects/routing";
 import { newIdeaCount } from "../../../../../ideas/counts";
 import { useIdeas } from "../../../../../ideas/IdeasProvider";
+import { useIngredients } from "../../../../../ingredients/IngredientsProvider";
 import { countNotDone } from "../../../../../tasks/counts";
 import { useTasks } from "../../../../../tasks/TasksProvider";
 import { useTheme } from "../../../../../theme/useTheme";
@@ -64,6 +65,21 @@ export default function ProjectScreen() {
     }, [ideasReady, refreshIdeas, id]),
   );
 
+  // The Nguyên liệu tile counts the ingredients, once this project's have been loaded at least once.
+  const ingredients = useIngredients();
+  const [ingredientsLoaded, setIngredientsLoaded] = useState(false);
+  const { ready: ingredientsReady, refresh: refreshIngredients } = ingredients;
+  useFocusEffect(
+    useCallback(() => {
+      if (!ingredientsReady || !id) return;
+      void refreshIngredients(id)
+        .then((result) => {
+          if (result === "ok") setIngredientsLoaded(true);
+        })
+        .catch(() => undefined);
+    }, [ingredientsReady, refreshIngredients, id]),
+  );
+
   // Unknown or vanished project: back to the list (which shows the notice). Only while this
   // screen is the one in front, so a delete started on Edit isn't raced from underneath.
   useEffect(() => {
@@ -91,6 +107,7 @@ export default function ProjectScreen() {
 
   const tasks = tasksFor(project.id);
   const projectIdeas = ideasReady ? ideas.ideasFor(project.id) : [];
+  const projectIngredients = ingredientsReady ? ingredients.ingredientsFor(project.id) : [];
 
   return (
     <Screen edges={[]}>
@@ -139,13 +156,28 @@ export default function ProjectScreen() {
             />
           </View>
           <View style={{ flexDirection: "row", gap: spacing[2] }}>
+            <AreaTile
+              shape="wide"
+              icon="nutrition-outline"
+              label={t("ingredients.title")}
+              caption={
+                projectIngredients.length > 0 || ingredientsLoaded
+                  ? t("ingredients.count", { count: projectIngredients.length })
+                  : undefined
+              }
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/ingredients", params: { id: project.id } }))}
+            />
             <AreaTile shape="wide" icon="cube-outline" label={t("projects.areaProducts")} comingSoon={t("home.comingSoon")} />
+          </View>
+          <View style={{ flexDirection: "row", gap: spacing[2] }}>
             <AreaTile
               shape="wide"
               icon="receipt-outline"
               label={t("projects.areaFixedCosts")}
               comingSoon={t("home.comingSoon")}
             />
+            {/* Keeps this tile the width of the ones above. */}
+            <View style={{ flex: 1 }} />
           </View>
         </View>
       </Enter>
