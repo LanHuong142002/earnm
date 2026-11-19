@@ -1,0 +1,44 @@
+{
+  "mode": "hands-off",
+  "ticket": "13",
+  "intake": {
+    "ticket": "13",
+    "accepted": true
+  },
+  "tier": "feature",
+  "tierReason": "Products with recipe costs, selling price and profit are new persisted money data; fits one cycle after #12",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "d50cb610d8f4925b2ec8924053d9d0a55e7919f6a101272d38170c5e1d6140d7",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Costs are computed on the phone from current ingredient prices; only inputs are stored",
+      "why": "A price change then needs no backfill and R12 holds automatically"
+    },
+    {
+      "id": 2,
+      "decision": "Default lines start ticked with amount 1 for portion and 0 for weight/volume",
+      "why": "A default weight ingredient has no sensible amount; 0 makes the member fill it in"
+    },
+    {
+      "id": 3,
+      "decision": "Project extra costs are copied into a size; later changes don't touch existing sizes",
+      "why": "Approved assumption 8; per-size amounts differ (S/M/L ice)"
+    },
+    {
+      "id": 4,
+      "decision": "Hint rounds up to 1.000 VND or 0,10 USD; target margin 1-95 per project, default 65",
+      "why": "Approved assumption 9; USD needs its own step"
+    }
+  ]
+}
