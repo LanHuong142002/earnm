@@ -230,5 +230,7 @@
       "what": "#13 migration on DB with #12 data (AC 23)",
       "steps": "From apps/api run npm run db:deploy on the dev DB after #12's migration has data. Expected: succeeds; projects get targetMargin 65."
     }
-  ]
+  ],
+  "shipApproval": "088753777f1900c102e5dd88b8d30b17bba230b14dee420914c19b7e9c2f4ffe",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/49"
 }
