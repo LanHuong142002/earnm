@@ -22,6 +22,7 @@ export function ProjectForm({
   submitLabel,
   onSubmit,
   extra,
+  currencyLocked = false,
 }: {
   initial: ProjectInput;
   submitLabel: string;
@@ -29,6 +30,8 @@ export function ProjectForm({
   onSubmit: (fields: ProjectInput, opened: ProjectInput) => Promise<MutationResult<object>>;
   /** Set-apart section at the end of the scrolling form (not the footer), e.g. a delete button. */
   extra?: ReactNode;
+  /** Prices are stored in the project's currency, so it can't change once there are ingredients. */
+  currencyLocked?: boolean;
 }) {
   const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
@@ -101,11 +104,15 @@ export function ProjectForm({
                     label={t(`projects.currencies.${code}`)}
                     selected={currency === code}
                     divider={i > 0}
+                    disabled={currencyLocked}
                     onPress={() => setCurrency(code)}
                   />
                 ))}
               </View>
             </Card>
+            {currencyLocked ? (
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>{t("projects.currencyLocked")}</Text>
+            ) : null}
             {currencyError ? <ErrorText message={currencyError} /> : null}
           </View>
           <TextField

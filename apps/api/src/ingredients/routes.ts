@@ -205,24 +205,29 @@ export function createIngredientsRouter(deps: { prisma: PrismaClient; now: () =>
           await assertPriceInRange(tx, projectId, body.purchase.price);
           // Field times start at the epoch so a queued edit made after the create always wins.
           const epoch = new Date(0);
-          await tx.ingredient.create({
-            data: {
-              id: body.id,
-              projectId,
-              name: body.name,
-              nameKey: key,
-              mode: body.mode,
-              quantity: body.purchase.quantity,
-              unit: body.purchase.unit,
-              price: body.purchase.price,
-              isDefault: body.isDefault,
-              nameEditedAt: epoch,
-              modeEditedAt: epoch,
-              purchaseEditedAt: epoch,
-              defaultEditedAt: epoch,
-              createdAt: now(),
-            },
-          });
+          try {
+            await tx.ingredient.create({
+              data: {
+                id: body.id,
+                projectId,
+                name: body.name,
+                nameKey: key,
+                mode: body.mode,
+                quantity: body.purchase.quantity,
+                unit: body.purchase.unit,
+                price: body.purchase.price,
+                isDefault: body.isDefault,
+                nameEditedAt: epoch,
+                modeEditedAt: epoch,
+                purchaseEditedAt: epoch,
+                defaultEditedAt: epoch,
+                createdAt: now(),
+              },
+            });
+          } catch (err) {
+            if (isUniqueViolation(err)) throw nameTaken();
+            throw err;
+          }
           await recordPurchase(tx, body.id, userId, body.purchase);
           const row = await tx.ingredient.findUniqueOrThrow({
             where: { id: body.id },
@@ -302,6 +307,13 @@ export function createIngredientsRouter(deps: { prisma: PrismaClient; now: () =>
           }
           await tx.ingredient.updateMany({ where: scope, data } as Prisma.IngredientUpdateManyArgs);
         });
+
+        // Mode and purchase are separate fields with separate times, so one can win and the other lose.
+        // If that leaves a unit that doesn't fit the mode, refuse the whole edit (the transaction rolls back).
+        const after = await tx.ingredient.findFirst({ where: { id: ingredientId, projectId } });
+        if (after && !unitFits(after.mode, after.unit)) {
+          throw new AppError(409, "ingredient_mode_conflict", "That change no longer fits the ingredient's current unit.");
+        }
       });
 
       // Always answer with the current state, even when every change lost.

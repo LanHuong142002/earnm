@@ -42,6 +42,8 @@ export function validateIngredient(
   if (p === null || !Number.isFinite(p)) errors.price = key("priceRequired");
   else if (p < 0) errors.price = key("priceNegative");
   else if (p > PRICE_MAX[currency]) errors.price = key("priceTooLarge");
+  // Prices are whole minor units (dong, cents); a fraction means the person typed more decimals than the currency has.
+  else if (!Number.isInteger(p)) errors.price = key("priceDecimals");
 
   return errors;
 }

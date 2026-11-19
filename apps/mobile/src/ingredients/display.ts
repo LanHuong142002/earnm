@@ -55,7 +55,11 @@ export function parsePriceText(text: string, currency: Currency): number | null 
   }
   const clean = text.trim().replace(",", ".").replace(/[^\d.]/g, "");
   if (!/^(\d+\.?\d*|\.\d+)$/.test(clean)) return null;
-  return Math.round(Number(clean) * 100);
+  // Trailing zeros are not decimals ("18.100"). A real third decimal stays a fraction of a cent, not rounded away,
+  // so validation can refuse it instead of silently saving a different price.
+  const decimals = (clean.split(".")[1] ?? "").replace(/0+$/, "").length;
+  const cents = Number(clean) * 100;
+  return decimals > 2 ? cents : Math.round(cents);
 }
 
 /** What the price field shows while typing: VND gets dots between thousands, USD stays as typed. */

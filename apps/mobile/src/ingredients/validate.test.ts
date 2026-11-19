@@ -50,4 +50,10 @@ describe("validateIngredient", () => {
     expect(run({ price: 10000001 }, [], "USD").price).toBe("ingredients.errors.priceTooLarge");
     expect(run({ price: 10000000 }, [], "USD").price).toBeUndefined();
   });
+
+  it("refuses a price that is not whole minor units", () => {
+    expect(run({ price: 100.49999999999999 }, [], "USD").price).toBe("ingredients.errors.priceDecimals");
+    expect(run({ price: 1810 }, [], "USD").price).toBeUndefined();
+    expect(run({ price: 1.5 }).price).toBe("ingredients.errors.priceDecimals");
+  });
 });

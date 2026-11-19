@@ -90,6 +90,7 @@
       "VND": "VND (đồng Việt Nam)",
       "USD": "USD (đô la Mỹ)"
     },
+    "currencyLocked": "Đã có nguyên liệu nên không đổi được tiền tệ.",
     "currencyLine": "Tiền tệ: {{currency}}",
     "details": "Chi tiết",
     "noDescription": "Chưa có mô tả.",
@@ -664,7 +665,8 @@
       "quantityTooLarge": "Số lượng quá lớn",
       "priceRequired": "Nhập giá đã mua",
       "priceNegative": "Giá không được âm",
-      "priceTooLarge": "Giá quá lớn"
+      "priceTooLarge": "Giá quá lớn",
+      "priceDecimals": "Tối đa 2 số lẻ"
     },
     "newTitle": "Nguyên liệu mới",
     "editTitle": "Sửa nguyên liệu",

@@ -91,6 +91,7 @@
       "VND": "VND (Vietnamese đồng)",
       "USD": "USD (US dollar)"
     },
+    "currencyLocked": "Currency can't change once the project has ingredients.",
     "currencyLine": "Currency: {{currency}}",
     "details": "Details",
     "noDescription": "No description.",
@@ -666,7 +667,8 @@
       "quantityTooLarge": "Quantity is too large",
       "priceRequired": "Enter the price you paid",
       "priceNegative": "Price can't be negative",
-      "priceTooLarge": "Price is too large"
+      "priceTooLarge": "Price is too large",
+      "priceDecimals": "At most 2 decimals"
     },
     "newTitle": "New ingredient",
     "editTitle": "Edit ingredient",

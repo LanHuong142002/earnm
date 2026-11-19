@@ -127,6 +127,7 @@ describe("ingredientReasonFor", () => {
     expect(ingredientReasonFor(new ApiError("ingredient_name_taken", 409))).toBe("nameTaken");
     expect(ingredientReasonFor(new ApiError("ingredient_limit_reached", 409))).toBe("limit");
     expect(ingredientReasonFor(new ApiError("id_conflict", 409))).toBe("conflict");
+    expect(ingredientReasonFor(new ApiError("ingredient_mode_conflict", 409))).toBe("conflict");
     expect(ingredientReasonFor(new ApiError("validation_failed", 400))).toBe("invalid");
     expect(ingredientReasonFor(new ApiError("forbidden", 403))).toBe("forbidden");
   });

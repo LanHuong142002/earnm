@@ -297,6 +297,39 @@ describe("/projects/:projectId/ingredients", () => {
       expect(names).toEqual(["Hai", "Một"]);
     });
 
+    it("rolls back with 409 ingredient_mode_conflict when only the newer mode wins and the unit no longer fits", async () => {
+      const { a, p } = await world();
+      const id = randomUUID();
+      await create(a, p, body({ id }));
+      // The purchase was edited at t2 by another phone; this older edit changes mode and purchase at t1.
+      await prisma.ingredient.update({ where: { id }, data: { purchaseEditedAt: new Date(clock.now().getTime() - 1000) } });
+      const res = await patch(a, p, id, {
+        mode: { value: "volume", editedAt: iso(-5000) },
+        purchase: { value: purchase({ quantity: 1, unit: "l" }), editedAt: iso(-5000) },
+        name: { value: "Renamed", editedAt: iso(-5000) },
+      });
+      expectError(res, 409, "ingredient_mode_conflict");
+      const row = await prisma.ingredient.findUniqueOrThrow({ where: { id } });
+      expect(row).toMatchObject({ mode: "weight", unit: "g", name: "Bột mì" });
+      expect(await rows(id)).toHaveLength(1);
+    });
+
+    it("rolls back with 409 ingredient_mode_conflict when only the newer purchase wins and the mode no longer fits", async () => {
+      const { a, p } = await world();
+      const id = randomUUID();
+      await create(a, p, body({ id }));
+      // The mode was edited at t2 by another phone; this older edit changes mode and purchase at t1.
+      await prisma.ingredient.update({ where: { id }, data: { modeEditedAt: new Date(clock.now().getTime() - 1000) } });
+      const res = await patch(a, p, id, {
+        mode: { value: "volume", editedAt: iso(-5000) },
+        purchase: { value: purchase({ quantity: 1, unit: "l" }), editedAt: iso(-5000) },
+      });
+      expectError(res, 409, "ingredient_mode_conflict");
+      const row = await prisma.ingredient.findUniqueOrThrow({ where: { id } });
+      expect(row).toMatchObject({ mode: "weight", unit: "g" });
+      expect(await rows(id)).toHaveLength(1);
+    });
+
     it("refuses bad patches: empty, unknown field, unit not fitting the mode, price over the maximum", async () => {
       const { a, p } = await world();
       const id = randomUUID();

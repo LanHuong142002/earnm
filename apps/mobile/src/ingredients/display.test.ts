@@ -64,6 +64,10 @@ describe("price text", () => {
 
   it("reads USD as dollars and returns cents", () => {
     expect(parsePriceText("12,5", "USD")).toBe(1250);
+    expect(parsePriceText("18.10", "USD")).toBe(1810);
+    expect(parsePriceText("18.1000", "USD")).toBe(1810);
+    // More than 2 decimals is not rounded here, so validation can refuse it.
+    expect(Number.isInteger(parsePriceText("1.005", "USD"))).toBe(false);
     expect(parsePriceText("12.34", "USD")).toBe(1234);
     expect(parsePriceText("0.1", "USD")).toBe(10);
     expect(parsePriceText("", "USD")).toBeNull();
