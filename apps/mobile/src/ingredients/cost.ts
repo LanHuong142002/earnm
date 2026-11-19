@@ -30,6 +30,6 @@ export function per10(price: number, base: number): number | null {
   return usable(price, base) ? Math.round((price * 10) / base) : null;
 }
 
-export function totalSpent(ingredients: ReadonlyArray<{ price: number }>): number {
+export function totalSpent(ingredients: readonly { price: number }[]): number {
   return ingredients.reduce((sum, i) => sum + i.price, 0);
 }
