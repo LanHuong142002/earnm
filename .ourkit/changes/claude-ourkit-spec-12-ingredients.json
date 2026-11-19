@@ -255,5 +255,7 @@
       "what": "#12 migration on existing data (AC 19)",
       "steps": "From apps/api run npm run db:deploy against the dev database (it has real projects). Expected: succeeds, existing projects/tasks/ideas unchanged, Ingredient tables created."
     }
-  ]
+  ],
+  "shipApproval": "84795885be41680fe464800586ac86dee89789babff2dd29d3f3b7653c14ef26",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/48"
 }
