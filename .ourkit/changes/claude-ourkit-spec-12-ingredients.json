@@ -1,0 +1,49 @@
+{
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "12",
+    "accepted": true
+  },
+  "ticket": "12",
+  "tier": "feature",
+  "tierReason": "Ingredients are new persisted data with money values (purchase price, unit cost); fits one cycle as an Epic-split Feature",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "d50cb610d8f4925b2ec8924053d9d0a55e7919f6a101272d38170c5e1d6140d7",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Money is stored as integer minor units (VND đồng, USD cents) and quantities in base units g/ml/portion",
+      "why": "No money columns exist yet; integers avoid float rounding and match formatMoney"
+    },
+    {
+      "id": 2,
+      "decision": "Blocking delete of an ingredient used in a recipe moves to #13",
+      "why": "#12 has no recipes, so the rule can only be tested once products exist"
+    },
+    {
+      "id": 3,
+      "decision": "Limit 300 ingredients per project, name max 60 and unique per project",
+      "why": "Matches existing per-project limits pattern (ideas 500) and avoids confusing duplicates in recipe pickers"
+    },
+    {
+      "id": 4,
+      "decision": "Purchase (quantity+unit+price) is one last-write-wins field; a history row is written only when it wins",
+      "why": "Keeps history consistent with offline retries and stale edits"
+    },
+    {
+      "id": 5,
+      "decision": "Add a small ui/Segmented control",
+      "why": "No segmented control exists and #13 needs it for S/M/L"
+    }
+  ]
+}
