@@ -91,7 +91,7 @@
       "VND": "VND (Vietnamese đồng)",
       "USD": "USD (US dollar)"
     },
-    "currencyLocked": "Currency can't change once the project has ingredients.",
+    "currencyLocked": "Currency can't change once the project has ingredients, costs or prices.",
     "currencyLine": "Currency: {{currency}}",
     "details": "Details",
     "noDescription": "No description.",

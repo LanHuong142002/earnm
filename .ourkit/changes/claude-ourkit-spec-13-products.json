@@ -39,6 +39,21 @@
       "id": 4,
       "decision": "Hint rounds up to 1.000 VND or 0,10 USD; target margin 1-95 per project, default 65",
       "why": "Approved assumption 9; USD needs its own step"
+    },
+    {
+      "id": 5,
+      "decision": "Default recipe lines are tappable to set their amount and tickable",
+      "why": "Weight/volume defaults start at 0 and must be filled in"
+    },
+    {
+      "id": 6,
+      "decision": "Non-default extra costs can be removed from a size",
+      "why": "Spec silent; mirrors non-default ingredient lines"
+    },
+    {
+      "id": 7,
+      "decision": "Ingredient delete is checked locally first and shows the 1g dialog at once; server 409 remains the guard",
+      "why": "Immediate feedback offline"
     }
   ],
   "planApproval": "e85704cf9e41062ea209b04c9bcae9f2c257149de5b36480c2c3d0707d8fa7ff",
@@ -51,6 +66,38 @@
     },
     "3": {
       "status": "done"
+    },
+    "4": {
+      "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "B1 money: projects/routes.ts ~L172-182 currency lock only counts ingredients; extra costs, size extras and selling prices are also minor units, so VND 30.000 price becomes 300 USD after a switch; also refuse when any ExtraCost, SizeExtra or non-null sellingPrice exists, with a route test",
+        "resolved": false,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "N1 api: products/routes.ts ~L190 and extraCosts POST return 409 id_conflict for another project's id (deliberate, as ideas/ingredients)",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "N2 data: editSize/prepareLines replace line and extra rows on each winning write; foreign extra id gives 409 id_conflict; acceptable",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "N3 api: products/routes.ts L361-366 price/lines validated before LWW, so a stale losing edit can be refused (400/409) instead of ignored; phone shows rejected notice",
+        "resolved": false
+      }
+    ]
   }
 }

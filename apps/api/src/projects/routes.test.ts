@@ -252,6 +252,52 @@ describe("/projects", () => {
       expect((await patch(o, id, { currency: { value: "USD", editedAt: iso(-60_000) } })).body.currency).toBe("VND");
     });
 
+    describe("currency lock covers product money", () => {
+      const tryUsd = async (o: Awaited<ReturnType<typeof user>>, id: string) => {
+        clock.advanceMs(1000);
+        return patch(o, id, { currency: { value: "USD", editedAt: iso() } });
+      };
+      const makeProduct = async (projectId: string, sellingPrice: number | null) => {
+        const productId = randomUUID();
+        await prisma.product.create({ data: { id: productId, projectId, name: "Cà phê", nameKey: "ca phe" } });
+        const sizeId = randomUUID();
+        await prisma.productSizeRow.create({ data: { id: sizeId, productId, size: "M", sellingPrice } });
+        return sizeId;
+      };
+
+      it("refuses with 409 when the project only has an extra cost", async () => {
+        const o = await user();
+        const id = await seed(o);
+        await prisma.extraCost.create({ data: { id: randomUUID(), projectId: id, name: "Ly", amount: 500 } });
+        expectError(await tryUsd(o, id), 409, "currency_locked");
+        expect((await prisma.project.findUniqueOrThrow({ where: { id } })).currency).toBe("VND");
+      });
+
+      it("refuses with 409 when the project only has a priced product", async () => {
+        const o = await user();
+        const id = await seed(o);
+        await makeProduct(id, 25000);
+        expectError(await tryUsd(o, id), 409, "currency_locked");
+      });
+
+      it("refuses with 409 when a product size only has an extra line", async () => {
+        const o = await user();
+        const id = await seed(o);
+        const sizeId = await makeProduct(id, null);
+        await prisma.sizeExtra.create({ data: { id: randomUUID(), sizeId, name: "Ly", amount: 500 } });
+        expectError(await tryUsd(o, id), 409, "currency_locked");
+      });
+
+      it("allows the change for an unpriced product with no extras", async () => {
+        const o = await user();
+        const id = await seed(o);
+        await makeProduct(id, null);
+        const res = await tryUsd(o, id);
+        expect(res.status).toBe(200);
+        expect(res.body.currency).toBe("USD");
+      });
+    });
+
     it("changing currency leaves other values unchanged (AC8)", async () => {
       const o = await user();
       const id = (await create(o, { name: "Keep", description: "me" })).body.id as string;

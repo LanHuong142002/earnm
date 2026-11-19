@@ -169,17 +169,26 @@ export function createProjectsRouter(deps: {
         if (!(await lockProject(tx, id))) throw notFound();
         // The caller may have been demoted or removed since the check above.
         await check(tx);
-        // Ingredient prices are minor units of this currency, so it can't change once there are any.
+        // Ingredient prices, extra costs, extra lines and selling prices are all minor units of this
+        // currency, so it can't change once the project has any of them.
         // Only a change that would really win (different value, newer than the stored one) is refused.
         if (fields.currency) {
           const stored = await tx.project.findUniqueOrThrow({ where: { id } });
           const at = Math.min(fields.currency.editedAt.getTime(), now().getTime());
-          if (
-            fields.currency.value !== stored.currency &&
-            at > stored.currencyEditedAt.getTime() &&
-            (await tx.ingredient.count({ where: { projectId: id } })) > 0
-          ) {
-            throw new AppError(409, "currency_locked", "The currency can't change once the project has ingredients.");
+          if (fields.currency.value !== stored.currency && at > stored.currencyEditedAt.getTime()) {
+            const [ingredients, extraCosts, sizeExtras, pricedSizes] = await Promise.all([
+              tx.ingredient.count({ where: { projectId: id } }),
+              tx.extraCost.count({ where: { projectId: id } }),
+              tx.sizeExtra.count({ where: { sizeRow: { product: { projectId: id } } } }),
+              tx.productSizeRow.count({ where: { sellingPrice: { not: null }, product: { projectId: id } } }),
+            ]);
+            if (ingredients + extraCosts + sizeExtras + pricedSizes > 0) {
+              throw new AppError(
+                409,
+                "currency_locked",
+                "The currency can't change once the project has ingredients, costs or prices.",
+              );
+            }
           }
         }
         await applyLastWriteWins(fields, now(), (where, data) =>

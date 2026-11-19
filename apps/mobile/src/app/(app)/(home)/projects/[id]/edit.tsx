@@ -4,6 +4,7 @@ import { Alert, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useIngredients } from "../../../../../ingredients/IngredientsProvider";
+import { useProducts } from "../../../../../products/ProductsProvider";
 import { changedFields } from "../../../../../projects/optimistic";
 import { ProjectForm } from "../../../../../projects/ProjectForm";
 import { useGoToProjectList } from "../../../../../projects/useProjectNav";
@@ -21,6 +22,7 @@ export default function EditProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { status, projects, currentProjectId, update, remove, setCurrentProject } = useProjects();
   const { ingredientsFor } = useIngredients();
+  const { productsFor, extraCostsFor } = useProducts();
   const [deleting, setDeleting] = useState(false);
   const focused = useIsFocused();
   const project = projects.find((p) => p.id === id) ?? null;
@@ -91,7 +93,12 @@ export default function EditProjectScreen() {
         currency: project.currency,
       }}
       submitLabel={t("projects.saveButton")}
-      currencyLocked={ingredientsFor(project.id).length > 0}
+      currencyLocked={
+        // Ingredient prices, extra costs and selling prices are all minor units of the currency.
+        ingredientsFor(project.id).length > 0 ||
+        extraCostsFor(project.id).length > 0 ||
+        productsFor(project.id).some((p) => p.sizes.some((s) => s.sellingPrice !== null || s.extras.length > 0))
+      }
       onSubmit={async (fields, opened) => {
         // Only what the person changed since the form opened; the rest may have been refreshed meanwhile.
         const result = await update(project.id, changedFields(opened, fields));

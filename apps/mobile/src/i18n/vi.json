@@ -90,7 +90,7 @@
       "VND": "VND (đồng Việt Nam)",
       "USD": "USD (đô la Mỹ)"
     },
-    "currencyLocked": "Đã có nguyên liệu nên không đổi được tiền tệ.",
+    "currencyLocked": "Đã có nguyên liệu, chi phí hoặc giá bán nên không đổi được tiền tệ.",
     "currencyLine": "Tiền tệ: {{currency}}",
     "details": "Chi tiết",
     "noDescription": "Chưa có mô tả.",
