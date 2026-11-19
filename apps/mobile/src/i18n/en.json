@@ -655,5 +655,18 @@
   },
   "profile": {
     "title": "Your profile"
+  },
+  "ingredients": {
+    "title": "Ingredients",
+    "errors": {
+      "nameEmpty": "Enter an ingredient name",
+      "nameTooLong": "Name can be at most 60 characters",
+      "nameDuplicate": "This ingredient already exists",
+      "quantityPositive": "Enter a number greater than 0",
+      "quantityTooLarge": "Quantity is too large",
+      "priceRequired": "Enter the price you paid",
+      "priceNegative": "Price can't be negative",
+      "priceTooLarge": "Price is too large"
+    }
   }
 }

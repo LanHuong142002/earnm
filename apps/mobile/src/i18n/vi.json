@@ -653,5 +653,18 @@
   },
   "profile": {
     "title": "Hồ sơ của bạn"
+  },
+  "ingredients": {
+    "title": "Nguyên liệu",
+    "errors": {
+      "nameEmpty": "Nhập tên nguyên liệu",
+      "nameTooLong": "Tên tối đa 60 ký tự",
+      "nameDuplicate": "Nguyên liệu này đã có",
+      "quantityPositive": "Nhập số lớn hơn 0",
+      "quantityTooLarge": "Số lượng quá lớn",
+      "priceRequired": "Nhập giá đã mua",
+      "priceNegative": "Giá không được âm",
+      "priceTooLarge": "Giá quá lớn"
+    }
   }
 }
