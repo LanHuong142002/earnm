@@ -79,6 +79,9 @@ export default function HomeStackLayout() {
         name="projects/[id]/ideas/[ideaId]/photos"
         options={{ presentation: "fullScreenModal", headerShown: false, animation: "fade", title: t("tasks.photos.viewerTitle") }}
       />
+      <Stack.Screen name="projects/[id]/ingredients/index" options={{ title: t("ingredients.title") }} />
+      <Stack.Screen name="projects/[id]/ingredients/new" options={{ title: t("ingredients.newTitle") }} />
+      <Stack.Screen name="projects/[id]/ingredients/[ingredientId]" options={{ title: t("ingredients.editTitle") }} />
       <Stack.Screen name="projects/[id]/members" options={{ title: t("members.title") }} />
     </Stack>
   );

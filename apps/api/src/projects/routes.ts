@@ -157,6 +157,19 @@ export function createProjectsRouter(deps: {
         if (!(await lockProject(tx, id))) throw notFound();
         // The caller may have been demoted or removed since the check above.
         await requireOwner(tx, id, userId);
+        // Ingredient prices are minor units of this currency, so it can't change once there are any.
+        // Only a change that would really win (different value, newer than the stored one) is refused.
+        if (fields.currency) {
+          const stored = await tx.project.findUniqueOrThrow({ where: { id } });
+          const at = Math.min(fields.currency.editedAt.getTime(), now().getTime());
+          if (
+            fields.currency.value !== stored.currency &&
+            at > stored.currencyEditedAt.getTime() &&
+            (await tx.ingredient.count({ where: { projectId: id } })) > 0
+          ) {
+            throw new AppError(409, "currency_locked", "The currency can't change once the project has ingredients.");
+          }
+        }
         await applyLastWriteWins(fields, now(), (where, data) =>
           tx.project.updateMany({ where: { id, ...where }, data } as Prisma.ProjectUpdateManyArgs),
         );

@@ -1,0 +1,261 @@
+{
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "12",
+    "accepted": true
+  },
+  "ticket": "12",
+  "tier": "feature",
+  "tierReason": "Ingredients are new persisted data with money values (purchase price, unit cost); fits one cycle as an Epic-split Feature",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "d50cb610d8f4925b2ec8924053d9d0a55e7919f6a101272d38170c5e1d6140d7",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Money is stored as integer minor units (VND đồng, USD cents) and quantities in base units g/ml/portion",
+      "why": "No money columns exist yet; integers avoid float rounding and match formatMoney"
+    },
+    {
+      "id": 2,
+      "decision": "Blocking delete of an ingredient used in a recipe moves to #13",
+      "why": "#12 has no recipes, so the rule can only be tested once products exist"
+    },
+    {
+      "id": 3,
+      "decision": "Limit 300 ingredients per project, name max 60 and unique per project",
+      "why": "Matches existing per-project limits pattern (ideas 500) and avoids confusing duplicates in recipe pickers"
+    },
+    {
+      "id": 4,
+      "decision": "Purchase (quantity+unit+price) is one last-write-wins field; a history row is written only when it wins",
+      "why": "Keeps history consistent with offline retries and stale edits"
+    },
+    {
+      "id": 5,
+      "decision": "Add a small ui/Segmented control",
+      "why": "No segmented control exists and #13 needs it for S/M/L"
+    },
+    {
+      "id": 6,
+      "decision": "Ingredient total card is flat accentStrong instead of a gradient",
+      "why": "No gradient library installed; DESIGN.md marks the gradient optional and the banner already uses flat accentStrong"
+    },
+    {
+      "id": 7,
+      "decision": "Lưu on ingredient edit is a bottom button like the ideas form, not a header action",
+      "why": "Keeps forms consistent across the app"
+    },
+    {
+      "id": 8,
+      "decision": "Currency of a project is locked once it has ingredients (409 currency_locked)",
+      "why": "Prices are minor units of the project currency; a switch would silently misread them. Asked user to confirm in Question 1"
+    }
+  ],
+  "planApproval": "56389b76d9c7508b9a50fd31f879cbdb55800b949fb95b5552f1bd978d7b5a4a",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "B1 data: routes.ts L253-304 mode and purchase are resolved by LWW separately, so a stale mode with a newer purchase (or vice versa) stores mode=volume unit=g; add a post-LWW fit check that rolls back (409) and an API test for mixed stale/new",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "B2 money: Ingredient/IngredientPrice.price are minor units of Project.currency, but projects/routes.ts L39 still lets currency change, silently reinterpreting every price 100x; refuse currency change while the project has ingredients",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "N1 data: routes.ts L262-276 a taken name in a PATCH rolls back the other fields of the same queued edit; phone shows the rejected notice",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "N2 money: display.ts L56-58 USD input with more than 2 decimals is silently rounded (1.005 -> 100 cents); refuse >2 decimals in validate.ts",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "N3 api: routes.ts L186-188 POST with an id from another project returns 409 id_conflict (same as ideas; UUIDs make it impractical to probe)",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "N4 data: routes.ts L41-48 server trusts purchase.quantity is base units; document the contract",
+        "resolved": false
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "N5 api: routes.ts ~L202 POST name check has no unique-violation catch; a race past the project lock would give 500 instead of 409 ingredient_name_taken",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "R2-N1 routes.ts:314 ingredient_mode_conflict 409 must be terminal on the phone; verified: 409 maps to rejected reason 'conflict' (syncCycle.test.ts), change dropped and list refreshed",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "R2-N3 projects/routes.ts:164 currency check and LWW read now() separately; negligible ms divergence",
+        "resolved": false
+      }
+    ],
+    "reviewed": "84795885be41680fe464800586ac86dee89789babff2dd29d3f3b7653c14ef26"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "Có nên khoá đổi tiền tệ (VND↔USD) của dự án khi đã có nguyên liệu không? Giá lưu theo đơn vị nhỏ nhất của tiền tệ dự án, đổi tiền tệ sẽ làm mọi giá sai 100 lần. Mình đã làm: chặn đổi khi dự án có nguyên liệu (báo lỗi rõ ràng). Khuyến nghị: giữ như vậy.",
+      "answer": null
+    }
+  ],
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "API test: a member creates an ingredient in each mode; empty or 61-character name, duplicate name (case-insensitive), quantity 0, negative price and an unknown mode are refused."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "Unit test: kg→g and l→ml conversion; base quantity with 3 decimals."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "API test: price stored as an integer; above-maximum values refused. Unit test: VND and USD minor units."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "Unit test: unit-cost formatting per 1 (2 decimals) and per 10 (whole), VND and USD, e.g. 24.000 ₫ / 380 g → 63,16 ₫/g and 632 ₫/10 g."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "API test: another member edits and deletes; deleting the project deletes its ingredients and history."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "API test: the 301st ingredient is refused with `ingredient_limit_reached`."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "API test: create records one history entry; changing price adds one; renaming adds none."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "API test: after 7 purchase changes only the latest 5 entries remain, newest first."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "API test: older edits don't overwrite newer per field and a stale purchase adds no entry; same id twice gives one ingredient; non-member `404`; signed out `401`."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "API/mobile vitest passed (662 API, 1034 mobile); QA subagent read the named tests",
+        "criterion": "Unit test: total sums the current price of each ingredient."
+      },
+      "11": {
+        "result": "manual",
+        "evidence": "Phone only: project tile 'n loại', Sản phẩm still Sắp có (mockup 1a); #47 section F",
+        "criterion": "By hand, mockup 1a: tile with count; Sản phẩm still \"Sắp có\"."
+      },
+      "12": {
+        "result": "manual",
+        "evidence": "Unit test sort passed; layout vs mockup 1b on phone (#47 F)",
+        "criterion": "Unit test: A–Z Vietnamese sort. By hand, mockup 1b: hero and row layout."
+      },
+      "13": {
+        "result": "manual",
+        "evidence": "Form state unit tests passed; per-mode fields vs mockups 1c-1d on phone (#47 F)",
+        "criterion": "By hand, mockups 1c–1d: fields per mode, live result, default switch."
+      },
+      "14": {
+        "result": "manual",
+        "evidence": "validate.test passed; error placement vs mockup 1e on phone (#47 F)",
+        "criterion": "Unit test: form validation messages. By hand, mockup 1e."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "History collapsed, 'đang dùng', delete confirm vs mockup 1f on phone (#47 F)",
+        "criterion": "By hand, mockup 1f: history section collapsed by default, current entry marked; delete confirmation."
+      },
+      "16": {
+        "result": "manual",
+        "evidence": "Empty/loading/error vs mockups 1h-1i on phone (#47 F)",
+        "criterion": "By hand, mockups 1h–1i."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "Merge unit test passed; offline Chờ lưu and sync on phone (#47 F)",
+        "criterion": "Unit test: queued ingredient changes merge per field. By hand: offline create shows \"Chờ lưu\" and syncs after reconnect."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Dark mode, EN, VoiceOver on phone (#47 F)",
+        "criterion": "By hand: dark mode, EN text, VoiceOver row labels."
+      },
+      "19": {
+        "result": "manual",
+        "evidence": "Migration applied on test DB from empty; additive schema test passed; deploy on DB with existing data not run",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing data."
+      }
+    },
+    "checked": "84795885be41680fe464800586ac86dee89789babff2dd29d3f3b7653c14ef26"
+  },
+  "testHandoff": [
+    {
+      "what": "#12 screens on a real iPhone (AC 11-18)",
+      "steps": "Follow ticket #47 section F (comment added 2026-11-19), with mockup .ourkit/mockups/claude-ourkit-spec-12-ingredients.html frames 1a-1i. Start with npm run db:deploy on the dev DB, then npm run dev:phone from this branch. Expected: each item matches its frame."
+    },
+    {
+      "what": "#12 migration on existing data (AC 19)",
+      "steps": "From apps/api run npm run db:deploy against the dev database (it has real projects). Expected: succeeds, existing projects/tasks/ideas unchanged, Ingredient tables created."
+    }
+  ],
+  "shipApproval": "84795885be41680fe464800586ac86dee89789babff2dd29d3f3b7653c14ef26",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/48"
+}

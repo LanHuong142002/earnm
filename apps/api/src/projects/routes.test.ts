@@ -227,6 +227,29 @@ describe("/projects", () => {
       expect(row.name).toBe("P");
     });
 
+    it("refuses a currency change while the project has ingredients, with 409 currency_locked", async () => {
+      const o = await user();
+      const id = await seed(o);
+      await prisma.ingredient.create({
+        data: {
+          id: randomUUID(), projectId: id, name: "Bột", nameKey: "bot", mode: "weight", quantity: 1, unit: "kg", price: 100,
+          nameEditedAt: new Date(0), modeEditedAt: new Date(0), purchaseEditedAt: new Date(0), defaultEditedAt: new Date(0),
+        },
+      });
+      clock.advanceMs(1000);
+      const res = await patch(o, id, {
+        name: { value: "Renamed", editedAt: iso() },
+        currency: { value: "USD", editedAt: iso() },
+      });
+      expectError(res, 409, "currency_locked");
+      const row = await prisma.project.findUniqueOrThrow({ where: { id } });
+      expect(row).toMatchObject({ currency: "VND", name: "P" });
+      // Setting the same currency, or an older change that would lose anyway, is not a change.
+      clock.advanceMs(1000);
+      expect((await patch(o, id, { currency: { value: "VND", editedAt: iso() } })).status).toBe(200);
+      expect((await patch(o, id, { currency: { value: "USD", editedAt: iso(-60_000) } })).body.currency).toBe("VND");
+    });
+
     it("changing currency leaves other values unchanged (AC8)", async () => {
       const o = await user();
       const id = (await create(o, { name: "Keep", description: "me" })).body.id as string;

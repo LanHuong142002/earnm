@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMoney } from "./currency";
+import { formatMoney, formatUnitCost } from "./currency";
 
 describe("formatMoney", () => {
   it("formats VND with dot grouping and a trailing dong sign", () => {
@@ -38,5 +38,20 @@ describe("formatMoney", () => {
   it("does not render negative zero", () => {
     expect(formatMoney(-0.2, "VND")).toBe("0 ₫");
     expect(formatMoney(-0.001, "USD")).toBe("$0.00");
+  });
+});
+
+describe("formatUnitCost", () => {
+  it("formats VND with up to 2 decimals using a comma", () => {
+    expect(formatUnitCost(63.16, "VND")).toBe("63,16 ₫");
+    expect(formatUnitCost(632, "VND")).toBe("632 ₫");
+    expect(formatUnitCost(1234.5, "VND")).toBe("1.234,5 ₫");
+    expect(formatUnitCost(0, "VND")).toBe("0 ₫");
+  });
+
+  it("formats USD from cents with at least 2 decimals", () => {
+    expect(formatUnitCost(250, "USD")).toBe("$2.50");
+    expect(formatUnitCost(0.63, "USD")).toBe("$0.0063");
+    expect(formatUnitCost(123456, "USD")).toBe("$1,234.56");
   });
 });
