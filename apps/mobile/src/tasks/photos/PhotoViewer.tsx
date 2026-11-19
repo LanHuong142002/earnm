@@ -11,24 +11,22 @@ import { useAuth } from "../../auth/AuthProvider";
 import { useTheme } from "../../theme/useTheme";
 import { PressableScale } from "../../ui/PressableScale";
 import { formatCommentTime } from "../comments/commentTime";
-import { useTasks } from "../TasksProvider";
+import type { Parent } from "../parent";
 import { CaptionSheet } from "./CaptionSheet";
 import { afterDelete, overlayOf, viewerStart } from "./photoUi";
 import type { Photo } from "./types";
-import { useTaskPhotos } from "./useTaskPhotos";
+import { useParentPhotos } from "./useParentPhotos";
 
 /**
- * The full-screen viewer (mockups 3a to 3e): black, swipes between the task's photos, "n / total" on top, the
+ * The full-screen viewer (mockups 3a to 3e): black, swipes between the photos of a task or idea, "n / total" on top, the
  * caption and who added the photo and when below. Involved people can edit the caption and delete.
  */
-export function PhotoViewer({ projectId, taskId, photoId }: { projectId: string; taskId: string; photoId?: string }) {
+export function PhotoViewer({ parent, parentKnown, photoId }: { parent: Parent; /** False while the task or idea is not known yet. */ parentKnown: boolean; photoId?: string }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors, typography, layout, spacing, iconSize, onFixed, viewer } = useTheme();
   const { identity } = useAuth();
-  const { tasksFor } = useTasks();
-  const task = tasksFor(projectId).find((x) => x.id === taskId) ?? null;
-  const p = useTaskPhotos({ projectId, taskId, me: identity, task });
+  const p = useParentPhotos({ parent, me: identity });
   const { width } = useWindowDimensions();
   const listRef = useRef<FlatList<Photo>>(null);
   // Where the person swiped to; until then the tapped photo.
@@ -39,7 +37,7 @@ export function PhotoViewer({ projectId, taskId, photoId }: { projectId: string;
   const lang = i18n.language === "vi" ? "vi" : "en";
 
   const total = p.photos.length;
-  const ready = !p.loading && task !== null;
+  const ready = !p.loading && parentKnown;
 
   // Nothing left to show (everything deleted here or elsewhere): close.
   useEffect(() => {

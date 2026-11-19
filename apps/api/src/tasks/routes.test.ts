@@ -474,6 +474,7 @@ describe("/projects/:projectId/tasks", () => {
           "description",
           "dueDate",
           "dueTime",
+          "fromIdea",
           "id",
           "labelIds",
           "projectId",
@@ -727,6 +728,7 @@ describe("/projects/:projectId/tasks", () => {
         assignees: [{ id: member.id, displayName: "Linh" }],
         labelIds: [],
         checklists: [],
+        fromIdea: null,
         createdById: owner.id,
         createdAt: a.body.createdAt,
       });

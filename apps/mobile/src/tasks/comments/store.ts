@@ -1,9 +1,8 @@
 import type { Change } from "../../sync/queue";
 import type { KeyValueStore } from "../../sync/storage";
-import { COMMENT_ENTITY } from "../entities";
+import { TASK_COMMENTS, type CommentsScope } from "../parent";
 import type { CommentOrder, ServerComment } from "./types";
 
-const CACHE_KEY = "comments.cache.v1";
 const SORT_KEY = "comments.sort.v1";
 
 /** One task's comments as the server last sent them, filed under their project so they are pruned with it. */
@@ -37,11 +36,11 @@ function isServerComment(v: unknown): v is ServerComment {
   );
 }
 
-function isFailedChange(v: unknown): v is Change {
+function isFailedChange(v: unknown, entity: string): v is Change {
   return (
     isRecord(v) &&
     typeof v.changeId === "string" &&
-    v.entity === COMMENT_ENTITY &&
+    v.entity === entity &&
     typeof v.entityId === "string" &&
     (v.kind === "create" || v.kind === "update" || v.kind === "delete") &&
     isRecord(v.data) &&
@@ -50,7 +49,7 @@ function isFailedChange(v: unknown): v is Change {
   );
 }
 
-function parse(raw: unknown, ownerId: string): CommentCache {
+function parse(raw: unknown, ownerId: string, entity: string): CommentCache {
   if (!isRecord(raw) || raw.ownerId !== ownerId) return emptyCommentCache(ownerId);
   const byTask: Record<string, CachedTaskComments> = {};
   if (isRecord(raw.byTask)) {
@@ -61,21 +60,21 @@ function parse(raw: unknown, ownerId: string): CommentCache {
       }
     }
   }
-  const failed = Array.isArray(raw.failed) ? raw.failed.filter(isFailedChange) : [];
+  const failed = Array.isArray(raw.failed) ? raw.failed.filter((c): c is Change => isFailedChange(c, entity)) : [];
   return { ownerId, byTask, failed };
 }
 
 /** The saved cache of `ownerId`; empty when there is none, it is someone else's, or it cannot be read. */
-export async function loadCommentCache(store: KeyValueStore, ownerId: string): Promise<CommentCache> {
+export async function loadCommentCache(store: KeyValueStore, ownerId: string, scope: CommentsScope = TASK_COMMENTS): Promise<CommentCache> {
   try {
-    return parse(await store.getJSON<unknown>(CACHE_KEY), ownerId);
+    return parse(await store.getJSON<unknown>(scope.cacheKey), ownerId, scope.entity);
   } catch {
     return emptyCommentCache(ownerId);
   }
 }
 
-export function clearCommentCache(store: KeyValueStore): Promise<void> {
-  return store.remove(CACHE_KEY);
+export function clearCommentCache(store: KeyValueStore, scope: CommentsScope = TASK_COMMENTS): Promise<void> {
+  return store.remove(scope.cacheKey);
 }
 
 const NO_COMMENTS = null;
@@ -126,10 +125,15 @@ export function subscribeComments(listener: () => void): () => void {
 }
 
 /** Reads the cache, applies `change`, saves it and tells the listeners. Writes run one after another. Resolves to the saved cache. */
-export function updateCommentCache(store: KeyValueStore, ownerId: string, change: (cache: CommentCache) => CommentCache): Promise<CommentCache> {
+export function updateCommentCache(
+  store: KeyValueStore,
+  ownerId: string,
+  change: (cache: CommentCache) => CommentCache,
+  scope: CommentsScope = TASK_COMMENTS,
+): Promise<CommentCache> {
   const run = async () => {
-    const next = change(await loadCommentCache(store, ownerId));
-    await store.setJSON(CACHE_KEY, next);
+    const next = change(await loadCommentCache(store, ownerId, scope));
+    await store.setJSON(scope.cacheKey, next);
     for (const listener of [...listeners]) listener();
     return next;
   };

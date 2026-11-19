@@ -20,3 +20,26 @@ export async function destroyImages(
     }
   }
 }
+
+/** How long a delete answer waits for the image store before it answers anyway (tests shorten it). */
+export const destroyWait = { ms: 5000 };
+
+/**
+ * destroyImages, but the caller waits at most `destroyWait.ms`: a hung store must not hang the
+ * delete that already committed. The destroy keeps running and logging in the background.
+ */
+export async function destroyImagesWithin(
+  store: PhotoStore | null | undefined,
+  publicIds: string[],
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, destroyWait.ms);
+    timer.unref?.();
+  });
+  try {
+    await Promise.race([destroyImages(store, publicIds), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}

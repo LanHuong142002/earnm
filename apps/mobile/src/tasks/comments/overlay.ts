@@ -2,7 +2,7 @@ import type { Change } from "../../sync/queue";
 import { COMMENT_ENTITY } from "../entities";
 import type { Comment, CommentState, ServerComment } from "./types";
 
-const forTask = (taskId: string, change: Change) => change.entity === COMMENT_ENTITY && change.data.taskId === taskId;
+const forTask = (taskId: string, change: Change, entity: string) => change.entity === entity && change.data.taskId === taskId;
 
 const RANK: Record<CommentState, number> = { synced: 0, waiting: 1, failed: 2 };
 const stronger = (a: CommentState, b: CommentState): CommentState => (RANK[a] >= RANK[b] ? a : b);
@@ -50,10 +50,16 @@ function apply(list: Comment[], change: Change, state: CommentState): Comment[] 
  * waiting delete hides the comment, and a refused change leaves the comment on screen as failed. A comment
  * with both a refused and a waiting change shows failed. Changes for a comment that is not there are ignored.
  */
-export function applyCommentOverlay(taskId: string, serverList: ServerComment[], waiting: Change[], failed: Change[]): Comment[] {
+export function applyCommentOverlay(
+  taskId: string,
+  serverList: ServerComment[],
+  waiting: Change[],
+  failed: Change[],
+  entity: string = COMMENT_ENTITY,
+): Comment[] {
   let list: Comment[] = serverList.map((c) => ({ ...c, state: "synced" as const }));
-  for (const change of failed) if (forTask(taskId, change)) list = apply(list, change, "failed");
-  for (const change of waiting) if (forTask(taskId, change)) list = apply(list, change, "waiting");
+  for (const change of failed) if (forTask(taskId, change, entity)) list = apply(list, change, "failed");
+  for (const change of waiting) if (forTask(taskId, change, entity)) list = apply(list, change, "waiting");
   return list;
 }
 
@@ -61,8 +67,8 @@ export function applyCommentOverlay(taskId: string, serverList: ServerComment[],
  * Failed edits and deletes whose comment is gone from the server's list (deleted elsewhere): nothing can
  * retry them, so they should be dropped. A failed create, or an edit of one, is never stale.
  */
-export function staleFailedIds(taskId: string, serverList: ServerComment[], failed: Change[]): string[] {
+export function staleFailedIds(taskId: string, serverList: ServerComment[], failed: Change[], entity: string = COMMENT_ENTITY): string[] {
   const known = new Set(serverList.map((c) => c.id));
-  for (const change of failed) if (forTask(taskId, change) && change.kind === "create") known.add(change.entityId);
-  return failed.filter((c) => forTask(taskId, c) && c.kind !== "create" && !known.has(c.entityId)).map((c) => c.changeId);
+  for (const change of failed) if (forTask(taskId, change, entity) && change.kind === "create") known.add(change.entityId);
+  return failed.filter((c) => forTask(taskId, c, entity) && c.kind !== "create" && !known.has(c.entityId)).map((c) => c.changeId);
 }

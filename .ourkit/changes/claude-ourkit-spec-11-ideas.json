@@ -1,0 +1,280 @@
+{
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "11",
+    "accepted": true
+  },
+  "ticket": "11",
+  "tier": "feature",
+  "tierReason": "One cycle from the MVP epic; adds idea, vote and idea-comment tables and API endpoints",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "#11: ideas get their own comment, photo, label-join and vote tables rather than generalising task ones",
+      "why": "Task tables are coupled to task permissions and reminders; parallel copies keep #8/#9 untouched"
+    },
+    {
+      "id": 2,
+      "decision": "#11: any member changes status; author and Owner edit, delete and manage photos",
+      "why": "Mockup assumption 3, user did not object"
+    },
+    {
+      "id": 3,
+      "decision": "#11: order by score then newest; one anonymous vote per member, own idea allowed",
+      "why": "Mockup assumptions 1 and 2"
+    },
+    {
+      "id": 4,
+      "decision": "#11: one task per idea, created on the server with photos copied to new Cloudinary ids",
+      "why": "Shared public ids would be destroyed when either side is deleted"
+    },
+    {
+      "id": 5,
+      "decision": "#11: generalise mobile comments and photos components to a parent adapter instead of copying",
+      "why": "Keeps one design and avoids ~24 duplicated files; existing tests guard tasks"
+    },
+    {
+      "id": 6,
+      "decision": "#11: no photo copy when creating a task from an idea",
+      "why": "User's answer 2026-11-18; tracked as a follow-up ticket"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#11: Confirm the mockup assumptions (order by score; one anonymous vote; any member changes status; author+Owner edit/delete; no bell on idea comments; one task per idea)?",
+      "answer": "Yes, keep the mockup assumptions"
+    },
+    {
+      "id": 2,
+      "question": "#11: Should creating a task from an idea copy its photos? It needs new server-side Cloudinary copy code and uses storage twice. Default in the spec: yes.",
+      "answer": "Not for now; note it and add a ticket to the board"
+    }
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "7a2d270e4da9c1d3d548a3949bf7ff41a63b34c1380d4c0f0ff461689a1f7f15",
+  "planApproval": "c8e2ba75478aa9e5130778fdb8d687d1fe701a5c4c7aaafce0468f67870fe982",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    },
+    "8": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/photos.ts:220: a 403 from canManage on the record route leaves orphaned=false, so an already-uploaded image stays in Cloudinary (needs a hand-crafted call, sign already 403s). Fix: mark orphaned before pre-create failures.",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/photos.ts:100-121: after the idea is deleted, requireIdeaOrDestroyUpload destroys the server-fixed image path on the caller's say-so (harmless, note only).",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/routes.ts:219-247: image destroy after commit is not awaited; a crash in between orphans images (same trade-off as tasks).",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/routes.ts:109: idempotent re-create returns the existing idea ignoring a differing body (task convention).",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "Mockup 2d departure: the task-from-idea form shows title, description and labels read-only, without the Giao cho and Hạn chót fields in the mockup, because the API only takes { taskId }; the user sets them on the new task after it opens.",
+        "resolved": true
+      },
+      {
+        "id": 6,
+        "severity": "blocking",
+        "text": "User decision 2026-11-18: the task-from-idea form must include Giao cho and Hạn chót as in mockup 2d (POST /ideas/:ideaId/task to accept assigneeIds and due).",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 7,
+        "severity": "blocking",
+        "text": "apps/api/src/ideas/photos.ts ~225-230: orphaned=true before the 403 runs before the existing-photo check, so a non-manager member re-recording an existing photo id (public id is computable) gets 403 and the catch destroys the author's real image while the row stays. Only mark orphaned when no IdeaPhoto row with body.id exists.",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "ideas/routes.ts and photos.ts: awaited destroyImages has no visible timeout; a hanging Cloudinary call holds the delete request.",
+        "resolved": true
+      }
+    ],
+    "reviewed": "089adb014eeb2932236cc258afea6e1bdbb6695da783877fe2b6508860897f87"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "routes.test.ts: New idea with author and time; bad title, long description, too many and foreign labels refused; gate run test passed",
+        "criterion": "API test: a member creates an idea; it's New with author and time; bad title, 2001-character description, 11 labels and foreign labels are refused."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "routes.test.ts: author and Owner edit and delete, another member 403",
+        "criterion": "API test: the author and the Owner edit and delete; another member gets `403`."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "routes.test.ts: any member changes status",
+        "criterion": "API test: any member changes status."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "routes.test.ts: 501st idea refused with idea_limit_reached",
+        "criterion": "API test: the 501st idea is refused with `idea_limit_reached`."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "routes.test.ts: idea delete removes comments, votes, photo rows and destroys images; project delete destroys idea images; created task stays",
+        "criterion": "API test: deleting an idea removes comments, votes and photo rows and destroys images (store faked); deleting the project destroys idea images too; a task created from it stays."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "routes.test.ts: deleted label dropped from ideas; mobile unit test: neutral author name",
+        "criterion": "API test: deleting a label removes it from ideas. Unit test: missing author maps to the neutral name."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "routes.test.ts: LWW per field, same id gives one idea, non-member 404, signed out 401",
+        "criterion": "API test: older edits don't overwrite newer per field; same id twice gives one idea; non-member `404`; signed out `401`."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "routes.test.ts: sets, switches and removes a vote, own idea allowed",
+        "criterion": "API test: vote up, vote up again removes, vote down switches; own idea allowed."
+      },
+      "9": {
+        "result": "pass",
+        "evidence": "routes.test.ts: score and only the caller's own vote returned",
+        "criterion": "API test: the list returns score and the caller's own vote only."
+      },
+      "10": {
+        "result": "manual",
+        "evidence": "API part passes (comments.test.ts: create, edited, author-only, 500 cap, no remindWith); comments section without bells needs an iPhone",
+        "criterion": "API test: idea comments create, edit (edited flag), delete, author-only, 500 limit, paging; no remindWith field. By hand: the comments section without bells."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "photos.test.ts: author/Owner only, 10 limit, members-only signed URLs; after the review fix a non-manager re-recording an existing photo id gets 403 and nothing is destroyed; gate run test passed (API 549, mobile 854)",
+        "criterion": "API test: idea photo sign/record/delete limited to author and Owner, 10 limit, members-only list with signed URLs."
+      },
+      "12": {
+        "result": "manual",
+        "evidence": "Unit test for the prefill (now with assignees and due) passes; the form with Giao cho and Hạn chót against mockup 2d needs an iPhone (#44)",
+        "criterion": "By hand, mockup 2c–2d: the button shows only when Accepted and opens the prefilled form."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "toTask.test.ts: task created with title, description, labels, assignees and due (falls back to idea text), non-member assignee refused, linked both ways, second attempt idea_already_has_task, non-accepted idea_not_accepted; no photo copy",
+        "criterion": "API test (store faked): create-task-from-idea creates the task with title, description and labels and no photos, links both ways, refuses a second time with `409`."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "toTask.test.ts: deleting the task clears the idea's link; deleting the idea clears the back-link",
+        "criterion": "API test: deleting the task clears the idea's link; deleting the idea clears the task's back-link."
+      },
+      "15": {
+        "result": "pass",
+        "evidence": "Mobile unit test: needs a network for an accepted idea when offline",
+        "criterion": "Unit test: the create-task button state is \"needs network\" offline."
+      },
+      "16": {
+        "result": "manual",
+        "evidence": "Unit test counts only New ideas; the enabled tile (mockup 1a) needs an iPhone",
+        "criterion": "By hand, mockup 1a: the tile is enabled with the New count. Unit test: count."
+      },
+      "17": {
+        "result": "manual",
+        "evidence": "listRules.test.ts: ordering and filters pass; row layout and collapsed Đã bỏ (mockup 1b) need an iPhone",
+        "criterion": "Unit test: ordering and filters. By hand, mockup 1b: row layout and collapsed Dropped section."
+      },
+      "18": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: empty, loading, error with retry (mockups 1c-1d)",
+        "criterion": "By hand, mockups 1c–1d: empty, loading, error with retry."
+      },
+      "19": {
+        "result": "manual",
+        "evidence": "canEditAs unit-tested; idea screen, status sheet, created-task link (mockups 2a, 2b, 2e) need an iPhone",
+        "criterion": "By hand, mockups 2a, 2b, 2e: idea screen, status sheet, created-task link; Sửa only for author and Owner."
+      },
+      "20": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: new and edit forms, delete confirm (mockups 3a-3b)",
+        "criterion": "By hand, mockups 3a–3b: new and edit forms, delete confirm."
+      },
+      "21": {
+        "result": "manual",
+        "evidence": "Needs an iPhone: no tick marks on selections",
+        "criterion": "By hand: no tick marks on selections."
+      },
+      "22": {
+        "result": "manual",
+        "evidence": "sync.test.ts merge per idea field and one vote per idea pass; offline Chờ lưu (mockup 3c) needs an iPhone",
+        "criterion": "Unit test: queued idea changes merge per idea and votes per idea. By hand, mockup 3c: offline \"Chờ lưu\", syncs after reconnect."
+      },
+      "23": {
+        "result": "manual",
+        "evidence": "VoiceOver label text unit-tested; dark mode, EN, VoiceOver (mockup 3d) need an iPhone",
+        "criterion": "By hand, mockup 3d: dark mode; EN text; VoiceOver on vote buttons."
+      },
+      "24": {
+        "result": "pass",
+        "evidence": "Migration only creates tables, indexes and FKs; applied by the test setup and the suite passed. Not run separately on a DB with existing data.",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty test database and on one with existing data."
+      }
+    },
+    "checked": "089adb014eeb2932236cc258afea6e1bdbb6695da783877fe2b6508860897f87"
+  },
+  "testHandoff": [
+    {
+      "what": "#11 ideas on the phone (AC10, 12, 16-23)",
+      "steps": "Run npm run dev:phone from this branch checkout (after db:deploy on the dev DB), open in Expo Go, sign in as an Owner and, on another phone, as a member of the same project. 1) Project screen: Ý tưởng tile enabled with 'n mới' (mockup 1a). 2) Ideas list: highest score first, then newest; Đã bỏ collapsed at the end; status and label filters; empty, loading, and error with Thử lại when the API is stopped (1b-1d). 3) Idea screen, status sheet, vote buttons, Sửa only for author and Owner, comments without bells (2a, 2b). 4) Set an idea to Đã chọn, tap Tạo công việc từ ý tưởng: the form shows title, description and labels read-only (no Giao cho or Hạn chót, a known departure from mockup 2d); Tạo công việc opens the new task; back returns to the idea, which shows Đã tạo công việc (2e); the task shows Từ ý tưởng. 5) New and edit forms, delete confirm (3a-3b). 6) Airplane mode: create, edit, vote show Chờ lưu and sync after reconnect (3c). 7) Dark mode, English, VoiceOver on vote buttons (3d). 8) Recheck task comments and photos still work as before (shared components were refactored). Expected: all match the mockup, selections highlighted with no ticks."
+    }
+  ],
+  "shipApproval": "0149aa244d6289a492c15b3be115979a32b18214184711ae24347c2f63b29467",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/45"
+}

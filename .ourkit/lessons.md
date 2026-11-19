@@ -22,3 +22,4 @@
 - [quality] Write each acceptance criterion on its own number; ranged items like '17–25.' are skipped by ourkit qa criteria and would go unchecked
 - [quality] A cleanup added to one delete path (task) must be added to every path that cascades to the same rows (project delete); the Sensitive reviewer caught orphaned Cloudinary images
 - [quality] Stamp a device as synced only after the exact data the server will rely on was fetched successfully, per scope; stamping on an earlier request silently lost reminders
+- [quality] A cleanup that destroys external files on a refused request must first check that no recorded row owns them; an orphan-cleanup fix let any member destroy another person's photo

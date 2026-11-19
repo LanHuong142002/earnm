@@ -5,12 +5,14 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "../../../../../../../auth/AuthProvider";
 import { useTapOnce } from "../../../../../../../projects/useProjectNav";
 import { OfflineNote } from "../../../../../../../projects/OfflineNote";
 import { canAddChecklist, checklistSummary } from "../../../../../../../tasks/checklistView";
 import { ChecklistCard } from "../../../../../../../tasks/ChecklistCard";
 import { CommentsSection } from "../../../../../../../tasks/comments/CommentsSection";
 import { RemindersSection } from "../../../../../../../tasks/reminders/RemindersSection";
+import { taskParent } from "../../../../../../../tasks/parent";
 import { PhotosSection } from "../../../../../../../tasks/photos/PhotosSection";
 import { LabelsField } from "../../../../../../../tasks/LabelsField";
 import { NewChecklistField } from "../../../../../../../tasks/NewChecklistField";
@@ -34,6 +36,7 @@ export default function TaskDetailsScreen() {
   const { colors, typography, radius, spacing, layout, iconSize, header } = useTheme();
   const { id, taskId } = useLocalSearchParams<{ id: string; taskId: string }>();
   const { setStatus } = useTasks();
+  const { identity } = useAuth();
   const { project, task, view, deleting, canDelete, confirmDelete } = useTaskScreen(id, taskId);
   // Judged against the moment the screen opened.
   const [now] = useState(() => new Date());
@@ -65,6 +68,10 @@ export default function TaskDetailsScreen() {
   const summary = checklistSummary(task);
   const names = task.assignees.map((a) => a.displayName).join(", ");
 
+  const parent = taskParent(project.id, task.id, task, identity?.id ?? null);
+  // The idea this task was made from (#11), while it exists: a link back to it.
+  const fromIdea = task.fromIdea ?? null;
+
   const caption = (text: string) => <Text style={[typography.label, { color: colors.textSecondary }]}>{text}</Text>;
 
   return (
@@ -94,6 +101,22 @@ export default function TaskDetailsScreen() {
           <Text accessibilityRole="header" style={[typography.screenTitle, { color: colors.text }]}>
             {task.title}
           </Text>
+          {fromIdea ? (
+            <PressableScale
+              accessibilityRole="link"
+              accessibilityLabel={t("ideas.fromIdeaA11y", { title: fromIdea.title })}
+              onPress={() =>
+                once(() => router.push({ pathname: "/projects/[id]/ideas/[ideaId]", params: { id: project.id, ideaId: fromIdea.id } }))
+              }
+              style={{ minHeight: layout.controlHeight, flexDirection: "row", alignItems: "center", gap: spacing[0] }}
+            >
+              <Ionicons name="bulb-outline" size={iconSize.sm} color={colors.accentStrong} />
+              <Text style={[typography.label, { flexShrink: 1, color: colors.accentStrong }]} numberOfLines={2}>
+                {t("ideas.fromIdeaLink", { title: fromIdea.title })}
+              </Text>
+              <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.accentStrong} />
+            </PressableScale>
+          ) : null}
           <Card>
             <View style={{ gap: spacing[2] }}>
               <View style={{ gap: spacing[0] }}>
@@ -202,10 +225,15 @@ export default function TaskDetailsScreen() {
         </View>
       </Enter>
       <Enter index={3}>
-        <PhotosSection projectId={project.id} taskId={task.id} task={task} />
+        <PhotosSection
+          parent={parent}
+          onOpenPhoto={(photoId) =>
+            router.push({ pathname: "/projects/[id]/tasks/[taskId]/photos", params: { id: project.id, taskId: task.id, photoId } })
+          }
+        />
       </Enter>
       <Enter index={4}>
-        <CommentsSection projectId={project.id} taskId={task.id} task={task} />
+        <CommentsSection parent={parent} />
       </Enter>
       {canDelete ? (
         <Enter index={5}>

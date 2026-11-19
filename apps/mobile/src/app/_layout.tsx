@@ -12,6 +12,7 @@ import { I18nextProvider } from "react-i18next";
 
 import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import i18n from "../i18n";
+import { IdeasProvider } from "../ideas/IdeasProvider";
 import { ProjectsProvider } from "../projects/ProjectsProvider";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { NotificationGlue } from "../tasks/reminders/NotificationGlue";
@@ -76,7 +77,9 @@ export default function RootLayout() {
       <AuthProvider>
         <ProjectsProvider>
           <TasksProvider>
-            <RootNavigator />
+            <IdeasProvider>
+              <RootNavigator />
+            </IdeasProvider>
           </TasksProvider>
         </ProjectsProvider>
       </AuthProvider>

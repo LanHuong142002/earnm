@@ -1,9 +1,9 @@
 import type { Change } from "../../sync/queue";
-import { PHOTO_ENTITY, PHOTO_UPLOAD_ENTITY } from "../entities";
+import { TASK_PHOTOS, type PhotosScope } from "../parent";
 import type { Photo, PhotoEditState, PhotoState, ServerPhoto } from "./types";
 
-const forTask = (taskId: string, change: Change) =>
-  (change.entity === PHOTO_ENTITY || change.entity === PHOTO_UPLOAD_ENTITY) && change.data.taskId === taskId;
+const forTask = (taskId: string, change: Change, scope: PhotosScope) =>
+  (change.entity === scope.entity || change.entity === scope.uploadEntity) && change.data.taskId === taskId;
 
 type Options = {
   /** Ids of uploads being sent right now. */
@@ -15,12 +15,12 @@ type Options = {
 const EDIT_RANK: Record<PhotoEditState, number> = { none: 0, waiting: 1, failed: 2 };
 const strongerEdit = (a: PhotoEditState, b: PhotoEditState): PhotoEditState => (EDIT_RANK[a] >= EDIT_RANK[b] ? a : b);
 
-function apply(list: Photo[], change: Change, failed: boolean, opts: Options): Photo[] {
+function apply(list: Photo[], change: Change, failed: boolean, opts: Options, scope: PhotosScope): Photo[] {
   const { data } = change;
   const index = list.findIndex((p) => p.id === change.entityId);
   const edit: PhotoEditState = failed ? "failed" : "waiting";
 
-  if (change.entity === PHOTO_UPLOAD_ENTITY) {
+  if (change.entity === scope.uploadEntity) {
     const state: PhotoState = failed ? "failed" : opts.uploading.has(change.entityId) ? "uploading" : "waiting";
     if (index !== -1) return list; // the server already has it, or a refused attempt is already shown
     const authorId = typeof data.authorId === "string" ? data.authorId : null;
@@ -64,10 +64,17 @@ function apply(list: Photo[], change: Change, failed: boolean, opts: Options): P
  * refused), a waiting caption change shows its new text, a waiting delete hides the photo, and a refused
  * change leaves the photo on screen marked failed. Changes for a photo that is not there are ignored.
  */
-export function applyPhotoOverlay(taskId: string, serverList: ServerPhoto[], waiting: Change[], failed: Change[], opts: Options): Photo[] {
+export function applyPhotoOverlay(
+  taskId: string,
+  serverList: ServerPhoto[],
+  waiting: Change[],
+  failed: Change[],
+  opts: Options,
+  scope: PhotosScope = TASK_PHOTOS,
+): Photo[] {
   let list: Photo[] = serverList.map((p) => ({ ...p, state: "synced" as const, edit: "none" as const }));
-  for (const change of failed) if (forTask(taskId, change)) list = apply(list, change, true, opts);
-  for (const change of waiting) if (forTask(taskId, change)) list = apply(list, change, false, opts);
+  for (const change of failed) if (forTask(taskId, change, scope)) list = apply(list, change, true, opts, scope);
+  for (const change of waiting) if (forTask(taskId, change, scope)) list = apply(list, change, false, opts, scope);
   return list;
 }
 
@@ -76,8 +83,8 @@ export function applyPhotoOverlay(taskId: string, serverList: ServerPhoto[], wai
  * can retry them, so they should be dropped. A refused upload, and a change to a photo whose upload was
  * refused, are never stale.
  */
-export function staleFailedIds(taskId: string, serverList: ServerPhoto[], failed: Change[]): string[] {
+export function staleFailedIds(taskId: string, serverList: ServerPhoto[], failed: Change[], scope: PhotosScope = TASK_PHOTOS): string[] {
   const known = new Set(serverList.map((p) => p.id));
-  for (const change of failed) if (forTask(taskId, change) && change.entity === PHOTO_UPLOAD_ENTITY) known.add(change.entityId);
-  return failed.filter((c) => forTask(taskId, c) && c.entity === PHOTO_ENTITY && !known.has(c.entityId)).map((c) => c.changeId);
+  for (const change of failed) if (forTask(taskId, change, scope) && change.entity === scope.uploadEntity) known.add(change.entityId);
+  return failed.filter((c) => forTask(taskId, c, scope) && c.entity === scope.entity && !known.has(c.entityId)).map((c) => c.changeId);
 }

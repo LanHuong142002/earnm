@@ -31,4 +31,6 @@ export type Task = {
   /** Ids of this project's labels on the task. */
   labelIds: string[];
   checklists: Checklist[];
+  /** The idea this task was made from (#11), while that idea exists. Absent in older saved copies. */
+  fromIdea?: { id: string; title: string } | null;
 };

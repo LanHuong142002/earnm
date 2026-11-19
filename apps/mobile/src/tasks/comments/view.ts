@@ -50,6 +50,10 @@ export function bellState(remindWith: boolean, viewerInvolved: boolean): BellSta
   return remindWith ? "on-readonly" : "hidden";
 }
 
+/** The bell of a parent: a parent with no reminder flag (`canFlag` absent) never shows one. */
+export const bellFor = (canFlag: boolean | undefined, remindWith: boolean): BellState =>
+  canFlag === undefined ? "hidden" : bellState(remindWith, canFlag);
+
 export type LengthCheck = {
   /** Characters after trimming. */
   length: number;

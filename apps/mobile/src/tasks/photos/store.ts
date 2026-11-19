@@ -1,9 +1,7 @@
 import type { Change } from "../../sync/queue";
 import type { KeyValueStore } from "../../sync/storage";
-import { PHOTO_ENTITY, PHOTO_UPLOAD_ENTITY } from "../entities";
+import { TASK_PHOTOS, type PhotosScope } from "../parent";
 import type { ServerPhoto } from "./types";
-
-const CACHE_KEY = "photos.cache.v1";
 
 /** One task's photos as the server last sent them, filed under their project so they are pruned with it. */
 export type CachedTaskPhotos = { projectId: string; photos: ServerPhoto[] };
@@ -38,11 +36,11 @@ function isServerPhoto(v: unknown): v is ServerPhoto {
   );
 }
 
-function isFailedChange(v: unknown): v is Change {
+function isFailedChange(v: unknown, scope: PhotosScope): v is Change {
   return (
     isRecord(v) &&
     typeof v.changeId === "string" &&
-    (v.entity === PHOTO_UPLOAD_ENTITY || v.entity === PHOTO_ENTITY) &&
+    (v.entity === scope.uploadEntity || v.entity === scope.entity) &&
     typeof v.entityId === "string" &&
     (v.kind === "create" || v.kind === "update" || v.kind === "delete") &&
     isRecord(v.data) &&
@@ -51,7 +49,7 @@ function isFailedChange(v: unknown): v is Change {
   );
 }
 
-function parse(raw: unknown, ownerId: string): PhotoCache {
+function parse(raw: unknown, ownerId: string, scope: PhotosScope): PhotoCache {
   if (!isRecord(raw) || raw.ownerId !== ownerId) return emptyPhotoCache(ownerId);
   const byTask: Record<string, CachedTaskPhotos> = {};
   if (isRecord(raw.byTask)) {
@@ -62,21 +60,21 @@ function parse(raw: unknown, ownerId: string): PhotoCache {
       }
     }
   }
-  const failed = Array.isArray(raw.failed) ? raw.failed.filter(isFailedChange) : [];
+  const failed = Array.isArray(raw.failed) ? raw.failed.filter((c): c is Change => isFailedChange(c, scope)) : [];
   return { ownerId, byTask, failed };
 }
 
 /** The saved cache of `ownerId`; empty when there is none, it is someone else's, or it cannot be read. */
-export async function loadPhotoCache(store: KeyValueStore, ownerId: string): Promise<PhotoCache> {
+export async function loadPhotoCache(store: KeyValueStore, ownerId: string, scope: PhotosScope = TASK_PHOTOS): Promise<PhotoCache> {
   try {
-    return parse(await store.getJSON<unknown>(CACHE_KEY), ownerId);
+    return parse(await store.getJSON<unknown>(scope.cacheKey), ownerId, scope);
   } catch {
     return emptyPhotoCache(ownerId);
   }
 }
 
-export function clearPhotoCache(store: KeyValueStore): Promise<void> {
-  return store.remove(CACHE_KEY);
+export function clearPhotoCache(store: KeyValueStore, scope: PhotosScope = TASK_PHOTOS): Promise<void> {
+  return store.remove(scope.cacheKey);
 }
 
 /** The cached photos of a task; null when it was never fetched (so "no photos" and "not known" differ). */
@@ -129,10 +127,15 @@ export function notifyPhotos(): void {
 }
 
 /** Reads the cache, applies `change`, saves it and tells the listeners. Writes run one after another. Resolves to the saved cache. */
-export function updatePhotoCache(store: KeyValueStore, ownerId: string, change: (cache: PhotoCache) => PhotoCache): Promise<PhotoCache> {
+export function updatePhotoCache(
+  store: KeyValueStore,
+  ownerId: string,
+  change: (cache: PhotoCache) => PhotoCache,
+  scope: PhotosScope = TASK_PHOTOS,
+): Promise<PhotoCache> {
   const run = async () => {
-    const next = change(await loadPhotoCache(store, ownerId));
-    await store.setJSON(CACHE_KEY, next);
+    const next = change(await loadPhotoCache(store, ownerId, scope));
+    await store.setJSON(scope.cacheKey, next);
     notifyPhotos();
     return next;
   };

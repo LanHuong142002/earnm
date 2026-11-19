@@ -13,16 +13,16 @@ import { destroyImages } from "../photos/destroy.js";
 /** A project holds at most this many tasks. */
 export const MAX_TASKS_PER_PROJECT = 1000;
 
-const titleSchema = singleLineText(120);
-const descriptionSchema = multiLineText(2000);
+export const titleSchema = singleLineText(120);
+export const descriptionSchema = multiLineText(2000);
 const statusSchema = z.enum(["todo", "doing", "done"]);
 // Accepts "Z" and offsets such as "+07:00".
 const editedAtSchema = z.iso.datetime({ offset: true }).transform((s) => new Date(s));
 
-const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 /** "YYYY-MM-DD" naming a real calendar day, parsed as UTC midnight (the column is a plain date). */
-const realDate = z
+export const realDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   // Compares the round trip so "2026-02-30" is refused rather than rolled into March.
@@ -35,7 +35,7 @@ const realDate = z
   .refine((s) => Number(s.slice(0, 4)) >= 1900)
   .transform((s) => new Date(`${s}T00:00:00.000Z`));
 
-const assigneeIdsSchema = z
+export const assigneeIdsSchema = z
   .array(z.uuid())
   .max(20)
   .refine((ids) => new Set(ids).size === ids.length, "Each person can be listed once.");
@@ -67,6 +67,21 @@ const createSchema = z
     path: ["dueTime"],
   });
 
+/** Throws 400 unless every id is a member of the project. Run inside the write's transaction. */
+export async function assertAssigneesAreMembers(
+  tx: Pick<PrismaClient, "projectMember">,
+  projectId: string,
+  userIds: string[],
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const count = await tx.projectMember.count({
+    where: { projectId, userId: { in: userIds } },
+  });
+  if (count !== userIds.length) {
+    throw new AppError(400, "validation_failed", "Invalid fields: assignees.");
+  }
+}
+
 /** One field change from the phone: the new value and when the person made it. */
 const change = <T extends z.ZodType>(value: T) =>
   z.object({ value, editedAt: editedAtSchema }).strict();
@@ -89,13 +104,15 @@ const patchSchema = z
 
 const idSchema = z.uuid();
 
-const taskInclude = {
+export const taskInclude = {
   assignees: {
     include: { user: { select: { id: true, displayName: true } } },
     orderBy: [{ user: { displayName: "asc" } }, { userId: "asc" }],
   },
   // Label ids come back sorted by id, so the order is stable.
   labels: { orderBy: [{ labelId: "asc" }] },
+  // The idea this task was made from, if any.
+  fromIdea: { select: { id: true, title: true } },
   checklists: {
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     include: { items: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] } },
@@ -105,7 +122,7 @@ const taskInclude = {
 type TaskRow = Prisma.TaskGetPayload<{ include: typeof taskInclude }>;
 
 /** The exact shape the mobile app expects. */
-function toResponse(task: TaskRow) {
+export function taskResponse(task: TaskRow) {
   return {
     id: task.id,
     projectId: task.projectId,
@@ -127,6 +144,7 @@ function toResponse(task: TaskRow) {
         createdAt: i.createdAt.toISOString(),
       })),
     })),
+    fromIdea: task.fromIdea ? { id: task.fromIdea.id, title: task.fromIdea.title } : null,
     createdById: task.createdById,
     createdAt: task.createdAt.toISOString(),
   };
@@ -188,21 +206,6 @@ export function createTasksRouter(deps: {
     return member.role;
   }
 
-  /** Throws 400 unless every id is a member of the project. Run inside the write's transaction. */
-  async function assertAssigneesAreMembers(
-    tx: Pick<PrismaClient, "projectMember">,
-    projectId: string,
-    userIds: string[],
-  ): Promise<void> {
-    if (userIds.length === 0) return;
-    const count = await tx.projectMember.count({
-      where: { projectId, userId: { in: userIds } },
-    });
-    if (count !== userIds.length) {
-      throw new AppError(400, "validation_failed", "Invalid fields: assignees.");
-    }
-  }
-
   router.get("/", async (req, res, next) => {
     try {
       const userId = getAuth(res.locals).userId;
@@ -212,7 +215,7 @@ export function createTasksRouter(deps: {
         include: taskInclude,
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       });
-      res.json(tasks.map(toResponse));
+      res.json(tasks.map(taskResponse));
     } catch (err) {
       next(err);
     }
@@ -280,7 +283,7 @@ export function createTasksRouter(deps: {
         if (!isUniqueViolation(err)) throw err;
         result = await createOnce();
       }
-      res.status(result.status).json(toResponse(result.task));
+      res.status(result.status).json(taskResponse(result.task));
     } catch (err) {
       next(err);
     }
@@ -361,7 +364,7 @@ export function createTasksRouter(deps: {
         include: taskInclude,
       });
       if (!current) throw notFound(); // deleted meanwhile
-      res.json(toResponse(current));
+      res.json(taskResponse(current));
     } catch (err) {
       next(err);
     }

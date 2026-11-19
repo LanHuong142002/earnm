@@ -1,16 +1,11 @@
 import type { Change, NewChange, Queue } from "../../sync/queue";
 import type { KeyValueStore } from "../../sync/storage";
 import { COMMENT_ENTITY } from "../entities";
-import { createComment, deleteComment, patchComment, type CommentFieldPatch } from "./api";
+import { TASK_COMMENTS, type CommentsApi, type CommentsScope } from "../parent";
+import type { CommentFieldPatch } from "./api";
 import { recordFailed, updateCommentCache, withoutFailed } from "./store";
 
-type Deps = {
-  createComment: typeof createComment;
-  patchComment: typeof patchComment;
-  deleteComment: typeof deleteComment;
-};
-
-const realDeps: Deps = { createComment, patchComment, deleteComment };
+type Deps = Pick<CommentsApi, "createComment" | "patchComment" | "deleteComment">;
 
 const timeOf = (change: Change, field: string) => change.fieldTimes[field] ?? change.createdAt;
 
@@ -22,7 +17,8 @@ export async function settleFailures(): Promise<void> {
   while (pendingFailures.size > 0) await Promise.all([...pendingFailures]);
 }
 
-type Where = { projectId: string; taskId: string };
+/** `taskId` is the parent id (a task or an idea); `entity` is the parent kind's queue entity (the task's when absent). */
+type Where = { projectId: string; taskId: string; entity?: string };
 
 /**
  * Queued comment changes (see `CommentChangeData`). Text and the reminder flag are separate fields of an
@@ -42,12 +38,12 @@ export function commentCreateChange(input: Where & {
     data.authorName = input.author.displayName;
   }
   const at = input.now.toISOString();
-  return { entity: COMMENT_ENTITY, entityId: input.id, kind: "create", data, fieldTimes: { text: at, remindWith: at } };
+  return { entity: input.entity ?? COMMENT_ENTITY, entityId: input.id, kind: "create", data, fieldTimes: { text: at, remindWith: at } };
 }
 
 export function commentTextChange(input: Where & { id: string; text: string; now: Date }): NewChange {
   return {
-    entity: COMMENT_ENTITY,
+    entity: input.entity ?? COMMENT_ENTITY,
     entityId: input.id,
     kind: "update",
     data: { projectId: input.projectId, taskId: input.taskId, text: input.text },
@@ -57,7 +53,7 @@ export function commentTextChange(input: Where & { id: string; text: string; now
 
 export function commentRemindChange(input: Where & { id: string; remindWith: boolean; now: Date }): NewChange {
   return {
-    entity: COMMENT_ENTITY,
+    entity: input.entity ?? COMMENT_ENTITY,
     entityId: input.id,
     kind: "update",
     data: { projectId: input.projectId, taskId: input.taskId, remindWith: input.remindWith },
@@ -66,7 +62,7 @@ export function commentRemindChange(input: Where & { id: string; remindWith: boo
 }
 
 export function commentDeleteChange(input: Where & { id: string }): NewChange {
-  return { entity: COMMENT_ENTITY, entityId: input.id, kind: "delete", data: { projectId: input.projectId, taskId: input.taskId }, fieldTimes: {} };
+  return { entity: input.entity ?? COMMENT_ENTITY, entityId: input.id, kind: "delete", data: { projectId: input.projectId, taskId: input.taskId }, fieldTimes: {} };
 }
 
 /**
@@ -75,9 +71,9 @@ export function commentDeleteChange(input: Where & { id: string }): NewChange {
  * kept in the comment cache as failed, to retry or discard (spec R16). The queue only calls this for a
  * refusal no resend will change; a network error or a 429 stays in the queue and is tried again.
  */
-export function registerCommentEntity(queue: Queue, store: KeyValueStore, deps: Deps = realDeps): void {
+export function registerCommentEntity(queue: Queue, store: KeyValueStore, deps: Deps = TASK_COMMENTS.api, scope: CommentsScope = TASK_COMMENTS): void {
   queue.registerEntity(
-    COMMENT_ENTITY,
+    scope.entity,
     {
       create: (change, token) => {
         const body: { id: string; text: string; remindWith?: boolean } = { id: change.entityId, text: String(change.data.text ?? "") };
@@ -97,7 +93,7 @@ export function registerCommentEntity(queue: Queue, store: KeyValueStore, deps: 
       onRejected: (change) => {
         const write = (async () => {
           const owner = await queue.ownerId();
-          if (owner) await updateCommentCache(store, owner, (cache) => recordFailed(cache, change));
+          if (owner) await updateCommentCache(store, owner, (cache) => recordFailed(cache, change), scope);
         })()
           .catch(() => {})
           .finally(() => pendingFailures.delete(write));
@@ -108,12 +104,18 @@ export function registerCommentEntity(queue: Queue, store: KeyValueStore, deps: 
 }
 
 /** Puts a comment's refused changes back on the queue, oldest first, and forgets them as failed. */
-export async function retryFailed(queue: Queue, store: KeyValueStore, ownerId: string, commentId: string): Promise<void> {
+export async function retryFailed(
+  queue: Queue,
+  store: KeyValueStore,
+  ownerId: string,
+  commentId: string,
+  scope: CommentsScope = TASK_COMMENTS,
+): Promise<void> {
   let taken: Change[] = [];
   await updateCommentCache(store, ownerId, (cache) => {
     taken = cache.failed.filter((c) => c.entityId === commentId);
     return withoutFailed(cache, (c) => c.entityId === commentId);
-  });
+  }, scope);
   for (const change of taken) {
     // A create refused for its reminder flag (the author is no longer involved) is sent without it, so the text can still be posted.
     const data = change.kind === "create" && change.data.remindWith === true ? { ...change.data, remindWith: false } : change.data;
@@ -122,6 +124,6 @@ export async function retryFailed(queue: Queue, store: KeyValueStore, ownerId: s
 }
 
 /** Drops a comment's refused changes for good. */
-export async function discardFailed(store: KeyValueStore, ownerId: string, commentId: string): Promise<void> {
-  await updateCommentCache(store, ownerId, (cache) => withoutFailed(cache, (c) => c.entityId === commentId));
+export async function discardFailed(store: KeyValueStore, ownerId: string, commentId: string, scope: CommentsScope = TASK_COMMENTS): Promise<void> {
+  await updateCommentCache(store, ownerId, (cache) => withoutFailed(cache, (c) => c.entityId === commentId), scope);
 }

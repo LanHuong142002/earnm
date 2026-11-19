@@ -8,12 +8,12 @@ import { useTheme } from "../../theme/useTheme";
 import { ErrorText } from "../../ui/ErrorText";
 import { PressableScale } from "../../ui/PressableScale";
 import type { DueLanguage } from "../dueDate";
-import type { Task } from "../types";
+import type { Parent } from "../parent";
 import { CommentBubble } from "./CommentBubble";
 import { CommentComposer } from "./CommentComposer";
 import { formatCommentTime } from "./commentTime";
 import type { CommentOrder } from "./types";
-import { useTaskComments, type CommentResult } from "./useTaskComments";
+import { useParentComments, type CommentResult } from "./useParentComments";
 
 /** The sort choice: an action sheet on iOS, Alert buttons elsewhere (like the checklist menu). */
 function showSortMenu(t: (key: string) => string, current: CommentOrder, onPick: (order: CommentOrder) => void): void {
@@ -42,19 +42,11 @@ function showSortMenu(t: (key: string) => string, current: CommentOrder, onPick:
 }
 
 /** "Bình luận" on the task screen: write field, then the comments five at a time (spec R17-R26). */
-export function CommentsSection({
-  projectId,
-  taskId,
-  task,
-}: {
-  projectId: string;
-  taskId: string;
-  task: Pick<Task, "createdById" | "assignees">;
-}) {
+export function CommentsSection({ parent }: { parent: Parent }) {
   const { t, i18n } = useTranslation();
   const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
   const { identity } = useAuth();
-  const c = useTaskComments({ projectId, taskId, me: identity, task });
+  const c = useParentComments({ parent, me: identity });
   // Times are judged against the moment the section opened.
   const [now] = useState(() => new Date());
   const [problem, setProblem] = useState<string | null>(null);
