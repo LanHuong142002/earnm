@@ -131,5 +131,85 @@
       }
     ],
     "reviewed": "4de4181b03a6e99117e49c71e4b006073602b4f0f063d03871e98a136e531485"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: create, rename, change kind/amount/months, delete an item; empty or duplicate name, amount 0, N outside 1–120, N on a non-oneTime item refused with `400`."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: the 51st item is refused with `fixed_cost_limit_reached`."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: monthly amount per kind with rounding (600.000 weekly → 2.600.000; 18.000.000 over 24 → 750.000) and total."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: cups set, changed, cleared; 0 and 1.000.001 refused."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: share 8.600.000 ÷ 1.500 = 5.733; no share when cups unset or total 0; USD rounds to cents."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: full cost, profit, margin and hint use the share (Trà sữa M: 16.768, 18.232, 52%, hint 48.000); without a share they equal #13's results."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: two sizes of different products get the same share."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: per-field LWW on item fields and cups; same id twice idempotent; non-member `404`; signed out `401`."
+      },
+      "9": {
+        "result": "manual",
+        "evidence": "Merge unit tests pass; offline Chờ lưu by hand on phone (#47 H)",
+        "criterion": "Unit test: queued item and cups changes merge per field. By hand: offline \"Chờ lưu\" then sync."
+      },
+      "10": {
+        "result": "manual",
+        "evidence": "App not run; compare on real iPhone with mockup (#47 section H)",
+        "criterion": "By hand, mockup 1a."
+      },
+      "11": {
+        "result": "manual",
+        "evidence": "App not run; compare on real iPhone with mockup (#47 section H)",
+        "criterion": "By hand, mockups 1b–1k."
+      },
+      "12": {
+        "result": "manual",
+        "evidence": "App not run; compare on real iPhone with mockup (#47 section H)",
+        "criterion": "By hand, mockups 2a–2d."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: currency change refused with a fixed cost item present."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: every new i18n key exists in both languages."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "Migration applied on test DB; empty DB and #13-data deploy not run",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty database and on one with #13's data."
+      }
+    },
+    "checked": "4de4181b03a6e99117e49c71e4b006073602b4f0f063d03871e98a136e531485"
   }
 }
