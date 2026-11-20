@@ -34,6 +34,11 @@
       "id": 3,
       "decision": "Convert reuses an ingredient that now has the same name instead of failing",
       "why": "Mockup v2 assumption 4; avoids duplicates when someone added it meanwhile"
+    },
+    {
+      "id": 4,
+      "decision": "Draft and new-ingredient names capped at 60, not spec R1's 80",
+      "why": "Products and ingredients cap names at 60; a converted name must stay valid in those APIs"
     }
   ],
   "questions": [
@@ -75,5 +80,67 @@
     "5": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "drafts/routes.ts:273-277: retried line create returns 200 before the converted check, so a retry after conversion gets 200 (no data harm)",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "convert.ts:60-70: fallbacks '' and 'weight' for newName/newKind are unreachable today but would create an empty-named ingredient; check in draftMissing or throw",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "blocking",
+        "text": "data: draft name and newName allow 80 chars but products/ingredients cap at 60 (products/routes.ts:26, ingredients/routes.ts:35); convert creates rows the APIs would refuse. Cap at 60 and add the length check to createProductRow/createIngredientRow, with tests",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 4,
+        "severity": "blocking",
+        "text": "money: convert.ts:61-68 reuses a same-name ingredient with a different mode (new line volume ml vs existing weight g), silently wrong cost. Refuse with a clear code (e.g. draft_ingredient_mode_mismatch) naming the line; phone shows it",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 5,
+        "severity": "blocking",
+        "text": "money: mobile estimate.ts:39,52-57 counts a draft line that is also a default ingredient twice (convert uses the draft amount once), and a deleted existing ingredient costs 0 instead of no estimate; align with convert",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "convert.ts:86 merged amount of existing+reused line can exceed MAX_LINE_AMOUNT",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "converted drafts can't be deleted and GET /drafts is unbounded",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "mobile convert: a lost reply then 409 draft_converted shows an error instead of refreshing and linking the product",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "convert.ts:68-84 reused same-name ingredient keeps its own price; draft purchase price dropped silently; check A8 shows 'dùng lại' clearly (by hand)",
+        "resolved": false
+      }
+    ],
+    "reviewed": "66e4924c0803d9522fcee3693f555459ddf2ceba25632234c4309efdca6d2777"
   }
 }
