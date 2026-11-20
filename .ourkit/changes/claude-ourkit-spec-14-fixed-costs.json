@@ -53,5 +53,13 @@
       "steps": "From apps/api run npm run db:deploy on the dev DB. Expected: succeeds; projects have no cups set"
     }
   ],
-  "planApproval": "eb90a0b6920466ca09e5b8467a656e930c1d561ec0a142f304ccbff430e2ad88"
+  "planApproval": "eb90a0b6920466ca09e5b8467a656e930c1d561ec0a142f304ccbff430e2ad88",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    }
+  }
 }
