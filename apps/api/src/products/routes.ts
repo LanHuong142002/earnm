@@ -13,11 +13,11 @@ import type { Tx } from "../ideas/common.js";
 import { MAX_PRICE } from "../ingredients/routes.js";
 import { nameKey } from "../labels/nameKey.js";
 import { findForMember } from "../projects/access.js";
+import { assertMoneyInRange, createProductRow, createSizeRow, loadDefaults, MAX_PRODUCTS_PER_PROJECT, productNameTaken } from "./create.js";
 import { productInclude, productResponse, SIZE_ORDER } from "./response.js";
 import type { SizeName } from "./response.js";
 
-/** A project holds at most this many products. */
-export const MAX_PRODUCTS_PER_PROJECT = 200;
+export { MAX_PRODUCTS_PER_PROJECT };
 /** Largest recipe amount, in base units (g, ml, portion). */
 export const MAX_LINE_AMOUNT = 100_000;
 const MAX_LINES_PER_SIZE = 100;
@@ -75,7 +75,7 @@ const patchSchema = z
 const priceSchema = change(moneySchema.nullable());
 const linesSchema = change(linesValueSchema);
 
-const nameTaken = () => new AppError(409, "product_name_taken", "A product in this project already has that name.");
+const nameTaken = productNameTaken;
 const invalid = (field: string) => new AppError(400, "validation_failed", `Invalid fields: ${field}.`);
 
 export function createProductsRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
@@ -104,70 +104,6 @@ export function createProductsRouter(deps: { prisma: PrismaClient; now: () => Da
     const parsed = sizeSchema.safeParse(param(req, "size"));
     if (!parsed.success) throw notFound();
     return parsed.data;
-  }
-
-  /** Throws 400 when an amount is above the maximum for the project's currency. Run inside the write's transaction. */
-  async function assertMoneyInRange(tx: Tx, projectId: string, amounts: number[], field: string) {
-    const project = await tx.project.findUnique({ where: { id: projectId }, select: { currency: true } });
-    if (!project) throw notFound();
-    if (amounts.some((a) => a > MAX_PRICE[project.currency])) throw invalid(field);
-  }
-
-  /** What a new size starts with: a ticked line per default ingredient and a copy of each default extra cost. */
-  async function loadDefaults(tx: Tx, projectId: string) {
-    const [ingredients, extraCosts] = await Promise.all([
-      tx.ingredient.findMany({
-        where: { projectId, isDefault: true },
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        select: { id: true, mode: true },
-      }),
-      tx.extraCost.findMany({
-        where: { projectId, isDefault: true },
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      }),
-    ]);
-    return { ingredients, extraCosts };
-  }
-
-  async function createSizeRow(
-    tx: Tx,
-    productId: string,
-    size: SizeName,
-    defaults: Awaited<ReturnType<typeof loadDefaults>>,
-  ) {
-    // Field times start at the epoch so a queued edit made after the create always wins.
-    const epoch = new Date(0);
-    await tx.productSizeRow.create({
-      data: {
-        id: randomUUID(),
-        productId,
-        size,
-        priceEditedAt: epoch,
-        linesEditedAt: epoch,
-        lines: {
-          create: defaults.ingredients.map((ing, position) => ({
-            id: randomUUID(),
-            ingredientId: ing.id,
-            // Portion ingredients start at one portion; weights and volumes are filled in by the person.
-            amount: ing.mode === "portion" ? 1 : 0,
-            included: true,
-            isDefault: true,
-            position,
-          })),
-        },
-        extras: {
-          create: defaults.extraCosts.map((x, position) => ({
-            id: randomUUID(),
-            name: x.name,
-            amount: x.amount,
-            included: true,
-            isDefault: true,
-            position,
-            extraCostId: x.id,
-          })),
-        },
-      },
-    });
   }
 
   async function loadProduct(productId: string, projectId: string) {
@@ -219,37 +155,7 @@ export function createProductsRouter(deps: { prisma: PrismaClient; now: () => Da
             // and ignore a body that differs, since the product may have been edited since.
             return { status: 200, row: existing };
           }
-          // Counted under the project lock, so concurrent creates can't pass the limit together.
-          if ((await tx.product.count({ where: { projectId } })) >= MAX_PRODUCTS_PER_PROJECT) {
-            throw new AppError(
-              409,
-              "product_limit_reached",
-              `A project can hold at most ${MAX_PRODUCTS_PER_PROJECT} products.`,
-            );
-          }
-          const key = nameKey(body.name);
-          if (await tx.product.findUnique({ where: { projectId_nameKey: { projectId, nameKey: key } } })) {
-            throw nameTaken();
-          }
-          const epoch = new Date(0);
-          try {
-            await tx.product.create({
-              data: {
-                id: body.id,
-                projectId,
-                name: body.name,
-                nameKey: key,
-                nameEditedAt: epoch,
-                sizesEditedAt: epoch,
-                createdAt: now(),
-              },
-            });
-          } catch (err) {
-            if (isUniqueViolation(err)) throw nameTaken();
-            throw err;
-          }
-          const defaults = await loadDefaults(tx, projectId);
-          for (const size of body.sizes) await createSizeRow(tx, body.id, size, defaults);
+          await createProductRow(tx, { id: body.id, projectId, name: body.name, sizes: body.sizes, now: now() });
           const row = await tx.product.findUniqueOrThrow({ where: { id: body.id }, include: productInclude });
           return { status: 201, row };
         }),

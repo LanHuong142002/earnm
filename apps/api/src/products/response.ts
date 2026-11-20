@@ -10,6 +10,8 @@ export const productInclude = {
       extras: { orderBy: [{ position: "asc" }, { id: "asc" }] },
     },
   },
+  /** The drink draft this product was made from, if any. */
+  draft: { select: { id: true } },
 } satisfies Prisma.ProductInclude;
 
 export type ProductRow = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
@@ -26,6 +28,7 @@ export function productResponse(row: ProductRow) {
     projectId: row.projectId,
     name: row.name,
     createdAt: row.createdAt.toISOString(),
+    fromDraftId: row.draft?.id ?? null,
     sizes: [...row.sizes]
       .sort((a, b) => SIZE_ORDER.indexOf(a.size) - SIZE_ORDER.indexOf(b.size))
       .map((s) => ({
