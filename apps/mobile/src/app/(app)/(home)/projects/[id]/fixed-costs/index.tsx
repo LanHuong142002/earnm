@@ -20,6 +20,7 @@ import { Button } from "../../../../../../ui/Button";
 import { Card } from "../../../../../../ui/Card";
 import { Collapsible } from "../../../../../../ui/Collapsible";
 import { Enter } from "../../../../../../ui/Enter";
+import { HeroCard } from "../../../../../../ui/HeroCard";
 import { PressableScale } from "../../../../../../ui/PressableScale";
 import { Screen } from "../../../../../../ui/Screen";
 
@@ -33,38 +34,22 @@ function Skeleton({ height }: { height: number }) {
 /** The orange card: the monthly total and, with cups set, the cups and what each cup carries (mockups 1b, 1i). */
 function Hero({ total, cups, share, currency }: { total: number; cups: number | null; share: number | null; currency: Currency }) {
   const { t } = useTranslation();
-  const { colors, typography, radius, spacing } = useTheme();
-  const cell = (label: string, value: string) => (
-    <View accessible accessibilityLabel={`${label}, ${value}`} style={{ flex: 1, gap: spacing[0] / 2 }}>
-      <Text style={[typography.caption, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[typography.sectionTitle, { color: colors.text }]}>{value}</Text>
-    </View>
-  );
+  const label = t("fixedCosts.heroLabel");
   return (
-    <View
-      style={{
-        gap: spacing[1],
-        padding: spacing[2],
-        borderRadius: radius.card,
-        borderWidth: 1,
-        borderColor: colors.tileBorder,
-        backgroundColor: colors.tile,
-      }}
-    >
-      <View accessible accessibilityLabel={`${t("fixedCosts.heroLabel")}, ${moneyOf(total, currency)}`} style={{ gap: spacing[0] / 2 }}>
-        <Text style={[typography.label, { color: colors.textSecondary }]}>{t("fixedCosts.heroLabel")}</Text>
-        <Text style={[typography.screenTitle, { color: colors.accentStrong }]}>{moneyOf(total, currency)}</Text>
-        <Text style={[typography.caption, { color: colors.textSecondary }]}>
-          {t(cups === null ? "fixedCosts.heroSubNoCups" : "fixedCosts.heroSub")}
-        </Text>
-      </View>
-      {cups !== null && share !== null ? (
-        <View style={{ flexDirection: "row", gap: spacing[2] }}>
-          {cell(t("fixedCosts.cupsCell"), t("fixedCosts.cupsValue", { amount: formatPriceText(String(cups), "VND") }))}
-          {cell(t("fixedCosts.shareCell"), moneyOf(share, currency))}
-        </View>
-      ) : null}
-    </View>
+    <HeroCard
+      label={label}
+      value={moneyOf(total, currency)}
+      sub={t(cups === null ? "fixedCosts.heroSubNoCups" : "fixedCosts.heroSub")}
+      accessibilityLabel={`${label}, ${moneyOf(total, currency)}`}
+      cells={
+        cups !== null && share !== null
+          ? [
+              { label: t("fixedCosts.cupsCell"), value: t("fixedCosts.cupsValue", { amount: formatPriceText(String(cups), "VND") }) },
+              { label: t("fixedCosts.shareCell"), value: moneyOf(share, currency) },
+            ]
+          : undefined
+      }
+    />
   );
 }
 

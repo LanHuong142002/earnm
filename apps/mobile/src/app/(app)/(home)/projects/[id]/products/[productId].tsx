@@ -31,10 +31,11 @@ import {
   toggleLine,
 } from "../../../../../../products/recipeEdit";
 import type { SizeName } from "../../../../../../products/types";
-import { ingredientLookup, pickSize, sizeFigures, withPriceChanges } from "../../../../../../products/view";
+import { fixedCostState, ingredientLookup, pickSize, sizeFigures, withPriceChanges } from "../../../../../../products/view";
 import { useTheme } from "../../../../../../theme/useTheme";
 import { Card } from "../../../../../../ui/Card";
 import { Enter } from "../../../../../../ui/Enter";
+import { HeroCard } from "../../../../../../ui/HeroCard";
 import { PressableScale } from "../../../../../../ui/PressableScale";
 import { Screen } from "../../../../../../ui/Screen";
 import { Segmented } from "../../../../../../ui/Segmented";
@@ -56,7 +57,7 @@ export default function ProductScreen() {
   const goToList = useGoToProjectList();
   const once = useTapOnce();
   const focused = useIsFocused();
-  const { colors, typography, radius, spacing, layout, iconSize, onFixed } = useTheme();
+  const { colors, typography, spacing, layout, iconSize } = useTheme();
   const { id, productId } = useLocalSearchParams<{ id: string; productId: string }>();
   const { status, projects } = useProjects();
   const products = useProducts();
@@ -66,7 +67,7 @@ export default function ProductScreen() {
   const [wanted, setWanted] = useState<SizeName | null>(null);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [leaving, setLeaving] = useState(false);
-  const { ready, refresh, productsFor, extraCostsFor, targetMarginFor, pendingFor, loadedFor } = products;
+  const { ready, refresh, productsFor, extraCostsFor, targetMarginFor, pendingFor, loadedFor, perCupShareFor, fixedTotalFor, expectedCupsFor } = products;
   const { ready: ingredientsReady, refresh: refreshIngredients } = ingredients;
 
   useEffect(() => {
@@ -90,7 +91,11 @@ export default function ProductScreen() {
   const target = project ? targetMarginFor(projectId) : 65;
   const sizeName = product ? pickSize(product.sizes.map((s) => s.size), wanted) : null;
   const size = product?.sizes.find((s) => s.size === sizeName) ?? null;
-  const figures = size ? sizeFigures(size, lookup, target, currency) : null;
+  const share = project ? perCupShareFor(projectId) : null;
+  const fixedTotal = project ? fixedTotalFor(projectId) : 0;
+  const cups = project ? expectedCupsFor(projectId) : null;
+  const fixedState = fixedCostState(fixedTotal, share);
+  const figures = size ? sizeFigures(size, lookup, target, currency, share) : null;
 
   if (!project) return <Screen edges={[]}>{view === "loading" ? <View /> : null}</Screen>;
   if (!product || !size || !figures || !sizeName) {
@@ -136,7 +141,16 @@ export default function ProductScreen() {
   const sheetLineIngredient = sheet?.kind === "line" ? lookup[sheet.ingredientId] : undefined;
   const sheetLine = sheet?.kind === "line" ? size.lines.find((l) => l.ingredientId === sheet.ingredientId) : undefined;
   const sheetExtra = sheet?.kind === "extra" ? size.extras.find((x) => x.id === sheet.extraId) : undefined;
-  const heroText = { color: onFixed };
+  const heroSub = profitLine
+    ? [
+        figures.margin === null ? null : t("products.heroMargin", { pct: figures.margin }),
+        fixedState === "share" ? t("products.heroFixedIncluded") : fixedState === "unset" ? t("products.heroFixedExcluded") : null,
+        figures.belowTarget ? t("products.belowTarget", { pct: target }) : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : t("products.heroNoPrice");
+  const heroCostLabel = t(fixedState === "share" ? "products.heroCostFull" : fixedState === "unset" ? "products.heroCostItem" : "products.heroCostShort");
 
   return (
     <Screen edges={[]}>
@@ -168,37 +182,24 @@ export default function ProductScreen() {
             />
           ) : null}
           {pending ? <Hint>{t("products.pending")}</Hint> : null}
-          <View
-            accessible
+          <HeroCard
             accessibilityLabel={
               profitLine
                 ? `${t("products.heroProfit", { size: size.size })}, ${moneyOf(figures.profit ?? 0, currency)}`
-                : `${t("products.heroCost", { size: size.size })}, ${moneyOf(figures.cost, currency)}`
+                : `${t("products.heroCost", { size: size.size })}, ${moneyOf(figures.fullCost, currency)}`
             }
-            style={{ gap: spacing[0], padding: spacing[2], borderRadius: radius.card, backgroundColor: colors.accentStrong }}
-          >
-            <Text style={[typography.label, heroText]}>{t(profitLine ? "products.heroProfit" : "products.heroCost", { size: size.size })}</Text>
-            <Text style={[typography.screenTitle, heroText]}>{moneyOf(profitLine ? (figures.profit ?? 0) : figures.cost, currency)}</Text>
-            <Text style={[typography.caption, heroText]}>
-              {profitLine
-                ? [figures.margin === null ? null : t("products.heroMargin", { pct: figures.margin }), figures.belowTarget ? t("products.belowTarget", { pct: target }) : null]
-                    .filter(Boolean)
-                    .join(" ")
-                : t("products.heroNoPrice")}
-            </Text>
-            {profitLine ? (
-              <View style={{ flexDirection: "row", gap: spacing[2], marginTop: spacing[0], paddingTop: spacing[1], borderTopWidth: 1, borderTopColor: onFixed + "40" }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[typography.caption, heroText]}>{t("products.heroPrice")}</Text>
-                  <Text style={[typography.bodyStrong, heroText]}>{moneyOf(figures.price ?? 0, currency)}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[typography.caption, heroText]}>{t("products.heroCostShort")}</Text>
-                  <Text style={[typography.bodyStrong, heroText]}>{moneyOf(figures.cost, currency)}</Text>
-                </View>
-              </View>
-            ) : null}
-          </View>
+            label={t(profitLine ? "products.heroProfit" : "products.heroCost", { size: size.size })}
+            value={moneyOf(profitLine ? (figures.profit ?? 0) : figures.fullCost, currency)}
+            sub={heroSub}
+            cells={
+              profitLine
+                ? [
+                    { label: t("products.heroPrice"), value: moneyOf(figures.price ?? 0, currency) },
+                    { label: heroCostLabel, value: moneyOf(figures.fullCost, currency) },
+                  ]
+                : undefined
+            }
+          />
           <Card flush>
             <View style={{ paddingHorizontal: spacing[2] }}>
               <PressableScale
@@ -215,7 +216,7 @@ export default function ProductScreen() {
                   <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.textSecondary} />
                 </View>
               </PressableScale>
-              <PriceHint cost={figures.cost} target={target} currency={currency} onPress={() => setSheet({ kind: "target" })} />
+              <PriceHint cost={figures.fullCost} target={target} currency={currency} onPress={() => setSheet({ kind: "target" })} />
             </View>
           </Card>
           <RecipeSections
@@ -223,6 +224,8 @@ export default function ProductScreen() {
             figures={figures}
             ingredients={lookup}
             currency={currency}
+            fixed={{ state: fixedState, share, total: fixedTotal, cups }}
+            onOpenFixed={() => once(() => router.push({ pathname: "/projects/[id]/fixed-costs", params: { id: project.id } }))}
             onToggleLine={(ingredientId) => void saveRecipe(toggleLine(recipe, ingredientId))}
             onOpenLine={(ingredientId) => setSheet({ kind: "line", ingredientId, adding: false })}
             onAddLine={() => setSheet({ kind: "picker" })}
@@ -256,6 +259,7 @@ export default function ProductScreen() {
           currency={currency}
           initial={size.sellingPrice}
           cost={figures.cost}
+          share={share}
           target={target}
           onClose={close}
           onSave={async (price) => (await products.setPrice(project.id, product.id, size.size, price)).ok}

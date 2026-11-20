@@ -31,7 +31,7 @@ describe("translation key parity", () => {
   });
 });
 
-// Fixed costs (#14, AC 14): every fixedCosts.* key the source uses exists in both languages, and the whole section matches.
+// Fixed costs (#14, AC 14): every fixedCosts.* and products.* key the source uses exists in both languages, and the whole section matches.
 describe("fixed costs translations", () => {
   const read = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -41,7 +41,10 @@ describe("fixed costs translations", () => {
     });
   const used = new Set<string>();
   for (const source of read(join(__dirname, ".."))) {
-    for (const match of source.matchAll(/["'`](fixedCosts\.[A-Za-z0-9_.]+)["'`]/g)) used.add(match[1]!);
+    for (const match of source.matchAll(/["'`]((?:fixedCosts|products)\.[A-Za-z0-9_.]+)["'`]/g)) {
+      // products.cache.* are storage keys, not translations.
+      if (!match[1]!.startsWith("products.cache.")) used.add(match[1]!);
+    }
   }
   const has = (tree: unknown, path: string) => {
     const keys = normalize(keyPaths(tree));

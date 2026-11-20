@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { moneyOf } from "../../../../../../ingredients/display";
 import { useIngredients } from "../../../../../../ingredients/IngredientsProvider";
 import { OfflineNote } from "../../../../../../projects/OfflineNote";
 import { useProjects } from "../../../../../../projects/ProjectsProvider";
 import { useGoToProjectList, useTapOnce } from "../../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../../projects/routing";
+import { Hint } from "../../../../../../products/ProductBits";
 import { ProductRejectedNotice } from "../../../../../../products/ProductRejectedNotice";
 import { ProductRowView } from "../../../../../../products/ProductRow";
 import { useProducts } from "../../../../../../products/ProductsProvider";
@@ -30,7 +32,7 @@ export default function ProductListScreen() {
   const { colors, typography, radius, spacing, layout, iconSize } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { status, projects } = useProjects();
-  const { ready, refresh, productsFor, extraCostsFor, targetMarginFor, pendingFor, loadedFor } = useProducts();
+  const { ready, refresh, productsFor, extraCostsFor, targetMarginFor, pendingFor, loadedFor, perCupShareFor } = useProducts();
   const ingredients = useIngredients();
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
@@ -56,7 +58,8 @@ export default function ProductListScreen() {
   const all = ready && project ? productsFor(projectId) : [];
   const ingredientList = ingredientsReady && project ? ingredients.ingredientsFor(projectId) : [];
   const target = project ? targetMarginFor(projectId) : 65;
-  const rows = productRows(all, ingredientLookup(ingredientList), target, currency);
+  const share = project ? perCupShareFor(projectId) : null;
+  const rows = productRows(all, ingredientLookup(ingredientList), target, currency, share);
 
   if (!project) {
     return (
@@ -152,6 +155,7 @@ export default function ProductListScreen() {
                 <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.textSecondary} />
               </PressableScale>
             </Card>
+            {share !== null && rows.length > 0 ? <Hint>{t("products.listShareHint", { share: moneyOf(share, currency) })}</Hint> : null}
             {rows.length === 0 ? (
               <View style={{ alignItems: "center", gap: spacing[2], paddingTop: spacing[4] }}>
                 <View
