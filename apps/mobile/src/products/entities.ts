@@ -5,3 +5,5 @@ export const PRODUCT_PRICE_ENTITY = "productPrice";
 /** One size's recipe (lines and extras together, replaced as a whole). `entityId` is `${productId}|${size}`. */
 export const PRODUCT_LINES_ENTITY = "productLines";
 export const EXTRA_COST_ENTITY = "extraCost";
+/** One fixed cost (rent, wages, equipment...). Edits of one cost merge field by field. */
+export const FIXED_COST_ENTITY = "fixedCost";

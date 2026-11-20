@@ -1,19 +1,23 @@
 import type { Change, EntityHandlers, NewChange, Queue } from "../sync/queue";
 import {
   createExtraCost,
+  createFixedCost,
   createProduct,
   deleteExtraCost,
+  deleteFixedCost,
   deleteProduct,
   patchExtraCost,
+  patchFixedCost,
   patchProduct,
   putSizeLines,
   putSizePrice,
   type ExtraCostFieldPatch,
+  type FixedCostFieldPatch,
   type ProductFieldPatch,
 } from "./api";
 import type { SizeDefaults } from "./defaults";
-import { EXTRA_COST_ENTITY, PRODUCT_ENTITY, PRODUCT_LINES_ENTITY, PRODUCT_PRICE_ENTITY } from "./entities";
-import type { SizeName, SizeRecipe } from "./types";
+import { EXTRA_COST_ENTITY, FIXED_COST_ENTITY, PRODUCT_ENTITY, PRODUCT_LINES_ENTITY, PRODUCT_PRICE_ENTITY } from "./entities";
+import { FIXED_COST_KINDS, type FixedCostKind, type SizeName, type SizeRecipe } from "./types";
 
 type Deps = {
   createProduct: typeof createProduct;
@@ -24,9 +28,24 @@ type Deps = {
   createExtraCost: typeof createExtraCost;
   patchExtraCost: typeof patchExtraCost;
   deleteExtraCost: typeof deleteExtraCost;
+  createFixedCost: typeof createFixedCost;
+  patchFixedCost: typeof patchFixedCost;
+  deleteFixedCost: typeof deleteFixedCost;
 };
 
-const realDeps: Deps = { createProduct, patchProduct, putSizePrice, putSizeLines, deleteProduct, createExtraCost, patchExtraCost, deleteExtraCost };
+const realDeps: Deps = {
+  createProduct,
+  patchProduct,
+  putSizePrice,
+  putSizeLines,
+  deleteProduct,
+  createExtraCost,
+  patchExtraCost,
+  deleteExtraCost,
+  createFixedCost,
+  patchFixedCost,
+  deleteFixedCost,
+};
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const timeOf = (change: Change, field: string) => change.fieldTimes[field] ?? change.createdAt;
@@ -145,6 +164,40 @@ export const extraCostDeleteChange = (input: { id: string; projectId: string }):
   fieldTimes: {},
 });
 
+export function fixedCostCreateChange(input: { id: string; projectId: string; name: string; kind: FixedCostKind; amount: number; months: number | null; now: Date }): NewChange {
+  const at = input.now.toISOString();
+  return {
+    entity: FIXED_COST_ENTITY,
+    entityId: input.id,
+    kind: "create",
+    data: { projectId: input.projectId, name: input.name, kind: input.kind, amount: input.amount, months: input.months },
+    fieldTimes: { name: at, kind: at, amount: at, months: at },
+  };
+}
+
+export type FixedCostFieldChanges = { name?: string; kind?: FixedCostKind; amount?: number; months?: number | null };
+
+export function fixedCostUpdateChange(input: { id: string; projectId: string; fields: FixedCostFieldChanges; now: Date }): NewChange {
+  const at = input.now.toISOString();
+  const data: Record<string, unknown> = { projectId: input.projectId };
+  const fieldTimes: Record<string, string> = {};
+  for (const field of ["name", "kind", "amount", "months"] as const) {
+    const value = input.fields[field];
+    if (value === undefined) continue;
+    data[field] = value;
+    fieldTimes[field] = at;
+  }
+  return { entity: FIXED_COST_ENTITY, entityId: input.id, kind: "update", data, fieldTimes };
+}
+
+export const fixedCostDeleteChange = (input: { id: string; projectId: string }): NewChange => ({
+  entity: FIXED_COST_ENTITY,
+  entityId: input.id,
+  kind: "delete",
+  data: { projectId: input.projectId },
+  fieldTimes: {},
+});
+
 /** Registers the products code with the shared queue; `handlers` receive every result. */
 export function registerProductEntities(queue: Queue, handlers: EntityHandlers, deps: Deps = realDeps): void {
   queue.registerEntity(
@@ -220,6 +273,37 @@ export function registerProductEntities(queue: Queue, handlers: EntityHandlers, 
         return deps.patchExtraCost(token, projectOf(change), change.entityId, fields);
       },
       delete: (change, token) => deps.deleteExtraCost(token, projectOf(change), change.entityId),
+    },
+    handlers,
+  );
+
+  queue.registerEntity(
+    FIXED_COST_ENTITY,
+    {
+      create: (change, token) => {
+        const kind = (FIXED_COST_KINDS as readonly unknown[]).includes(change.data.kind) ? (change.data.kind as FixedCostKind) : "monthly";
+        return deps.createFixedCost(token, projectOf(change), {
+          id: change.entityId,
+          name: String(change.data.name ?? ""),
+          kind,
+          amount: Number(change.data.amount ?? 0),
+          // A one-time cost needs its months; any other kind has none, even if an edit merged into this create left some.
+          months: kind === "oneTime" ? Number(change.data.months) : null,
+        });
+      },
+      update: (change, token) => {
+        const fields: FixedCostFieldPatch = {};
+        const { data } = change;
+        if (typeof data.name === "string") fields.name = { value: data.name, editedAt: timeOf(change, "name") };
+        if ((FIXED_COST_KINDS as readonly unknown[]).includes(data.kind)) fields.kind = { value: data.kind as FixedCostKind, editedAt: timeOf(change, "kind") };
+        if (typeof data.amount === "number") fields.amount = { value: data.amount, editedAt: timeOf(change, "amount") };
+        // Months belong to one-time costs only: a merged edit may carry months a later kind change made stale, and
+        // the server clears them itself when the kind moves away from one-time.
+        const oneTime = data.kind === undefined || data.kind === "oneTime";
+        if (oneTime && (typeof data.months === "number" || data.months === null)) fields.months = { value: data.months, editedAt: timeOf(change, "months") };
+        return deps.patchFixedCost(token, projectOf(change), change.entityId, fields);
+      },
+      delete: (change, token) => deps.deleteFixedCost(token, projectOf(change), change.entityId),
     },
     handlers,
   );

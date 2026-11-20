@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { Change } from "../sync/queue";
 import { buildDefaults } from "./defaults";
 import { ingredient } from "../ingredients/fixtures";
-import { extraCost, product, productSize } from "./fixtures";
-import { applyExtraCostOverlay, applyProductOverlay, pendingExtraCostIds, pendingProductIds } from "./overlay";
-import { extraCostCreateChange, extraCostDeleteChange, extraCostUpdateChange, productCreateChange, productDeleteChange, productLinesChange, productPriceChange, productUpdateChange } from "./sync";
+import { extraCost, fixedCost, product, productSize } from "./fixtures";
+import { applyExtraCostOverlay, applyFixedCostOverlay, applyProductOverlay, pendingExtraCostIds, pendingExpectedCups, pendingFixedCostIds, pendingProductIds } from "./overlay";
+import { PROJECT_ENTITY } from "../projects/sync";
+import { fixedCostCreateChange, fixedCostDeleteChange, fixedCostUpdateChange, extraCostCreateChange, extraCostDeleteChange, extraCostUpdateChange, productCreateChange, productDeleteChange, productLinesChange, productPriceChange, productUpdateChange } from "./sync";
 
 const NOW = new Date("2026-11-18T09:00:00.000Z");
 let n = 0;
@@ -116,5 +117,55 @@ describe("extra cost overlay", () => {
     expect(list[0].amount).toBe(900);
     expect(list[1]).toMatchObject({ name: "Ly", amount: 2000, isDefault: true });
     expect([...pendingExtraCostIds("p1", w)].sort()).toEqual(["x1", "x2", "x3"]);
+  });
+});
+
+describe("fixed cost overlay", () => {
+  it("shows a waiting create, edit and delete, and marks them pending", () => {
+    const server = [fixedCost({ id: "f1", name: "Thuê" }), fixedCost({ id: "f2", name: "Lương" })];
+    const w = waiting(
+      fixedCostCreateChange({ id: "f3", projectId: "p1", name: "Máy pha", kind: "oneTime", amount: 18000000, months: 24, now: NOW }),
+      fixedCostUpdateChange({ id: "f1", projectId: "p1", fields: { amount: 6000000 }, now: NOW }),
+      fixedCostDeleteChange({ id: "f2", projectId: "p1" }),
+      fixedCostDeleteChange({ id: "f9", projectId: "other" }),
+    );
+    const list = applyFixedCostOverlay("p1", server, w);
+    expect(list.map((x) => x.id)).toEqual(["f1", "f3"]);
+    expect(list[0].amount).toBe(6000000);
+    expect(list[1]).toMatchObject({ name: "Máy pha", kind: "oneTime", amount: 18000000, months: 24 });
+    expect([...pendingFixedCostIds("p1", w)].sort()).toEqual(["f1", "f2", "f3"]);
+  });
+
+  it("switching a cost away from one-time clears its months, switching to one-time sets them", () => {
+    const server = [fixedCost({ id: "f1", kind: "oneTime", months: 12 }), fixedCost({ id: "f2", kind: "monthly" })];
+    const w = waiting(
+      fixedCostUpdateChange({ id: "f1", projectId: "p1", fields: { kind: "weekly" }, now: NOW }),
+      fixedCostUpdateChange({ id: "f2", projectId: "p1", fields: { kind: "oneTime", months: 6 }, now: NOW }),
+    );
+    const list = applyFixedCostOverlay("p1", server, w);
+    expect(list[0]).toMatchObject({ kind: "weekly", months: null });
+    expect(list[1]).toMatchObject({ kind: "oneTime", months: 6 });
+  });
+
+  it("ignores changes for a cost that is not there", () => {
+    const w = waiting(fixedCostUpdateChange({ id: "nope", projectId: "p1", fields: { amount: 1 }, now: NOW }));
+    expect(applyFixedCostOverlay("p1", [], w)).toEqual([]);
+  });
+});
+
+describe("pending expected cups", () => {
+  const projectEdit = (entityId: string, data: Record<string, unknown>, kind: "update" | "delete" = "update") => ({
+    entity: PROJECT_ENTITY,
+    entityId,
+    kind,
+    data,
+    fieldTimes: {},
+  });
+  it("is pending only while an edit of that project's cups waits", () => {
+    const w = waiting(projectEdit("p1", { expectedCupsPerMonth: null }), projectEdit("p2", { name: "X" }));
+    expect(pendingExpectedCups("p1", w)).toBe(true);
+    expect(pendingExpectedCups("p2", w)).toBe(false);
+    expect(pendingExpectedCups("p3", w)).toBe(false);
+    expect(pendingExpectedCups("p1", [])).toBe(false);
   });
 });

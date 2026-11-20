@@ -1,5 +1,5 @@
 import { request } from "../lib/api";
-import type { ExtraCost, Product, SizeName, SizeRecipe } from "./types";
+import type { ExtraCost, FixedCost, FixedCostKind, Product, SizeName, SizeRecipe } from "./types";
 
 type Stamped<T> = { value: T; editedAt: string };
 
@@ -10,10 +10,16 @@ export type ProductFieldPatch = { name?: Stamped<string>; sizes?: Stamped<SizeNa
 export type CreateExtraCostBody = { id: string; name: string; amount: number; isDefault?: boolean };
 export type ExtraCostFieldPatch = { name?: Stamped<string>; amount?: Stamped<number>; isDefault?: Stamped<boolean> };
 
+export type CreateFixedCostBody = { id: string; name: string; kind: FixedCostKind; amount: number; months: number | null };
+/** Switching a cost away from one-time clears its months on the server; switching to one-time needs months. */
+export type FixedCostFieldPatch = { name?: Stamped<string>; kind?: Stamped<FixedCostKind>; amount?: Stamped<number>; months?: Stamped<number | null> };
+
 const productsBase = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/products`;
 const product = (projectId: string, id: string) => `${productsBase(projectId)}/${encodeURIComponent(id)}`;
 const extrasBase = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/extra-costs`;
 const extra = (projectId: string, id: string) => `${extrasBase(projectId)}/${encodeURIComponent(id)}`;
+const fixedBase = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/fixed-costs`;
+const fixed = (projectId: string, id: string) => `${fixedBase(projectId)}/${encodeURIComponent(id)}`;
 
 export const listProducts = (token: string, projectId: string) =>
   request<{ products: Product[] }>(productsBase(projectId), { token }).then((r) => r.products);
@@ -44,3 +50,15 @@ export const patchExtraCost = (token: string, projectId: string, id: string, fie
 
 export const deleteExtraCost = (token: string, projectId: string, id: string) =>
   request<void>(extra(projectId, id), { method: "DELETE", token });
+
+export const listFixedCosts = (token: string, projectId: string) =>
+  request<{ fixedCosts: FixedCost[] }>(fixedBase(projectId), { token }).then((r) => r.fixedCosts);
+
+export const createFixedCost = (token: string, projectId: string, body: CreateFixedCostBody) =>
+  request<FixedCost>(fixedBase(projectId), { method: "POST", body, token });
+
+export const patchFixedCost = (token: string, projectId: string, id: string, fields: FixedCostFieldPatch) =>
+  request<FixedCost>(fixed(projectId, id), { method: "PATCH", body: fields, token });
+
+export const deleteFixedCost = (token: string, projectId: string, id: string) =>
+  request<void>(fixed(projectId, id), { method: "DELETE", token });

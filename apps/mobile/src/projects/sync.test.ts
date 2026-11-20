@@ -78,6 +78,12 @@ describe("registerProjectEntity", () => {
     expect(deps.patchProject).toHaveBeenCalledWith("tok", "p1", { targetMargin: { value: 70, editedAt: T2 } });
   });
 
+  it("update sends expected cups, null included, with its own editedAt", async () => {
+    const { senders, deps } = setup();
+    await senders.update({ ...base, kind: "update", data: { expectedCupsPerMonth: null }, fieldTimes: { expectedCupsPerMonth: T2 } }, "tok");
+    expect(deps.patchProject).toHaveBeenCalledWith("tok", "p1", { expectedCupsPerMonth: { value: null, editedAt: T2 } });
+  });
+
   it("update sends only changed fields, each with its own editedAt", async () => {
     const { senders, deps } = setup();
     await senders.update(

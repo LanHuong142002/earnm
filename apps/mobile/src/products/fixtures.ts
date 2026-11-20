@@ -1,4 +1,4 @@
-import type { ExtraCost, Product, ProductSize } from "./types";
+import type { ExtraCost, FixedCost, Product, ProductSize } from "./types";
 
 export function productSize(overrides: Partial<ProductSize> & { size: ProductSize["size"] }): ProductSize {
   return { sellingPrice: null, lines: [], extras: [], ...overrides };
@@ -17,4 +17,8 @@ export function product(overrides: Partial<Product> & { id: string }): Product {
 
 export function extraCost(overrides: Partial<ExtraCost> & { id: string }): ExtraCost {
   return { projectId: "p1", name: "Đá", amount: 500, isDefault: false, createdAt: "2026-11-10T09:00:00.000Z", ...overrides };
+}
+
+export function fixedCost(overrides: Partial<FixedCost> & { id: string }): FixedCost {
+  return { projectId: "p1", name: "Thuê mặt bằng", kind: "monthly", amount: 5000000, months: null, createdAt: "2026-11-10T09:00:00.000Z", ...overrides };
 }

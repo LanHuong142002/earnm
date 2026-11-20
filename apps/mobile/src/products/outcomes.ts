@@ -14,13 +14,16 @@ const REASON_KEY: Partial<Record<ProductRejectedReason, string>> = {
 export function productNoticeKeys(notice: ProductRejectedNotice): { headline: string; reason: string } {
   const named = notice.name !== null;
   const extra = notice.entity === "extraCost";
+  const fixed = notice.entity === "fixedCost";
   let reason = REASON_KEY[notice.reason] ?? "products.reasons.generic";
   // The extra costs have their own wording for what no longer exists and for the limit.
   if (extra && notice.reason === "not_found") reason = "products.reasons.notFoundExtra";
   if (extra && notice.reason === "limit") reason = "products.reasons.limitExtra";
+  if (fixed && notice.reason === "not_found") reason = "products.reasons.notFoundFixed";
+  if (fixed && notice.reason === "limit") reason = "products.reasons.limitFixed";
   // A refused create answered 404 means the project is gone; there is nothing yet to have "disappeared".
   if (notice.kind === "create" && notice.reason === "not_found") reason = "products.reasons.projectGone";
-  const base = extra ? "products.rejectedExtra" : "products.rejected";
+  const base = extra ? "products.rejectedExtra" : fixed ? "products.rejectedFixed" : "products.rejected";
   if (notice.kind === "create") return { headline: `${base}Create${named ? "" : "NoName"}`, reason };
   return { headline: `${base}${named ? "" : "NoName"}`, reason };
 }
