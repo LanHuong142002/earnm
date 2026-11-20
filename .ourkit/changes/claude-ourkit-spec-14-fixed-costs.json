@@ -70,5 +70,34 @@
     "5": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "money/data: apps/api/src/products/fixedCosts.ts PATCH synthetic months=null reuses kind editedAt; a stale kind change that loses LWW can still clear months (stored oneTime, kindEditedAt T5, monthsEditedAt T1, stale kind monthly at T3 -> oneTime with months null, monthly amount 0); reverse also possible. Reconcile kind/months invariant after LWW, with a test (raised from reviewer's non-blocking: it corrupts cost data)",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "schema.prisma ~L557: ExtraCost doc comment now sits above enum FixedCostKind; move it back",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "projects/routes.test.ts PATCH body assertion is one long line (style)",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "schema: migration gives existing projects expectedCupsEditedAt=now while new ones use epoch; a slow phone clock right after deploy loses a cups edit. Same pattern as #13 targetMarginEditedAt",
+        "resolved": false
+      }
+    ]
   }
 }
