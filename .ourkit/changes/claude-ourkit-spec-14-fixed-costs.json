@@ -97,7 +97,39 @@
         "severity": "non-blocking",
         "text": "schema: migration gives existing projects expectedCupsEditedAt=now while new ones use epoch; a slow phone clock right after deploy loses a cups edit. Same pattern as #13 targetMarginEditedAt",
         "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "blocking",
+        "text": "data/money: fixedCosts.ts L176-182, L200-204: a stale kind/months edit 400s the whole PATCH, rolling back newer-winning name/amount edits in the same queued change (breaks R8 per-field LWW). Resolve kind/months inside LWW: months-null only if kind write won; drop incoming months when resulting kind != oneTime; 400 only for self-inconsistent requests; test stale months/kind + winning amount -> 200 with amount applied",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "fixedCosts.ts L201: forcing months null doesn't bump monthsEditedAt",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "deploy order: syncCycle.ts:137/148 treats any 404 as project gone; new app vs old API (no /fixed-costs) empties cached products until API deploys. Deploy API before releasing the app",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "fixedCosts.ts:183: stale rename to a now-taken name 400s the whole PATCH; check name only when its edit wins",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "fixedCosts.ts:117-123: retried create after another member deleted recreates the item (same as extra costs/products)",
+        "resolved": false
       }
-    ]
+    ],
+    "reviewed": "4de4181b03a6e99117e49c71e4b006073602b4f0f063d03871e98a136e531485"
   }
 }
