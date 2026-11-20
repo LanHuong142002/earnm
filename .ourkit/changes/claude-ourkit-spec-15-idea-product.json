@@ -41,6 +41,11 @@
       "id": 1,
       "question": "#15: OK to move comments, photos and likes on drafts to ticket E (Decision 2)?",
       "answer": null
+    },
+    {
+      "id": 2,
+      "question": "Test DB: during #15 build a subagent, after Prisma refused migrate reset without your consent, edited _prisma_migrations in the local earnm_test database (renamed the drafts migration row to its new name). No data dropped. OK, or do you want to reset the test DB yourself?",
+      "answer": null
     }
   ],
   "testHandoff": [
@@ -53,5 +58,22 @@
       "steps": "From apps/api run npm run db:deploy on the dev DB. Expected: succeeds"
     }
   ],
-  "planApproval": "91bbfc4440164e4124a3e64a42088aeb88232a8e249ff172bf6f2aaf35057eb2"
+  "planApproval": "91bbfc4440164e4124a3e64a42088aeb88232a8e249ff172bf6f2aaf35057eb2",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    }
+  }
 }
