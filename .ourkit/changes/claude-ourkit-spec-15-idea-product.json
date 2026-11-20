@@ -1,0 +1,56 @@
+{
+  "tier": "feature",
+  "tierReason": "Revised #15: drink drafts with recipe lines and a convert action that creates ingredients and a product with prices in one transaction; one cycle once discussion moves to ticket E",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mode": "hands-off",
+  "mockupApproval": "2bcce32c1e5ad143adabe7936d2b7132f9ff740e0428862849023b0465b28aba",
+  "ticket": "15",
+  "intake": {
+    "ticket": "15",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Revised #15 to drink drafts (part A of mockup v2); B, C, D become their own tickets",
+      "why": "User chose to split A-D when reviewing mockup v2"
+    },
+    {
+      "id": 2,
+      "decision": "Comments, photos and likes on drafts go to new ticket E blocked by #15",
+      "why": "Keeps #15 within one cycle; idea discussion tables are per-entity so drafts need their own"
+    },
+    {
+      "id": 3,
+      "decision": "Convert reuses an ingredient that now has the same name instead of failing",
+      "why": "Mockup v2 assumption 4; avoids duplicates when someone added it meanwhile"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#15: OK to move comments, photos and likes on drafts to ticket E (Decision 2)?",
+      "answer": null
+    }
+  ],
+  "testHandoff": [
+    {
+      "what": "#15 drafts on a real iPhone (AC 8-11)",
+      "steps": "Ticket #47 section I with mockup .ourkit/mockups/claude-ourkit-spec-15-idea-product.html group A, once #15 is built"
+    },
+    {
+      "what": "#15 migration on DB with #13 data (AC 14)",
+      "steps": "From apps/api run npm run db:deploy on the dev DB. Expected: succeeds"
+    }
+  ]
+}
