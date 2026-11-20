@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { useDrafts } from "../../../../../../drafts/DraftsProvider";
+import { LinkCard } from "../../../../../../drafts/LinkCard";
 import { moneyOf } from "../../../../../../ingredients/display";
 import { useIngredients } from "../../../../../../ingredients/IngredientsProvider";
 import { OfflineNote } from "../../../../../../projects/OfflineNote";
@@ -61,6 +63,7 @@ export default function ProductScreen() {
   const { status, projects } = useProjects();
   const products = useProducts();
   const ingredients = useIngredients();
+  const drafts = useDrafts();
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
   const [wanted, setWanted] = useState<SizeName | null>(null);
@@ -68,6 +71,7 @@ export default function ProductScreen() {
   const [leaving, setLeaving] = useState(false);
   const { ready, refresh, productsFor, extraCostsFor, targetMarginFor, pendingFor, loadedFor } = products;
   const { ready: ingredientsReady, refresh: refreshIngredients } = ingredients;
+  const { ready: draftsReady, refresh: refreshDrafts } = drafts;
 
   useEffect(() => {
     if (view === "leave" && focused) goToList();
@@ -79,7 +83,9 @@ export default function ProductScreen() {
       if (!ready || !id) return;
       void refresh(id).catch(() => undefined);
       if (ingredientsReady) void refreshIngredients(id).catch(() => undefined);
-    }, [ready, refresh, id, ingredientsReady, refreshIngredients]),
+      // The "Từ nháp" card names the draft this product came from.
+      if (draftsReady) void refreshDrafts(id).catch(() => undefined);
+    }, [ready, refresh, id, ingredientsReady, refreshIngredients, draftsReady, refreshDrafts]),
   );
 
   const projectId = project?.id ?? "";
@@ -88,6 +94,7 @@ export default function ProductScreen() {
   const ingredientList = ingredientsReady && project ? ingredients.ingredientsFor(projectId) : [];
   const lookup = ingredientLookup(ingredientList);
   const target = project ? targetMarginFor(projectId) : 65;
+  const fromDraft = product?.fromDraftId && draftsReady ? (drafts.draftsFor(projectId).find((d) => d.id === product.fromDraftId) ?? null) : null;
   const sizeName = product ? pickSize(product.sizes.map((s) => s.size), wanted) : null;
   const size = product?.sizes.find((s) => s.size === sizeName) ?? null;
   const figures = size ? sizeFigures(size, lookup, target, currency) : null;
@@ -159,6 +166,13 @@ export default function ProductScreen() {
       <ProductRejectedNotice />
       <Enter index={1}>
         <View style={{ gap: spacing[2] }}>
+          {product.fromDraftId ? (
+            <LinkCard
+              caption={t("drafts.fromDraft")}
+              title={fromDraft?.name}
+              onPress={fromDraft ? () => once(() => router.push({ pathname: "/projects/[id]/drafts/[draftId]", params: { id: project.id, draftId: fromDraft.id } })) : undefined}
+            />
+          ) : null}
           {sizeNames.length > 1 ? (
             <Segmented
               accessibilityLabel={t("products.sizePicker")}

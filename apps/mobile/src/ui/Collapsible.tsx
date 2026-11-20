@@ -5,21 +5,23 @@ import { Text, View } from "react-native";
 import { useTheme } from "../theme/useTheme";
 import { PressableScale } from "./PressableScale";
 
-// A section header that opens and closes its content. Starts closed. `trailing` is a short value read before the
+// A section header that opens and closes its content. Starts closed unless `defaultOpen`. `trailing` is a short value read before the
 // chevron (a total); `onToggle` tells the parent when it opens or closes.
 export function Collapsible({
   title,
   trailing,
   onToggle,
+  defaultOpen = false,
   children,
 }: {
   title: string;
   trailing?: string;
   onToggle?: (open: boolean) => void;
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
   const { colors, typography, layout, iconSize, spacing } = useTheme();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <View style={{ gap: spacing[0] }}>
       <PressableScale
