@@ -91,27 +91,28 @@ model ProjectMember {
 }
 
 model Project {
-  id                  String              @id
-  name                String
-  description         String              @default("")
-  currency            Currency
-  nameEditedAt        DateTime
-  descriptionEditedAt DateTime
-  currencyEditedAt    DateTime
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  members             ProjectMember[]
-  tasks               Task[]
-  invites             Invite[]
-  labels              Label[]
-  deviceSyncs         DeviceProjectSync[]
-  ideas               Idea[]
-  ingredients         Ingredient[]
-  products            Product[]
-  extraCosts          ExtraCost[]
+  id                   String              @id
+  name                 String
+  description          String              @default("")
+  currency             Currency
+  nameEditedAt         DateTime
+  descriptionEditedAt  DateTime
+  currencyEditedAt     DateTime
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  members              ProjectMember[]
+  tasks                Task[]
+  invites              Invite[]
+  labels               Label[]
+  deviceSyncs          DeviceProjectSync[]
+  ideas                Idea[]
+  ingredients          Ingredient[]
+  products             Product[]
+  extraCosts           ExtraCost[]
+  drafts               Draft[]
   /// Whole percent, 1-95. Drives the price hint on products.
-  targetMargin         Int                @default(65)
-  targetMarginEditedAt DateTime           @default(now())
+  targetMargin         Int                 @default(65)
+  targetMarginEditedAt DateTime            @default(now())
 }
 
 model Session {
@@ -458,6 +459,7 @@ model Ingredient {
   createdAt        DateTime          @default(now())
   prices           IngredientPrice[]
   recipeLines      RecipeLine[]
+  draftLines       DraftLine[]
 
   @@unique([projectId, nameKey])
   @@index([projectId, createdAt])
@@ -495,6 +497,8 @@ model Product {
   sizesEditedAt DateTime         @default(now())
   createdAt     DateTime         @default(now())
   sizes         ProductSizeRow[]
+  /// The drink draft this product was made from, if any.
+  draft         Draft?
 
   @@unique([projectId, nameKey])
   @@index([projectId, createdAt])
@@ -565,4 +569,70 @@ model ExtraCost {
   sizeExtras      SizeExtra[]
 
   @@index([projectId, createdAt])
+}
+
+enum DraftStatus {
+  working
+  done
+}
+
+enum DraftLineKind {
+  existing
+  new
+}
+
+/// A drink being worked out before it exists. Once converted it is read-only (convertedAt set);
+/// productId is cleared if that product is deleted, but convertedAt stays.
+/// Each editable field has its own `<field>EditedAt` (last write wins).
+model Draft {
+  id                    String        @id
+  projectId             String
+  project               Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name                  String
+  sizes                 ProductSize[]
+  /// Base size's expected selling price, in the currency's smallest unit.
+  expectedPrice         Int?
+  note                  String        @default("")
+  status                DraftStatus   @default(working)
+  productId             String?       @unique
+  product               Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  convertedAt           DateTime?
+  nameEditedAt          DateTime      @default(now())
+  sizesEditedAt         DateTime      @default(now())
+  expectedPriceEditedAt DateTime      @default(now())
+  noteEditedAt          DateTime      @default(now())
+  statusEditedAt        DateTime      @default(now())
+  createdAt             DateTime      @default(now())
+  lines                 DraftLine[]
+
+  @@index([projectId, createdAt])
+}
+
+/// One recipe line of a draft, for one cup of the base size: an existing ingredient, or a new one
+/// (named here, created when the draft is converted).
+model DraftLine {
+  id                    String          @id
+  draftId               String
+  draft                 Draft           @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  kind                  DraftLineKind
+  ingredientId          String?
+  ingredient            Ingredient?     @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  newName               String?
+  newNameKey            String?
+  newKind               IngredientMode?
+  /// Purchase quantity in base units (g, ml, portion) and price in the currency's smallest unit.
+  purchaseQty           Decimal?        @db.Decimal(12, 3)
+  purchasePrice         Int?
+  amount                Decimal         @db.Decimal(12, 3)
+  position              Int             @default(0)
+  newNameEditedAt       DateTime        @default(now())
+  newKindEditedAt       DateTime        @default(now())
+  purchaseQtyEditedAt   DateTime        @default(now())
+  purchasePriceEditedAt DateTime        @default(now())
+  amountEditedAt        DateTime        @default(now())
+  createdAt             DateTime        @default(now())
+
+  @@unique([draftId, ingredientId])
+  @@unique([draftId, newNameKey])
+  @@index([ingredientId])
 }

@@ -176,13 +176,20 @@ export function createProjectsRouter(deps: {
           const stored = await tx.project.findUniqueOrThrow({ where: { id } });
           const at = Math.min(fields.currency.editedAt.getTime(), now().getTime());
           if (fields.currency.value !== stored.currency && at > stored.currencyEditedAt.getTime()) {
-            const [ingredients, extraCosts, sizeExtras, pricedSizes] = await Promise.all([
+            const [ingredients, extraCosts, sizeExtras, pricedSizes, pricedDrafts] = await Promise.all([
               tx.ingredient.count({ where: { projectId: id } }),
               tx.extraCost.count({ where: { projectId: id } }),
               tx.sizeExtra.count({ where: { sizeRow: { product: { projectId: id } } } }),
               tx.productSizeRow.count({ where: { sellingPrice: { not: null }, product: { projectId: id } } }),
+              // Draft expected prices and the purchase prices of its new ingredients are money too.
+              tx.draft.count({
+                where: {
+                  projectId: id,
+                  OR: [{ expectedPrice: { not: null } }, { lines: { some: { purchasePrice: { not: null } } } }],
+                },
+              }),
             ]);
-            if (ingredients + extraCosts + sizeExtras + pricedSizes > 0) {
+            if (ingredients + extraCosts + sizeExtras + pricedSizes + pricedDrafts > 0) {
               throw new AppError(
                 409,
                 "currency_locked",

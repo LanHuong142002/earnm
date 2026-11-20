@@ -26,6 +26,7 @@ import { createIdeaPhotosRouter } from "./ideas/photos.js";
 import { createIdeaToTaskRouter } from "./ideas/toTask.js";
 import { createIngredientsRouter } from "./ingredients/routes.js";
 import { createExtraCostsRouter } from "./products/extraCosts.js";
+import { createDraftsRouter } from "./drafts/routes.js";
 import { createProductsRouter } from "./products/routes.js";
 
 export interface AppDeps {
@@ -72,6 +73,7 @@ export function createApp(deps: AppDeps): Express {
   app.use("/projects/:projectId/ideas", createIdeasRouter(deps));
   app.use("/projects/:projectId/ingredients", createIngredientsRouter(deps));
   app.use("/projects/:projectId/products", createProductsRouter(deps));
+  app.use("/projects/:projectId/drafts", createDraftsRouter(deps));
   app.use("/projects/:projectId/extra-costs", createExtraCostsRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
