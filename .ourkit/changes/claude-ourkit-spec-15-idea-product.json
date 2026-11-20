@@ -142,5 +142,80 @@
       }
     ],
     "reviewed": "66e4924c0803d9522fcee3693f555459ddf2ceba25632234c4309efdca6d2777"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "Full API suite run by me alone on commit with fixes: 44 files, 739 passed (drafts/routes.test.ts, drafts/convert.test.ts, projects tests); QA subagent couldn't reach the test DB",
+        "criterion": "API test: create, edit and delete a draft; an empty name, no sizes, or the 201st draft is refused."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "Full API suite run by me alone on commit with fixes: 44 files, 739 passed (drafts/routes.test.ts, drafts/convert.test.ts, projects tests); QA subagent couldn't reach the test DB",
+        "criterion": "API test: add, edit and remove both line kinds. These are refused: a duplicate ingredient, amount 0, a new-line name already used by an ingredient, and line 101."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "Full API suite run by me alone on commit with fixes: 44 files, 739 passed (drafts/routes.test.ts, drafts/convert.test.ts, projects tests); QA subagent couldn't reach the test DB",
+        "criterion": "API test: per-field LWW; the same id twice is idempotent; a non-member gets `404`; a signed-out request gets `401`; editing a converted draft gets `409 draft_converted`."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "Mobile suite 1202 passed incl. estimate.test.ts mockup numbers",
+        "criterion": "Unit test: the estimate with defaults; no estimate and the missing names while a new line lacks a price; expected profit and margin. It uses the mockup numbers: 9.579 and 12.679."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "Full API suite run by me alone on commit with fixes: 44 files, 739 passed (drafts/routes.test.ts, drafts/convert.test.ts, projects tests); QA subagent couldn't reach the test DB",
+        "criterion": "API test: `done` is refused with `missing` reasons for each rule; `done` back to `working` works."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "Full API suite run by me alone on commit with fixes: 44 files, 739 passed (drafts/routes.test.ts, drafts/convert.test.ts, projects tests); QA subagent couldn't reach the test DB",
+        "criterion": "API test: convert creates the ingredients and the product with its sizes, lines, defaults and the base price, in one transaction, and reuses a same-name ingredient. A failure part-way leaves nothing created."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "Full API suite run by me alone on commit with fixes: 44 files, 739 passed (drafts/routes.test.ts, drafts/convert.test.ts, projects tests); QA subagent couldn't reach the test DB",
+        "criterion": "API test: each refusal reason in R7 returns its own code, and the draft is unchanged."
+      },
+      "8": {
+        "result": "manual",
+        "evidence": "By hand on iPhone, mockup A8 (#47 section I); check reused ingredients are labelled as reused",
+        "criterion": "By hand, mockup A8."
+      },
+      "9": {
+        "result": "manual",
+        "evidence": "API part passed in full API run (739); A9/A10 by hand (#47 I)",
+        "criterion": "API test: the draft↔product link; deleting the product clears the link and keeps the draft read-only. By hand, A9 and A10."
+      },
+      "10": {
+        "result": "manual",
+        "evidence": "Merge unit tests pass; offline Chờ lưu and offline convert notice by hand (#47 I)",
+        "criterion": "Unit test: queued draft changes merge per field. By hand: offline \"Chờ lưu\"; convert offline shows the notice."
+      },
+      "11": {
+        "result": "manual",
+        "evidence": "Screens vs mockup A1-A7, A11-A12 by hand (#47 I)",
+        "criterion": "By hand, mockups A1–A7 and A11–A12 (without the like, comments and photos parts)."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "Full API suite run by me alone on commit with fixes: 44 files, 739 passed (drafts/routes.test.ts, drafts/convert.test.ts, projects tests); QA subagent couldn't reach the test DB",
+        "criterion": "API test: a currency change is refused with a priced draft."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "i18n parity test passed (mobile 1202)",
+        "criterion": "Unit test: every new i18n key exists in both languages."
+      },
+      "14": {
+        "result": "manual",
+        "evidence": "Migration applied on test DB; empty DB and #13-data deploy not run",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty database and on one with #13's data."
+      }
+    },
+    "checked": "66e4924c0803d9522fcee3693f555459ddf2ceba25632234c4309efdca6d2777"
   }
 }
