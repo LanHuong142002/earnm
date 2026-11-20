@@ -147,6 +147,13 @@ describe("fixed cost overlay", () => {
     expect(list[1]).toMatchObject({ kind: "oneTime", months: 6 });
   });
 
+  it("shows a non-one-time cost without months even when no change is waiting", () => {
+    const server = [fixedCost({ id: "f1", kind: "weekly", months: 24 }), fixedCost({ id: "f2", kind: "oneTime", months: 6 })];
+    const list = applyFixedCostOverlay("p1", server, []);
+    expect(list[0]).toMatchObject({ kind: "weekly", months: null });
+    expect(list[1]).toMatchObject({ kind: "oneTime", months: 6 });
+  });
+
   it("ignores changes for a cost that is not there", () => {
     const w = waiting(fixedCostUpdateChange({ id: "nope", projectId: "p1", fields: { amount: 1 }, now: NOW }));
     expect(applyFixedCostOverlay("p1", [], w)).toEqual([]);

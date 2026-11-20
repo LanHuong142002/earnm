@@ -175,6 +175,35 @@ describe("/projects/:projectId/fixed-costs", () => {
     expect(res.body.amount).toBe(1);
   });
 
+  it("keeps kind and months consistent when last write wins splits them", async () => {
+    const { a, p } = await world();
+    const consistent = async (id: string) => {
+      const row = await prisma.fixedCost.findFirstOrThrow({ where: { id } });
+      expect(row.kind === "oneTime").toBe(row.months !== null);
+      return row;
+    };
+
+    // (a) a stale kind edit must not null the months of a one-time cost whose kind was edited later.
+    const a1 = (await create(a, p, body({ name: "A" }))).body;
+    const toOne = await patch(a, p, a1.id, { kind: { value: "oneTime", editedAt: iso(-1000) }, months: { value: 12, editedAt: iso(-5000) } });
+    expect(toOne.body).toMatchObject({ kind: "oneTime", months: 12 });
+    const stale = await patch(a, p, a1.id, { kind: { value: "monthly", editedAt: iso(-3000) } });
+    expectError(stale, 400, "validation_failed");
+    expect(await consistent(a1.id)).toMatchObject({ kind: "oneTime", months: 12 });
+
+    // (b) a kind edit that wins while the months edit is newer must still end with no months.
+    const b1 = (await create(a, p, body({ name: "B", kind: "oneTime", months: 24 }))).body;
+    await patch(a, p, b1.id, { months: { value: 24, editedAt: iso(-1000) } });
+    const toWeekly = await patch(a, p, b1.id, { kind: { value: "weekly", editedAt: iso(-3000) } });
+    expect(toWeekly.status).toBe(200);
+    expect(toWeekly.body).toMatchObject({ kind: "weekly", months: null });
+    expect(await consistent(b1.id)).toMatchObject({ kind: "weekly", months: null });
+    // Back to one-time needs the months, which the client always sends.
+    expectError(await patch(a, p, b1.id, { kind: { value: "oneTime", editedAt: iso() } }), 400, "validation_failed");
+    const back = await patch(a, p, b1.id, { kind: { value: "oneTime", editedAt: iso() }, months: { value: 24, editedAt: iso() } });
+    expect(back.body).toMatchObject({ kind: "oneTime", months: 24 });
+  });
+
   it("is idempotent by id and refuses another project's id", async () => {
     const { a, p } = await world();
     const b1 = body();

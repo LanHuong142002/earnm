@@ -554,7 +554,6 @@ model SizeExtra {
   @@index([extraCostId])
 }
 
-/// A project-wide cost per cup (ice, water...). Integer amount in the currency's smallest unit.
 enum FixedCostKind {
   monthly
   weekly
@@ -581,6 +580,7 @@ model FixedCost {
   @@index([projectId, createdAt])
 }
 
+/// A project-wide cost per cup (ice, water...). Integer amount in the currency's smallest unit.
 model ExtraCost {
   id              String      @id
   projectId       String

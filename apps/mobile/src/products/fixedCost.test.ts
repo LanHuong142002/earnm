@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fixedTotal, fullCost, monthlyAmount, perCupShare } from "./fixedCost";
+import { fixedTotal, fullCost, kindMonthsChanges, monthlyAmount, perCupShare } from "./fixedCost";
 import { hintPrice, marginPct, profit } from "./cost";
 
 describe("monthlyAmount", () => {
@@ -76,5 +76,18 @@ describe("fullCost", () => {
     expect(p).toBe(23965);
     expect(marginPct(p as number, 35000)).toBe(68);
     expect(hintPrice(cost, 65, "VND")).toBe(32000);
+  });
+});
+
+describe("kindMonthsChanges", () => {
+  it("sends the months whenever the kind moves to one-time, even when they are unchanged", () => {
+    expect(kindMonthsChanges({ kind: "weekly", months: 24 }, "oneTime", 24)).toEqual({ kind: "oneTime", months: 24 });
+  });
+  it("sends only a changed months for a cost that stays one-time", () => {
+    expect(kindMonthsChanges({ kind: "oneTime", months: 24 }, "oneTime", 24)).toEqual({});
+    expect(kindMonthsChanges({ kind: "oneTime", months: 24 }, "oneTime", 12)).toEqual({ months: 12 });
+  });
+  it("sends no months when the kind is not one-time", () => {
+    expect(kindMonthsChanges({ kind: "oneTime", months: 24 }, "weekly", null)).toEqual({ kind: "weekly" });
   });
 });

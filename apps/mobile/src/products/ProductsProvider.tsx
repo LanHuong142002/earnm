@@ -10,7 +10,7 @@ import type { Change, NewChange } from "../sync/queue";
 import { listExtraCosts, listFixedCosts, listProducts } from "./api";
 import { buildDefaults } from "./defaults";
 import { PRODUCT_LINES_ENTITY, PRODUCT_PRICE_ENTITY } from "./entities";
-import { fixedTotal, perCupShare } from "./fixedCost";
+import { fixedTotal, kindMonthsChanges, perCupShare } from "./fixedCost";
 import {
   applyExtraCostOverlay,
   applyFixedCostOverlay,
@@ -543,9 +543,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       const kind = fields.kind ?? current.kind;
       const months = kind === "oneTime" ? (fields.months !== undefined ? fields.months : current.months) : null;
       if (!validMonthsFor(kind, months)) return { ok: false };
-      if (kind !== current.kind) changed.kind = kind;
-      // Months are queued for a one-time cost only; the server (and the overlay) clear them when the kind moves away.
-      if (kind === "oneTime" && months !== current.months) changed.months = months;
+      // Months are queued for a one-time cost only (always when the kind moves to it); the server (and the overlay) clear them otherwise.
+      Object.assign(changed, kindMonthsChanges(current, kind, months));
       if (Object.keys(changed).length > 0) {
         await enqueueAll([fixedCostUpdateChange({ id: fixedCostId, projectId, fields: changed, now: new Date() })]);
       }

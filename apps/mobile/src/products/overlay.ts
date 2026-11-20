@@ -136,7 +136,8 @@ function fixedWithFields(item: FixedCost, data: Record<string, unknown>): FixedC
 
 /** The project's fixed costs with the waiting changes laid over them, like `applyExtraCostOverlay`. */
 export function applyFixedCostOverlay(projectId: string, serverList: FixedCost[], waiting: Change[]): FixedCost[] {
-  let list = serverList;
+  // Months belong to one-time costs only, so a stale value on another kind is never shown.
+  let list = serverList.map((x) => (x.kind !== "oneTime" && x.months !== null ? { ...x, months: null } : x));
   for (const change of waiting) {
     if (!isFixedCostChange(change, projectId)) continue;
     const index = list.findIndex((x) => x.id === change.entityId);

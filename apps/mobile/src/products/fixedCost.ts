@@ -31,3 +31,15 @@ export function perCupShare(total: number, cups: number | null): number | null {
 export function fullCost(sizeCost: number, share: number | null): number {
   return sizeCost + (share ?? 0);
 }
+
+/** The kind and months to queue for an edit: months always go with a move to one-time, and never with another kind. */
+export function kindMonthsChanges(
+  current: Pick<FixedCostInput, "kind" | "months">,
+  kind: FixedCostInput["kind"],
+  months: number | null,
+): { kind?: FixedCostInput["kind"]; months?: number | null } {
+  const changed: { kind?: FixedCostInput["kind"]; months?: number | null } = {};
+  if (kind !== current.kind) changed.kind = kind;
+  if (kind === "oneTime" && (kind !== current.kind || months !== current.months)) changed.months = months;
+  return changed;
+}

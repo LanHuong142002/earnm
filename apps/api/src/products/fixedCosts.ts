@@ -193,6 +193,15 @@ export function createFixedCostsRouter(deps: { prisma: PrismaClient; now: () => 
             throw err;
           }
         });
+
+        // Kind and months are resolved field by field, so settle them together: months go with a one-time cost only.
+        const after = await tx.fixedCost.findFirst({ where: { id: fixedCostId, projectId } });
+        if (!after) throw notFound();
+        if (after.kind !== "oneTime" && after.months !== null) {
+          await tx.fixedCost.updateMany({ where: { id: fixedCostId, projectId }, data: { months: null } });
+        } else if (after.kind === "oneTime" && after.months === null) {
+          throw invalid("months"); // rolls the whole edit back
+        }
       });
 
       const row = await prisma.fixedCost.findFirst({ where: { id: fixedCostId, projectId } });
