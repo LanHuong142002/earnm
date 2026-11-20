@@ -130,7 +130,6 @@ describe("/projects/:projectId/fixed-costs", () => {
       { kind: { value: "oneTime", editedAt: iso() } }, // months missing
       { kind: { value: "oneTime", editedAt: iso() }, months: { value: 121, editedAt: iso() } },
       { kind: { value: "weekly", editedAt: iso() }, months: { value: 5, editedAt: iso() } },
-      { months: { value: 5, editedAt: iso() } }, // the item is monthly
       { unknown: { value: 1, editedAt: iso() } },
     ];
     for (const bad of bads) expectError(await patch(a, p, one.id, bad), 400, "validation_failed");
@@ -188,7 +187,8 @@ describe("/projects/:projectId/fixed-costs", () => {
     const toOne = await patch(a, p, a1.id, { kind: { value: "oneTime", editedAt: iso(-1000) }, months: { value: 12, editedAt: iso(-5000) } });
     expect(toOne.body).toMatchObject({ kind: "oneTime", months: 12 });
     const stale = await patch(a, p, a1.id, { kind: { value: "monthly", editedAt: iso(-3000) } });
-    expectError(stale, 400, "validation_failed");
+    expect(stale.status).toBe(200);
+    expect(stale.body).toMatchObject({ kind: "oneTime", months: 12 });
     expect(await consistent(a1.id)).toMatchObject({ kind: "oneTime", months: 12 });
 
     // (b) a kind edit that wins while the months edit is newer must still end with no months.
@@ -202,6 +202,42 @@ describe("/projects/:projectId/fixed-costs", () => {
     expectError(await patch(a, p, b1.id, { kind: { value: "oneTime", editedAt: iso() } }), 400, "validation_failed");
     const back = await patch(a, p, b1.id, { kind: { value: "oneTime", editedAt: iso() }, months: { value: 24, editedAt: iso() } });
     expect(back.body).toMatchObject({ kind: "oneTime", months: 24 });
+  });
+
+  it("applies winning fields when a kind or months edit in the same request is stale", async () => {
+    const { a, p } = await world();
+    const row = async (id: string) => prisma.fixedCost.findFirstOrThrow({ where: { id } });
+
+    // Stale months + winning amount, the item having become monthly meanwhile.
+    const x = (await create(a, p, body({ name: "X", kind: "oneTime", months: 24, amount: 100 }))).body;
+    await patch(a, p, x.id, { kind: { value: "monthly", editedAt: iso() } });
+    const res = await patch(a, p, x.id, {
+      amount: { value: 555, editedAt: iso(-1000) },
+      months: { value: 12, editedAt: iso(-1000) },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ kind: "monthly", amount: 555, months: null });
+    expect(await row(x.id)).toMatchObject({ kind: "monthly", amount: 555, months: null });
+
+    // Stale kind + winning name: the kind and its months stay.
+    const y = (await create(a, p, body({ name: "Y", kind: "oneTime", months: 24 }))).body;
+    await patch(a, p, y.id, { kind: { value: "oneTime", editedAt: iso() }, months: { value: 24, editedAt: iso() } });
+    const res2 = await patch(a, p, y.id, {
+      kind: { value: "weekly", editedAt: iso(-3000) },
+      name: { value: "Y2", editedAt: iso() },
+    });
+    expect(res2.status).toBe(200);
+    expect(res2.body).toMatchObject({ name: "Y2", kind: "oneTime", months: 24 });
+
+    // A winning kind change clears the months and stamps them with the kind's time.
+    const z = (await create(a, p, body({ name: "Z", kind: "oneTime", months: 24 }))).body;
+    const at = iso(-500);
+    const res3 = await patch(a, p, z.id, { kind: { value: "weekly", editedAt: at } });
+    expect(res3.status).toBe(200);
+    const zr = await row(z.id);
+    expect(zr).toMatchObject({ kind: "weekly", months: null });
+    expect(zr.monthsEditedAt.getTime()).toBe(zr.kindEditedAt.getTime());
+    expect(zr.kindEditedAt.toISOString()).toBe(new Date(at).toISOString());
   });
 
   it("is idempotent by id and refuses another project's id", async () => {

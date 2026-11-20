@@ -4,7 +4,6 @@ import type { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
-import type { FieldChange } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { singleLineText } from "../http/text.js";
 import { change, idSchema, lockedMember, notFound, param, withRetry } from "../ideas/common.js";
@@ -170,20 +169,64 @@ export function createFixedCostsRouter(deps: { prisma: PrismaClient; now: () => 
         const stored = await tx.fixedCost.findFirst({ where: { id: fixedCostId, projectId } });
         if (!stored) throw notFound(); // deleted meanwhile
 
-        // The kind and the months are written together: months are set for one-time items only.
-        const fields: Record<string, FieldChange<unknown> | undefined> = { ...body };
-        const kind = body.kind?.value ?? stored.kind;
-        if (kind === "oneTime") {
-          if (body.months) assertMonthsMatchKind(kind, body.months.value);
-          else if (stored.kind !== "oneTime") throw invalid("months");
-        } else {
-          if (body.months) assertMonthsMatchKind(kind, body.months.value);
-          else if (body.kind) fields["months"] = { value: null, editedAt: body.kind.editedAt };
+        // A request that contradicts itself is refused. A merely stale kind or months is not: it loses
+        // its own last-write-wins and the other fields in the request still apply.
+        if (body.kind) {
+          if (body.kind.value === "oneTime") {
+            if (body.months) assertMonthsMatchKind("oneTime", body.months.value);
+            else if (stored.kind !== "oneTime") throw invalid("months");
+          } else if (body.months) {
+            assertMonthsMatchKind(body.kind.value, body.months.value);
+          }
         }
         if (body.amount) await assertAmountInRange(tx, projectId, body.amount.value);
         if (body.name) await assertNameFree(tx, projectId, body.name.value, fixedCostId);
 
-        await applyLastWriteWins(fields, now(), async (where, data) => {
+        const capped = (at: Date) => new Date(Math.min(at.getTime(), now().getTime()));
+
+        // 1. Resolve the kind first, and learn whether it won.
+        let kindWon = false;
+        if (body.kind) {
+          const at = capped(body.kind.editedAt);
+          const res = await tx.fixedCost.updateMany({
+            where: { id: fixedCostId, projectId, kindEditedAt: { lt: at } },
+            data: { kind: body.kind.value, kindEditedAt: at },
+          });
+          kindWon = res.count > 0;
+        }
+        const afterKind = await tx.fixedCost.findFirst({ where: { id: fixedCostId, projectId } });
+        if (!afterKind) throw notFound();
+
+        // 2. Months follow the kind that is stored now: they belong to a one-time cost only.
+        if (afterKind.kind !== "oneTime") {
+          if (kindWon && stored.kind === "oneTime" && body.kind) {
+            await tx.fixedCost.updateMany({
+              where: { id: fixedCostId, projectId },
+              data: { months: null, monthsEditedAt: capped(body.kind.editedAt) },
+            });
+          }
+          // A months edit for a cost that is not one-time is dropped.
+        } else if (body.months) {
+          if (body.months.value === null) throw invalid("months");
+          if (kindWon && stored.kind !== "oneTime") {
+            // The kind just became one-time and had no months: they come with it, whatever their age.
+            const at = capped(body.months.editedAt);
+            await tx.fixedCost.updateMany({
+              where: { id: fixedCostId, projectId },
+              data: { months: body.months.value, monthsEditedAt: at > afterKind.monthsEditedAt ? at : afterKind.monthsEditedAt },
+            });
+          } else {
+            await applyLastWriteWins({ months: body.months }, now(), async (where, data) => {
+              await tx.fixedCost.updateMany({ where: { id: fixedCostId, projectId, ...where }, data } as Prisma.FixedCostUpdateManyArgs);
+            });
+          }
+        } else if (afterKind.months === null) {
+          throw invalid("months"); // a one-time cost always has months
+        }
+
+        // 3. The other fields win or lose on their own.
+        const { kind: _kind, months: _months, ...others } = body;
+        await applyLastWriteWins({ ...others }, now(), async (where, data) => {
           const scope = { id: fixedCostId, projectId, ...where };
           const patch = "name" in data ? { ...data, nameKey: nameKey(data["name"] as string) } : data;
           try {
@@ -193,15 +236,6 @@ export function createFixedCostsRouter(deps: { prisma: PrismaClient; now: () => 
             throw err;
           }
         });
-
-        // Kind and months are resolved field by field, so settle them together: months go with a one-time cost only.
-        const after = await tx.fixedCost.findFirst({ where: { id: fixedCostId, projectId } });
-        if (!after) throw notFound();
-        if (after.kind !== "oneTime" && after.months !== null) {
-          await tx.fixedCost.updateMany({ where: { id: fixedCostId, projectId }, data: { months: null } });
-        } else if (after.kind === "oneTime" && after.months === null) {
-          throw invalid("months"); // rolls the whole edit back
-        }
       });
 
       const row = await prisma.fixedCost.findFirst({ where: { id: fixedCostId, projectId } });
