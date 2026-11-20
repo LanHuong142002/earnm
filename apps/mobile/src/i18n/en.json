@@ -907,5 +907,28 @@
       "invalid": "Couldn't save it. Check the fields and try again.",
       "generic": "Something went wrong. Please try again."
     }
+  },
+  "drafts": {
+    "rejected": "Your change to the draft {{name}} couldn't be saved.",
+    "rejectedNoName": "A change to a draft couldn't be saved.",
+    "rejectedCreate": "The draft {{name}} couldn't be created.",
+    "rejectedCreateNoName": "A draft couldn't be created.",
+    "rejectedStatus": "{{name}} couldn't be marked as done.",
+    "rejectedStatusNoName": "A draft couldn't be marked as done.",
+    "rejectedLine": "A recipe line of {{name}} couldn't be saved.",
+    "rejectedLineNoName": "A recipe line of a draft couldn't be saved.",
+    "reasons": {
+      "notFound": "It no longer exists.",
+      "projectGone": "The project no longer exists or you left it.",
+      "forbidden": "You don't have permission to do this.",
+      "limit": "A limit was reached.",
+      "conflict": "It conflicts with another change.",
+      "invalid": "Some of the information isn't valid.",
+      "nameTaken": "That name is already taken.",
+      "converted": "The draft was already turned into a drink.",
+      "duplicateLine": "That ingredient is already in the draft.",
+      "incomplete": "The draft isn't complete yet.",
+      "generic": "Something went wrong. The server's version is shown."
+    }
   }
 }

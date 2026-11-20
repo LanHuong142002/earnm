@@ -901,5 +901,28 @@
       "invalid": "Không lưu được. Hãy kiểm tra lại các trường và thử lại.",
       "generic": "Đã xảy ra lỗi. Vui lòng thử lại."
     }
+  },
+  "drafts": {
+    "rejected": "Không lưu được thay đổi của nháp {{name}}.",
+    "rejectedNoName": "Không lưu được một thay đổi của nháp.",
+    "rejectedCreate": "Không tạo được nháp {{name}}.",
+    "rejectedCreateNoName": "Không tạo được một nháp.",
+    "rejectedStatus": "Không đánh dấu xong được {{name}}.",
+    "rejectedStatusNoName": "Không đánh dấu xong được một nháp.",
+    "rejectedLine": "Không lưu được một dòng công thức của {{name}}.",
+    "rejectedLineNoName": "Không lưu được một dòng công thức của nháp.",
+    "reasons": {
+      "notFound": "Nháp này không còn nữa.",
+      "projectGone": "Dự án không còn hoặc bạn đã rời khỏi.",
+      "forbidden": "Bạn không có quyền làm việc này.",
+      "limit": "Đã chạm giới hạn.",
+      "conflict": "Trùng với một thay đổi khác.",
+      "invalid": "Có thông tin chưa hợp lệ.",
+      "nameTaken": "Tên này đã có.",
+      "converted": "Nháp đã được chuyển thành món.",
+      "duplicateLine": "Nguyên liệu này đã có trong nháp.",
+      "incomplete": "Nháp chưa đủ thông tin.",
+      "generic": "Có lỗi xảy ra. Đang hiện bản của máy chủ."
+    }
   }
 }
