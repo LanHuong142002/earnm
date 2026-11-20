@@ -1,0 +1,46 @@
+{
+  "tier": "feature",
+  "tierReason": "Fixed cost items and expected cups per month are new persisted money data that change every product's full cost; fits one cycle after #13",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mode": "hands-off",
+  "mockupApproval": "5381a601dfbaf0e5a066285298fa288da9f1dd739cae8bafef85791891f2a85d",
+  "intake": {
+    "ticket": "14",
+    "accepted": true
+  },
+  "ticket": "14",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Fixed cost maths runs on the phone; API stores only items and cups",
+      "why": "Same as #13 Decision 1: an item or cups change needs no backfill"
+    },
+    {
+      "id": 2,
+      "decision": "Reuse the extraCosts route/overlay/sync pattern and targetMargin for cups",
+      "why": "Prior Art in the project already solves project-scoped LWW lists"
+    },
+    {
+      "id": 3,
+      "decision": "Monthly amounts round half up per item; share rounds total/cups to smallest unit",
+      "why": "Spec R3, R5; matches mockup numbers"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#14: should a one-time fixed cost stop after its N months? Built as never-stops (mockup assumption 2)",
+      "answer": null
+    }
+  ]
+}
