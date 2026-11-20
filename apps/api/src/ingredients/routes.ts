@@ -5,7 +5,7 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
-import { singleLineText } from "../http/text.js";
+import { NAME_MAX, singleLineText } from "../http/text.js";
 import { nameKey } from "../labels/nameKey.js";
 import { findForMember } from "../projects/access.js";
 import { change, idSchema, lockedMember, notFound, param, withRetry } from "../ideas/common.js";
@@ -32,7 +32,7 @@ const UNITS_OF_MODE: Record<Mode, readonly string[]> = {
   portion: ["portion"],
 };
 
-const nameSchema = singleLineText(60);
+const nameSchema = singleLineText(NAME_MAX);
 const modeSchema = z.enum(MODES);
 
 // Quantity is in base units with at most 3 decimals.

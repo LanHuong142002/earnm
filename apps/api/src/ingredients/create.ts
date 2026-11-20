@@ -2,6 +2,7 @@ import { AppError } from "../http/errors.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { notFound } from "../ideas/common.js";
 import type { Tx } from "../ideas/common.js";
+import { NAME_MAX } from "../http/text.js";
 import { nameKey } from "../labels/nameKey.js";
 import { PRICE_HISTORY_SIZE } from "./response.js";
 
@@ -77,6 +78,7 @@ export async function createIngredientRow(
       `A project can hold at most ${MAX_INGREDIENTS_PER_PROJECT} ingredients.`,
     );
   }
+  if (name.length > NAME_MAX) throw new AppError(400, "validation_failed", "Invalid fields: name.");
   const key = nameKey(name);
   if (await tx.ingredient.findUnique({ where: { projectId_nameKey: { projectId, nameKey: key } } })) {
     throw ingredientNameTaken();

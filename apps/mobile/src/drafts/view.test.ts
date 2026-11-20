@@ -85,18 +85,27 @@ describe("rowSummary", () => {
 });
 
 describe("convertSplit", () => {
-  const existing = [{ name: "Vải ngâm" }, { name: "Đường nước" }];
+  const existing = [{ name: "Vải ngâm", mode: "weight" as const }, { name: "Đường nước", mode: "volume" as const }];
   it("reuses a new line whose name now matches an ingredient, ignoring case, and creates the rest", () => {
     const lines = [
       draftLine({ id: "1", kind: "new", ingredientId: null, newName: "vải NGÂM", newKind: "weight", amount: 60 }),
       draftLine({ id: "2", kind: "new", ingredientId: null, newName: "Siro hoa hồng", newKind: "volume", amount: 15 }),
       draftLine({ id: "3", kind: "existing", ingredientId: "tea", amount: 5 }),
     ];
-    expect(convertSplit(lines, existing)).toEqual({ create: ["Siro hoa hồng"], reuse: ["vải NGÂM"] });
+    expect(convertSplit(lines, existing)).toEqual({ create: ["Siro hoa hồng"], reuse: ["vải NGÂM"], mismatch: [] });
+  });
+
+  it("flags a new line whose same-name ingredient is counted a different way", () => {
+    const known = [{ name: "Siro hoa hồng", mode: "weight" as const }, { name: "Vải ngâm", mode: "weight" as const }];
+    const lines = [
+      draftLine({ id: "1", kind: "new", ingredientId: null, newName: "siro HOA hồng", newKind: "volume", amount: 15 }),
+      draftLine({ id: "2", kind: "new", ingredientId: null, newName: "Vải ngâm", newKind: "weight", amount: 60 }),
+    ];
+    expect(convertSplit(lines, known)).toEqual({ create: [], reuse: ["Vải ngâm"], mismatch: ["siro HOA hồng"] });
   });
 
   it("is empty when the draft only uses existing ingredients", () => {
-    expect(convertSplit([draftLine({ id: "1" })], existing)).toEqual({ create: [], reuse: [] });
+    expect(convertSplit([draftLine({ id: "1" })], existing)).toEqual({ create: [], reuse: [], mismatch: [] });
   });
 });
 
@@ -128,6 +137,8 @@ describe("convertErrorKey", () => {
     expect(convertErrorKey("ingredient_limit_reached")).toBe("drafts.convertErrors.ingredientLimit");
     expect(convertErrorKey("draft_converted")).toBe("drafts.convertErrors.converted");
     expect(convertErrorKey("draft_not_done")).toBe("drafts.convertErrors.notDone");
+    expect(convertErrorKey("draft_ingredient_mode_mismatch")).toBe("drafts.convertErrors.modeMismatch");
+    expect(convertErrorKey("draft_line_amount_too_large")).toBe("drafts.convertErrors.amountTooLarge");
     expect(convertErrorKey("draft_incomplete")).toBe("drafts.convertErrors.incomplete");
     expect(convertErrorKey("not_signed_in")).toBe("drafts.convertErrors.notSignedIn");
   });

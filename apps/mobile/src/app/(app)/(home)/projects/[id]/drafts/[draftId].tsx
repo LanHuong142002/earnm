@@ -106,6 +106,12 @@ export default function DraftScreen() {
   const lines = estimateLines(draft.lines);
   const estimate = draftEstimate({ lines, ingredients: ingredientList, extraCosts: extras, expectedPrice: draft.expectedPrice, targetMargin: target });
   const missing = missingItems(missingForDone({ name: draft.name, sizes: draft.sizes, lines }));
+  const missingHint =
+    estimate.total !== null
+      ? null
+      : estimate.missingPrices.length > 0
+        ? t("drafts.hintMissing", { names: estimate.missingPrices.join(", ") })
+        : t("drafts.hintMissingIngredient", { count: estimate.missingIngredients });
   const split = convertSplit(draft.lines, ingredientList);
   const product = draft.productId ? (products.productsFor(project.id).find((p) => p.id === draft.productId) ?? null) : null;
   const when = draft.convertedAt ? new Date(draft.convertedAt) : null;
@@ -158,7 +164,7 @@ export default function DraftScreen() {
         // The product takes this screen's place, so back returns to the list of drafts.
         router.replace({ pathname: "/projects/[id]/products/[productId]", params: { id: project.id, productId: result.productId } });
       } else {
-        setConvertError(t(convertErrorKey(result.code), { name: draft.name }));
+        setConvertError(t(convertErrorKey(result.code), { name: result.name ?? draft.name }));
       }
     } catch {
       setConvertError(t(convertErrorKey("internal_error")));
@@ -169,6 +175,11 @@ export default function DraftScreen() {
 
   const confirmConvert = () => {
     if (!base || converting) return;
+    // A same-name ingredient counted a different way: the server would refuse, so say so here instead.
+    if (split.mismatch.length > 0) {
+      setConvertError(t("drafts.convertErrors.modeMismatch", { name: split.mismatch[0] }));
+      return;
+    }
     const others = draft.sizes.filter((s) => s !== base);
     const priceText = draft.expectedPrice === null ? null : moneyOf(draft.expectedPrice, currency);
     const productLine =
@@ -305,12 +316,12 @@ export default function DraftScreen() {
           ) : done ? (
             <>
               {split.create.length > 0 ? <Hint>{t("drafts.willCreate", { count: split.create.length, names: split.create.join(", ") })}</Hint> : null}
-              {estimate.total === null && estimate.missingPrices.length > 0 ? <Hint>{t("drafts.hintMissing", { names: estimate.missingPrices.join(", ") })}</Hint> : null}
+              {missingHint ? <Hint>{missingHint}</Hint> : null}
               <Button label={t("drafts.convert")} loading={converting} onPress={confirmConvert} />
             </>
           ) : draft.lines.length > 0 && base ? (
             estimate.total === null ? (
-              <Hint>{t("drafts.hintMissing", { names: estimate.missingPrices.join(", ") })}</Hint>
+              <Hint>{missingHint}</Hint>
             ) : (
               <Hint>
                 {[

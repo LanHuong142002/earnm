@@ -5,7 +5,7 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
-import { multiLineText, singleLineText } from "../http/text.js";
+import { multiLineText, NAME_MAX, singleLineText } from "../http/text.js";
 import { change, idSchema, lockedMember, notFound, param, withRetry } from "../ideas/common.js";
 import type { Tx } from "../ideas/common.js";
 import { MAX_PRICE, MAX_QUANTITY } from "../ingredients/routes.js";
@@ -21,7 +21,7 @@ export const MAX_DRAFTS_PER_PROJECT = 200;
 export const MAX_LINES_PER_DRAFT = 100;
 const MAX_NOTE_LENGTH = 2000;
 
-const nameSchema = singleLineText(80);
+const nameSchema = singleLineText(NAME_MAX);
 const noteSchema = multiLineText(MAX_NOTE_LENGTH);
 const sizesSchema = z
   .array(z.enum(SIZE_ORDER))

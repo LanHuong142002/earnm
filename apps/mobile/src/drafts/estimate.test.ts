@@ -34,8 +34,8 @@ describe("lineEstimate", () => {
     expect(lineEstimate({ ...rose, purchasePrice: null }, ingredients)).toBeNull();
     expect(lineEstimate({ ...rose, purchaseQty: null }, ingredients)).toBeNull();
   });
-  it("counts an existing line whose ingredient is gone as 0", () => {
-    expect(lineEstimate({ kind: "existing", ingredientId: "gone", amount: 5 }, ingredients)).toBe(0);
+  it("is null for an existing line whose ingredient is gone", () => {
+    expect(lineEstimate({ kind: "existing", ingredientId: "gone", amount: 5 }, ingredients)).toBeNull();
   });
 });
 
@@ -64,11 +64,29 @@ describe("draftEstimate", () => {
     expect(e.profit).toBeNull();
     expect(e.marginPct).toBeNull();
   });
-  it("mirrors the product defaults when the draft already uses a default ingredient", () => {
+  it("does not count a default twice when the draft already uses it", () => {
     const e = draftEstimate(ctx([{ kind: "existing", ingredientId: "cup", amount: 1 }]));
     expect(e.recipeCost).toBe(2600);
-    expect(e.defaultsCost).toBe(3100);
-    expect(e.total).toBe(5700);
+    expect(e.defaultsCost).toBe(500);
+    expect(e.total).toBe(3100);
+  });
+  it("counts a default ingredient once when the draft has it as an existing line (the draft amount replaces the default)", () => {
+    const e = draftEstimate(ctx([{ kind: "existing", ingredientId: "cup", amount: 2 }]));
+    expect(e.recipeCost).toBe(5200);
+    expect(e.defaultsCost).toBe(500); // Đá starts at 0 g, plus the extra
+  });
+  it("skips a default whose name a new line already uses, ignoring case", () => {
+    const iceLine: DraftLine = { kind: "new", newName: " ĐÁ ", newKind: "weight", purchaseQty: 1000, purchasePrice: 1000, amount: 100 };
+    const e = draftEstimate(ctx([iceLine]));
+    expect(e.recipeCost).toBe(100);
+    expect(e.defaultsCost).toBe(2600 + 500);
+  });
+  it("has no estimate and counts the line when an existing line's ingredient is gone", () => {
+    const e = draftEstimate(ctx([tea, { kind: "existing", ingredientId: "gone", amount: 5 }]));
+    expect(e.total).toBeNull();
+    expect(e.missingIngredients).toBe(1);
+    expect(e.missingPrices).toEqual([]);
+    expect(e.profit).toBeNull();
   });
   it("works with no lines", () => {
     const e = draftEstimate(ctx([]));

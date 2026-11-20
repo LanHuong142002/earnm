@@ -4,6 +4,7 @@ import { isUniqueViolation } from "../http/prisma-errors.js";
 import { notFound } from "../ideas/common.js";
 import type { Tx } from "../ideas/common.js";
 import { MAX_PRICE } from "../ingredients/create.js";
+import { NAME_MAX } from "../http/text.js";
 import { nameKey } from "../labels/nameKey.js";
 import { SIZE_ORDER } from "./response.js";
 import type { SizeName } from "./response.js";
@@ -122,6 +123,7 @@ export async function createProductRow(
   if ((await tx.product.count({ where: { projectId } })) >= MAX_PRODUCTS_PER_PROJECT) {
     throw new AppError(409, "product_limit_reached", `A project can hold at most ${MAX_PRODUCTS_PER_PROJECT} products.`);
   }
+  if (name.length > NAME_MAX) throw new AppError(400, "validation_failed", "Invalid fields: name.");
   const key = nameKey(name);
   if (await tx.product.findUnique({ where: { projectId_nameKey: { projectId, nameKey: key } } })) {
     throw productNameTaken();

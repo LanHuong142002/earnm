@@ -7,7 +7,7 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
-import { singleLineText } from "../http/text.js";
+import { NAME_MAX, singleLineText } from "../http/text.js";
 import { change, idSchema, lockedMember, notFound, param, withRetry } from "../ideas/common.js";
 import type { Tx } from "../ideas/common.js";
 import { MAX_PRICE } from "../ingredients/routes.js";
@@ -23,7 +23,7 @@ export const MAX_LINE_AMOUNT = 100_000;
 const MAX_LINES_PER_SIZE = 100;
 const MAX_EXTRAS_PER_SIZE = 50;
 
-const nameSchema = singleLineText(60);
+const nameSchema = singleLineText(NAME_MAX);
 const sizeSchema = z.enum(SIZE_ORDER);
 const sizesSchema = z
   .array(sizeSchema)

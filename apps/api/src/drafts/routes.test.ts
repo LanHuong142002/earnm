@@ -96,6 +96,8 @@ describe("/projects/:projectId/drafts", () => {
     it("refuses an empty name, no sizes, repeated sizes and a price over the currency maximum", async () => {
       const { a, p } = await world("USD");
       expectError(await create(a, p, body({ name: "  " })), 400, "validation_failed");
+      expectError(await create(a, p, body({ name: "x".repeat(61) })), 400, "validation_failed");
+      expect((await create(a, p, body({ name: "x".repeat(60) }))).status).toBe(201);
       expectError(await create(a, p, body({ sizes: [] })), 400, "validation_failed");
       expectError(await create(a, p, body({ sizes: ["M", "M"] })), 400, "validation_failed");
       expectError(await create(a, p, body({ extra: 1 })), 400, "validation_failed");
@@ -159,6 +161,7 @@ describe("/projects/:projectId/drafts", () => {
       expectError(await addLine(a, p, idOf(d), existingLine(await ingredient(p, "Đường"), { amount: 0 })), 400, "validation_failed");
       expectError(await addLine(a, p, idOf(d), existingLine(await ingredient(p, "Đá"), { amount: 100_001 })), 400, "validation_failed");
       expectError(await addLine(a, p, idOf(d), newLine({ amount: 0 })), 400, "validation_failed");
+      expectError(await addLine(a, p, idOf(d), newLine({ newName: "x".repeat(61) })), 400, "validation_failed");
       expectError(await addLine(a, p, idOf(d), newLine({ newName: "" })), 400, "validation_failed");
       expectError(await addLine(a, p, idOf(d), newLine({ newKind: "bad" })), 400, "validation_failed");
       expectError(await addLine(a, p, idOf(d), newLine({ purchaseQty: 0 })), 400, "validation_failed");

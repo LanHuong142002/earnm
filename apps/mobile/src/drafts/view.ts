@@ -1,3 +1,4 @@
+import type { IngredientMode } from "../ingredients/types";
 import { per1 } from "../ingredients/cost";
 import { formatUnitCost, type Currency } from "../lib/currency";
 import { SIZE_NAMES, type SizeName } from "../products/types";
@@ -49,26 +50,32 @@ export type RowSummary = { kind: "noRecipe" } | { kind: "missing"; count: number
 /** What a list row says after the sizes: the estimated cost, how many prices are missing, or that there is no recipe. */
 export function rowSummary(draft: Pick<Draft, "lines">, estimate: DraftEstimate): RowSummary {
   if (draft.lines.length === 0) return { kind: "noRecipe" };
-  if (estimate.total === null) return { kind: "missing", count: estimate.missingPrices.length };
+  if (estimate.total === null) return { kind: "missing", count: estimate.missingPrices.length + estimate.missingIngredients };
   return { kind: "cost", total: estimate.total };
 }
 
 const key = (name: string) => name.trim().toLocaleLowerCase("vi");
 
 /** For the confirm dialog (R8): new lines to create as ingredients, and new lines whose name an ingredient now has. */
-export function convertSplit(lines: readonly DraftLineRow[], ingredients: readonly { name: string }[]): { create: string[]; reuse: string[] } {
-  const known = new Set(ingredients.map((i) => key(i.name)));
+export function convertSplit(
+  lines: readonly DraftLineRow[],
+  ingredients: readonly { name: string; mode: IngredientMode }[],
+): { create: string[]; reuse: string[]; mismatch: string[] } {
+  const known = new Map(ingredients.map((i) => [key(i.name), i.mode]));
   const create: string[] = [];
   const reuse: string[] = [];
+  const mismatch: string[] = [];
   const seen = new Set<string>();
   for (const line of lines) {
     if (line.kind !== "new" || line.newName === null) continue;
     const k = key(line.newName);
     if (seen.has(k)) continue;
     seen.add(k);
-    (known.has(k) ? reuse : create).push(line.newName);
+    const mode = known.get(k);
+    // The server refuses a same-name ingredient that is counted a different way (ml vs g): show a notice instead.
+    (mode === undefined ? create : mode === line.newKind ? reuse : mismatch).push(line.newName);
   }
-  return { create, reuse };
+  return { create, reuse, mismatch };
 }
 
 export type MissingItem = { kind: "name" } | { kind: "sizes" } | { kind: "lines" } | { kind: "price"; name: string } | { kind: "qty"; name: string };
@@ -99,6 +106,8 @@ const CONVERT_ERROR: Record<string, string> = {
   draft_converted: "converted",
   draft_not_done: "notDone",
   draft_incomplete: "incomplete",
+  draft_ingredient_mode_mismatch: "modeMismatch",
+  draft_line_amount_too_large: "amountTooLarge",
   not_signed_in: "notSignedIn",
 };
 

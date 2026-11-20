@@ -1004,6 +1004,7 @@
     "removeLineConfirm": "Remove",
     "hintEstimate": "Estimated cost of 1 cup, size {{size}}: {{cost}}, including default ingredients and extra costs.",
     "hintProfit": "At the expected price, profit is {{profit}} ({{pct}}%).",
+    "hintMissingIngredient": "The estimated cost is incomplete: {{count}} ingredient in the recipe no longer exists.",
     "hintMissing": "The estimated cost is incomplete: {{names}} has no purchase price.",
     "heroProfit": "Expected profit per cup · size {{size}}",
     "heroCost": "Estimated cost per cup · size {{size}}",
@@ -1036,6 +1037,8 @@
       "converted": "This draft was already converted to a product.",
       "notDone": "Couldn't convert: the draft isn't marked Done.",
       "incomplete": "Couldn't convert: the draft is missing information.",
+      "modeMismatch": "{{name}} is already in Ingredients but is counted a different way. Edit this line in the draft.",
+      "amountTooLarge": "Couldn't convert: {{name}} adds up to too much across the draft's lines. Lower the amounts.",
       "notSignedIn": "Sign in again to convert to a product.",
       "generic": "Couldn't convert. Please try again."
     },

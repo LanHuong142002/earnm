@@ -998,6 +998,7 @@
     "removeLineConfirm": "Xoá",
     "hintEstimate": "Giá vốn dự kiến 1 ly size {{size}}: {{cost}}, đã gồm nguyên liệu và chi phí mặc định.",
     "hintProfit": "Với giá bán dự kiến, lãi {{profit}} ({{pct}}%).",
+    "hintMissingIngredient": "Giá vốn dự kiến chưa đủ: {{count}} nguyên liệu trong công thức đã bị xóa.",
     "hintMissing": "Giá vốn dự kiến chưa đủ: {{names}} chưa có giá mua.",
     "heroProfit": "Lãi dự kiến mỗi ly · size {{size}}",
     "heroCost": "Giá vốn dự kiến mỗi ly · size {{size}}",
@@ -1030,6 +1031,8 @@
       "converted": "Nháp này đã được chuyển thành món.",
       "notDone": "Chưa chuyển được: nháp chưa ở trạng thái Xong.",
       "incomplete": "Chưa chuyển được: nháp còn thiếu thông tin.",
+      "modeMismatch": "{{name}} đã có trong Nguyên liệu nhưng tính theo cách khác. Sửa dòng này trong nháp.",
+      "amountTooLarge": "Chưa chuyển được: {{name}} cộng lại quá nhiều trong các dòng của nháp. Hãy giảm số lượng.",
       "notSignedIn": "Cần đăng nhập lại để chuyển thành món.",
       "generic": "Chưa chuyển được. Vui lòng thử lại."
     },

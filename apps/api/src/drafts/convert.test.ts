@@ -153,6 +153,52 @@ describe("POST /projects/:projectId/drafts/:draftId/convert", () => {
     }
   });
 
+  it("refuses a same-name ingredient counted a different way, creating nothing (mode mismatch)", async () => {
+    const { a, p } = await world();
+    await ingredient(p, "Sữa", { mode: "volume" });
+    const d = await draft(p, [{ kind: "new", name: "Sữa", mode: "weight", amount: 20 }]);
+    const lineId = (await prisma.draftLine.findFirstOrThrow({ where: { draftId: d } })).id;
+    const before = await counts(p);
+    const res = await convert(a, p, d);
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("draft_ingredient_mode_mismatch");
+    expect(res.body.error.details).toEqual({ lineId, name: "Sữa" });
+    expect(await counts(p)).toEqual(before);
+  });
+
+  it("refuses when an existing line and a reused new line add up above the maximum amount", async () => {
+    const { a, p } = await world();
+    const sugar = await ingredient(p, "Đường");
+    const d = await draft(p, [
+      { kind: "existing", ingredientId: sugar, amount: 60000 },
+      { kind: "new", name: "Đường", amount: 60000 },
+    ]);
+    const second = (await prisma.draftLine.findMany({ where: { draftId: d }, orderBy: { position: "asc" } }))[1]!;
+    const before = await counts(p);
+    const res = await convert(a, p, d);
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("draft_line_amount_too_large");
+    expect(res.body.error.details).toEqual({ lineId: second.id, name: "Đường" });
+    expect(await counts(p)).toEqual(before);
+  });
+
+  it("refuses a draft name longer than a product name, creating nothing", async () => {
+    const { a, p } = await world();
+    const sugar = await ingredient(p, "Đường");
+    const d = await draft(p, [{ kind: "existing", ingredientId: sugar, amount: 5 }], { name: "x".repeat(61) });
+    const before = await counts(p);
+    expectError(await convert(a, p, d), 400, "validation_failed");
+    expect(await counts(p)).toEqual(before);
+  });
+
+  it("refuses a new-line name longer than an ingredient name, creating nothing", async () => {
+    const { a, p } = await world();
+    const d = await draft(p, [{ kind: "new", name: "y".repeat(61), amount: 5 }]);
+    const before = await counts(p);
+    expectError(await convert(a, p, d), 400, "validation_failed");
+    expect(await counts(p)).toEqual(before);
+  });
+
   it("refuses a draft that is not done, converted, incomplete, or from another project (AC7)", async () => {
     const { a, stranger, p } = await world();
     const milk = await ingredient(p, "Sữa");

@@ -9,6 +9,7 @@ import { nameKey } from "../labels/nameKey.js";
 import { findForMember } from "../projects/access.js";
 import { createProductRow } from "../products/create.js";
 import type { RecipeLine } from "../products/create.js";
+import { MAX_LINE_AMOUNT } from "../products/routes.js";
 import { draftInclude, draftMissing, draftResponse } from "./response.js";
 
 const BASE_UNIT = { weight: "g", volume: "ml", portion: "portion" } as const;
@@ -57,17 +58,31 @@ export function createDraftConvertRouter(deps: { prisma: PrismaClient; now: () =
           for (const line of draft.lines) {
             let ingredientId = line.ingredientId;
             if (line.kind === "new") {
-              const name = line.newName ?? "";
+              const name = line.newName;
+              const mode = line.newKind;
+              if (name === null || mode === null) {
+                throw new AppError(409, "draft_incomplete", "The draft is missing what it needs to be done.", {
+                  missing: [{ code: "line_incomplete", lineId: line.id }],
+                });
+              }
               const found = await tx.ingredient.findUnique({
                 where: { projectId_nameKey: { projectId, nameKey: nameKey(name) } },
-                select: { id: true, name: true },
+                select: { id: true, name: true, mode: true },
               });
               if (found) {
+                if (found.mode !== mode) {
+                  throw new AppError(
+                    409,
+                    "draft_ingredient_mode_mismatch",
+                    "An ingredient with that name already exists but is counted a different way.",
+                    { lineId: line.id, name },
+                  );
+                }
                 ingredientId = found.id;
-                if (!reusedIngredients.some((r) => r.id === found.id)) reusedIngredients.push(found);
+                if (!reusedIngredients.some((r) => r.id === found.id)) {
+                  reusedIngredients.push({ id: found.id, name: found.name });
+                }
               } else {
-                // draftMissing guarantees these are set for a new line.
-                const mode = line.newKind ?? "weight";
                 ingredientId = randomUUID();
                 await createIngredientRow(tx, {
                   id: ingredientId,
@@ -84,7 +99,15 @@ export function createDraftConvertRouter(deps: { prisma: PrismaClient; now: () =
             }
             if (ingredientId === null) continue; // guarded by draftMissing
             // The same ingredient twice (an existing line and a new line that matched it): amounts add up.
-            recipe.set(ingredientId, (recipe.get(ingredientId) ?? 0) + Number(line.amount));
+            const total = (recipe.get(ingredientId) ?? 0) + Number(line.amount);
+            if (total > MAX_LINE_AMOUNT) {
+              const ing = await tx.ingredient.findUnique({ where: { id: ingredientId }, select: { name: true } });
+              throw new AppError(409, "draft_line_amount_too_large", "Those lines add up to more than one line can hold.", {
+                lineId: line.id,
+                name: ing?.name ?? "",
+              });
+            }
+            recipe.set(ingredientId, total);
           }
 
           const productId = randomUUID();

@@ -7,7 +7,7 @@ export const draftInclude = {
 
 export type DraftRow = Prisma.DraftGetPayload<{ include: typeof draftInclude }>;
 
-/** A reason `done` was refused: `code` is one of name, sizes, lines, line_price, line_ingredient_missing. */
+/** A reason `done` was refused: `code` is one of name, sizes, lines, line_price, line_incomplete, line_ingredient_missing. */
 export type MissingItem = { code: string; lineId?: string; name?: string };
 
 /**
@@ -21,7 +21,9 @@ export function draftMissing(draft: DraftRow): MissingItem[] {
   if (draft.lines.length === 0) missing.push({ code: "lines" });
   for (const line of draft.lines) {
     if (line.kind === "new") {
-      if (line.purchaseQty === null || line.purchasePrice === null) {
+      if (line.newName === null || line.newKind === null) {
+        missing.push({ code: "line_incomplete", lineId: line.id });
+      } else if (line.purchaseQty === null || line.purchasePrice === null) {
         missing.push({ code: "line_price", lineId: line.id, name: line.newName ?? "" });
       }
     } else if (line.ingredientId === null) {

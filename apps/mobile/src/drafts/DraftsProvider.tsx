@@ -11,7 +11,7 @@ import { SIZE_NAMES, type SizeName } from "../products/types";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import type { Change, NewChange } from "../sync/queue";
 import { convertDraft as apiConvertDraft, listDrafts } from "./api";
-import { runConvert, type ConvertResult } from "./convert";
+import { recoveredConvert, runConvert, shouldRefreshAfter, type ConvertResult } from "./convert";
 import { DRAFT_LINE_ENTITY, DRAFT_STATUS_ENTITY } from "./entities";
 import { applyDraftOverlay, pendingDraftIds } from "./overlay";
 import {
@@ -446,7 +446,11 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
       });
       if (!result.ok) {
         if (result.code === "not_signed_in") notSignedInRef.current();
-        return result;
+        if (!shouldRefreshAfter(result.code)) return result;
+        // The request may have gone through (a repeat tap, or a reply lost on the way): look at the server's copy.
+        await Promise.allSettled([refresh(projectId), refreshProducts(projectId), refreshIngredients(projectId)]);
+        const fresh = draftsOf(cacheRef.current, projectId).find((d) => d.id === draftId);
+        return recoveredConvert(result, fresh) ?? result;
       }
       // The draft now has a product, and new ingredients may exist: bring all three lists up to date.
       await Promise.allSettled([refresh(projectId), refreshProducts(projectId), refreshIngredients(projectId)]);
