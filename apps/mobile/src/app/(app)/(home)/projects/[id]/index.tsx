@@ -14,6 +14,7 @@ import { projectView } from "../../../../../projects/routing";
 import { newIdeaCount } from "../../../../../ideas/counts";
 import { useIdeas } from "../../../../../ideas/IdeasProvider";
 import { useIngredients } from "../../../../../ingredients/IngredientsProvider";
+import { moneyOf } from "../../../../../ingredients/display";
 import { useProducts } from "../../../../../products/ProductsProvider";
 import { countNotDone } from "../../../../../tasks/counts";
 import { useTasks } from "../../../../../tasks/TasksProvider";
@@ -124,6 +125,7 @@ export default function ProjectScreen() {
   const tasks = tasksFor(project.id);
   const projectIdeas = ideasReady ? ideas.ideasFor(project.id) : [];
   const projectProducts = productsReady ? products.productsFor(project.id) : [];
+  const fixedTotal = productsReady ? products.fixedTotalFor(project.id) : 0;
   const projectIngredients = ingredientsReady ? ingredients.ingredientsFor(project.id) : [];
 
   return (
@@ -197,7 +199,14 @@ export default function ProjectScreen() {
               shape="wide"
               icon="receipt-outline"
               label={t("projects.areaFixedCosts")}
-              comingSoon={t("home.comingSoon")}
+              caption={
+                fixedTotal > 0
+                  ? t("fixedCosts.tileCaption", { amount: moneyOf(fixedTotal, project.currency) })
+                  : productsLoaded
+                    ? t("fixedCosts.tileNone")
+                    : undefined
+              }
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/fixed-costs", params: { id: project.id } }))}
             />
             {/* Keeps this tile the width of the ones above. */}
             <View style={{ flex: 1 }} />
