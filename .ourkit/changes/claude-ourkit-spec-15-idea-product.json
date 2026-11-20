@@ -52,5 +52,6 @@
       "what": "#15 migration on DB with #13 data (AC 14)",
       "steps": "From apps/api run npm run db:deploy on the dev DB. Expected: succeeds"
     }
-  ]
+  ],
+  "planApproval": "91bbfc4440164e4124a3e64a42088aeb88232a8e249ff172bf6f2aaf35057eb2"
 }
