@@ -42,5 +42,15 @@
       "question": "#14: should a one-time fixed cost stop after its N months? Built as never-stops (mockup assumption 2)",
       "answer": null
     }
+  ],
+  "testHandoff": [
+    {
+      "what": "#14 screens on a real iPhone (AC 9-12)",
+      "steps": "Ticket #47 section H with mockup .ourkit/mockups/claude-ourkit-spec-14-fixed-costs.html, once #14 is built"
+    },
+    {
+      "what": "#14 migration on DB with #13 data (AC 15)",
+      "steps": "From apps/api run npm run db:deploy on the dev DB. Expected: succeeds; projects have no cups set"
+    }
   ]
 }
