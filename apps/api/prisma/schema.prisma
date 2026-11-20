@@ -91,27 +91,31 @@ model ProjectMember {
 }
 
 model Project {
-  id                  String              @id
-  name                String
-  description         String              @default("")
-  currency            Currency
-  nameEditedAt        DateTime
-  descriptionEditedAt DateTime
-  currencyEditedAt    DateTime
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  members             ProjectMember[]
-  tasks               Task[]
-  invites             Invite[]
-  labels              Label[]
-  deviceSyncs         DeviceProjectSync[]
-  ideas               Idea[]
-  ingredients         Ingredient[]
-  products            Product[]
-  extraCosts          ExtraCost[]
+  id                   String              @id
+  name                 String
+  description          String              @default("")
+  currency             Currency
+  nameEditedAt         DateTime
+  descriptionEditedAt  DateTime
+  currencyEditedAt     DateTime
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  members              ProjectMember[]
+  tasks                Task[]
+  invites              Invite[]
+  labels               Label[]
+  deviceSyncs          DeviceProjectSync[]
+  ideas                Idea[]
+  ingredients          Ingredient[]
+  products             Product[]
+  extraCosts           ExtraCost[]
+  fixedCosts           FixedCost[]
   /// Whole percent, 1-95. Drives the price hint on products.
-  targetMargin         Int                @default(65)
-  targetMarginEditedAt DateTime           @default(now())
+  targetMargin         Int                 @default(65)
+  targetMarginEditedAt DateTime            @default(now())
+  /// Expected cups sold per month, 1-1,000,000, or null when not set. Spreads the fixed costs over each cup.
+  expectedCupsPerMonth Int?
+  expectedCupsEditedAt DateTime            @default(now())
 }
 
 model Session {
@@ -551,6 +555,32 @@ model SizeExtra {
 }
 
 /// A project-wide cost per cup (ice, water...). Integer amount in the currency's smallest unit.
+enum FixedCostKind {
+  monthly
+  weekly
+  oneTime
+}
+
+/// A cost that does not depend on cups sold (rent, wages, equipment). `months` is set only for `oneTime`.
+model FixedCost {
+  id             String        @id
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  nameKey        String
+  kind           FixedCostKind
+  amount         Int
+  months         Int?
+  nameEditedAt   DateTime      @default(now())
+  kindEditedAt   DateTime      @default(now())
+  amountEditedAt DateTime      @default(now())
+  monthsEditedAt DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+
+  @@unique([projectId, nameKey])
+  @@index([projectId, createdAt])
+}
+
 model ExtraCost {
   id              String      @id
   projectId       String
