@@ -58,7 +58,7 @@ describe("deliverPushes", () => {
     const result = await deliverPushes(prisma, sender, [message(token!)]);
 
     expect(result.delivered).toEqual([false]);
-    expect(await prisma.devicePushToken.count({ where: { token } })).toBe(1);
+    expect(await prisma.devicePushToken.count({ where: { token: token! } })).toBe(1);
     error.mockRestore();
   });
 });
