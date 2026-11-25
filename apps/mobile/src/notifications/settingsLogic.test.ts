@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import en from "../i18n/en.json";
 import vi from "../i18n/vi.json";
 import { NOTIFICATION_TYPES, type NotificationSettings } from "./api";
-import { applyChange, isMuted, revertChange, saveChange, type SettingsChange } from "./settingsLogic";
+import { applyChange, isMuted, revertChange, saveChange, shouldApplyLoad, type SettingsChange } from "./settingsLogic";
 
 const start = (): NotificationSettings => ({
   types: { assigned: true, comment: true, done: true, idea: true, member_joined: true },
@@ -70,5 +70,13 @@ describe("notification settings changes (AC27)", () => {
     }
     expect(vi.notifications.saveFailed).toBe("Không lưu được. Đã trả lại như cũ.");
     expect(en.notifications.saveFailed).toBe("Couldn't save. Switched back.");
+  });
+});
+
+describe("a slow load next to a switch flip", () => {
+  it("is ignored when a change was made after the load started", () => {
+    expect(shouldApplyLoad(0, 0)).toBe(true);
+    expect(shouldApplyLoad(0, 1)).toBe(false);
+    expect(shouldApplyLoad(2, 2)).toBe(true);
   });
 });

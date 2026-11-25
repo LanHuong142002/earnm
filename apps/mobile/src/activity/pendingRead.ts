@@ -17,8 +17,42 @@ export async function addPendingRead(store: KeyValueStore, userId: string, ids: 
   return merged;
 }
 
+const allKeyFor = (userId: string) => `activity.pendingReadAll.${userId}`;
+
+/** Remembers that "Đọc hết" was tapped here and the server has not heard: it marks the unread on pages never loaded too. */
+export async function markPendingReadAll(store: KeyValueStore, userId: string): Promise<void> {
+  await store.setJSON(allKeyFor(userId), true);
+}
+
+export async function hasPendingReadAll(store: KeyValueStore, userId: string): Promise<boolean> {
+  return (await store.getJSON<unknown>(allKeyFor(userId))) === true;
+}
+
+export async function clearPendingReadAll(store: KeyValueStore, userId: string): Promise<void> {
+  await store.remove(allKeyFor(userId));
+}
+
+/** Clears everything waiting for this person: the ids and the read-all marker. */
 export async function clearPendingRead(store: KeyValueStore, userId: string): Promise<void> {
   await store.remove(keyFor(userId));
+  await store.remove(allKeyFor(userId));
+}
+
+/** Sends the read-all marker if one waits; it is cleared only when the server took it (or refused it for good). */
+export async function flushReadAll(
+  store: KeyValueStore,
+  userId: string,
+  sendAll: () => Promise<void>,
+  isFinal: (error: unknown) => boolean = () => false,
+): Promise<FlushResult> {
+  if (!(await hasPendingReadAll(store, userId))) return "empty";
+  try {
+    await sendAll();
+  } catch (error) {
+    if (!isFinal(error)) return "failed";
+  }
+  await clearPendingReadAll(store, userId);
+  return "sent";
 }
 
 export type FlushResult = "empty" | "sent" | "failed";

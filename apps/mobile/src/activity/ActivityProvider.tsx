@@ -6,8 +6,16 @@ import { ApiError } from "../lib/api";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import { startSyncTriggers } from "../sync/triggers";
 import { getActivityUnread, listActivity, markActivityRead, markAllActivityRead, type ActivityItem } from "./api";
-import { appendPage, hasUnreadAfter, markAllRead, markRead, unreadIds } from "./list";
-import { addPendingRead, clearPendingRead, flushPendingRead, loadPendingRead } from "./pendingRead";
+import { appendPage, hasUnreadAfter, markAllRead, markRead } from "./list";
+import {
+  addPendingRead,
+  clearPendingRead,
+  flushPendingRead,
+  flushReadAll,
+  hasPendingReadAll,
+  loadPendingRead,
+  markPendingReadAll,
+} from "./pendingRead";
 
 /** idle: not asked yet. loading: first page on its way with nothing to show. error: first page failed with nothing to show. */
 export type ActivityStatus = "idle" | "loading" | "ready" | "error";
@@ -105,10 +113,13 @@ function ActivityStore({ userId, children }: { userId: string | null; children: 
     if (user === null) return;
     const token = await getToken();
     if (!token) return;
-    const result = await flushPendingRead(asyncStorageStore, user, (ids) => markActivityRead(token, ids), isFinal).catch(
+    const all = await flushReadAll(asyncStorageStore, user, () => markAllActivityRead(token), isFinal).catch(
       () => "failed" as const,
     );
-    if (result === "sent" && userRef.current === user) {
+    const ids = await flushPendingRead(asyncStorageStore, user, (batch) => markActivityRead(token, batch), isFinal).catch(
+      () => "failed" as const,
+    );
+    if ((all === "sent" || ids === "sent") && userRef.current === user) {
       await getActivityUnread(token)
         .then((r) => setServerUnread(r.hasUnread))
         .catch(authFailed);
@@ -121,12 +132,16 @@ function ActivityStore({ userId, children }: { userId: string | null; children: 
     const token = await getToken();
     if (!token) return;
     // Reads waiting to be sent would still count as unread on the server.
-    if ((await loadPendingRead(asyncStorageStore, user)).length > 0) await flush();
+    if ((await loadPendingRead(asyncStorageStore, user)).length > 0 || (await hasPendingReadAll(asyncStorageStore, user))) {
+      await flush();
+    }
     await getActivityUnread(token)
       .then(async (r) => {
         if (userRef.current !== user) return;
         const waiting = await loadPendingRead(asyncStorageStore, user);
-        setServerUnread(r.hasUnread && waiting.length === 0);
+        const all = await hasPendingReadAll(asyncStorageStore, user);
+        if (userRef.current !== user) return;
+        setServerUnread(r.hasUnread && waiting.length === 0 && !all);
       })
       .catch(authFailed);
   }, [authFailed, flush]);
@@ -144,7 +159,9 @@ function ActivityStore({ userId, children }: { userId: string | null; children: 
       if (generation.current !== gen) return;
       // Reads not yet sent stay read on screen.
       const waiting = await loadPendingRead(asyncStorageStore, user);
-      const shown = markRead(page.items, waiting);
+      const all = await hasPendingReadAll(asyncStorageStore, user);
+      if (generation.current !== gen) return;
+      const shown = all ? markAllRead(page.items) : markRead(page.items, waiting);
       firstPageRef.current = { count: shown.length, cursor: page.nextCursor };
       commit(shown, page.nextCursor);
       setOffline(false);
@@ -174,8 +191,12 @@ function ActivityStore({ userId, children }: { userId: string | null; children: 
       const page = await listActivity(token, cursor);
       if (generation.current !== gen) return;
       const waiting = await loadPendingRead(asyncStorageStore, user);
-      commit(appendPage(itemsRef.current, { ...page, items: markRead(page.items, waiting) }), page.nextCursor);
+      const all = await hasPendingReadAll(asyncStorageStore, user);
+      if (generation.current !== gen) return;
+      const rows = all ? markAllRead(page.items) : markRead(page.items, waiting);
+      commit(appendPage(itemsRef.current, { ...page, items: rows }), page.nextCursor);
     } catch (error) {
+      if (generation.current !== gen) return;
       authFailed(error);
     } finally {
       moreBusy.current = false;
@@ -199,23 +220,19 @@ function ActivityStore({ userId, children }: { userId: string | null; children: 
   const markAllAsRead = useCallback(() => {
     const user = userRef.current;
     if (user === null) return;
-    const shownUnread = unreadIds(itemsRef.current);
     commit(markAllRead(itemsRef.current), cursorRef.current);
     setServerUnread(false);
     saveCache();
     void (async () => {
       try {
-        const token = await getToken();
-        if (!token) return;
-        await markAllActivityRead(token);
-        await clearPendingRead(asyncStorageStore, user);
+        // The marker also covers unread events on pages never loaded; it is cleared only once the server took it.
+        await markPendingReadAll(asyncStorageStore, user);
+        await flush();
       } catch (error) {
         authFailed(error);
-        // Not sent: keep what is on screen as waiting reads, to send when the phone is back online.
-        if (shownUnread.length > 0) await addPendingRead(asyncStorageStore, user, shownUnread).catch(() => undefined);
       }
     })();
-  }, [authFailed, commit, saveCache]);
+  }, [authFailed, commit, flush, saveCache]);
 
   // Load the saved copy of this person's feed, then ask the server whether anything is unread.
   useEffect(() => {
@@ -238,6 +255,14 @@ function ActivityStore({ userId, children }: { userId: string | null; children: 
     // The store is remounted for each person, so this runs once; the callbacks read refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Anything still on its way when this person's store goes away must not land in the next one.
+  useEffect(
+    () => () => {
+      generation.current += 1;
+    },
+    [],
+  );
 
   // Back in front or back online: send the reads that were waiting and re-read the flag.
   useEffect(() => {

@@ -47,3 +47,7 @@ export async function saveChange(
     return { settings: reverted, failed: true };
   }
 }
+
+/** A load that started before the latest switch change is stale: its answer must not overwrite the switch on screen. */
+export const shouldApplyLoad = (changeCountAtStart: number, changeCountNow: number): boolean =>
+  changeCountAtStart === changeCountNow;

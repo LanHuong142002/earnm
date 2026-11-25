@@ -11,7 +11,7 @@ import {
   type NotificationSettings,
   type NotificationType,
 } from "./api";
-import { isMuted, saveChange, type SettingsChange } from "./settingsLogic";
+import { isMuted, saveChange, shouldApplyLoad, type SettingsChange } from "./settingsLogic";
 
 export type SettingsStatus = "loading" | "ready" | "error";
 
@@ -25,6 +25,8 @@ export function useNotificationSettings() {
   const [status, setStatus] = useState<SettingsStatus>("loading");
   const [saveFailed, setSaveFailed] = useState(false);
   const latest = useRef<NotificationSettings | null>(null);
+  /** Counts switch changes, so a load that started before one does not overwrite it. */
+  const changes = useRef(0);
 
   const show = useCallback((next: NotificationSettings) => {
     latest.current = next;
@@ -32,10 +34,16 @@ export function useNotificationSettings() {
   }, []);
 
   const load = useCallback(async () => {
+    const startedAt = changes.current;
     try {
       const token = await getToken();
-      if (!token) return;
-      show(await getNotificationSettings(token));
+      if (!token) {
+        if (latest.current === null) setStatus("error");
+        return;
+      }
+      const loaded = await getNotificationSettings(token);
+      if (!shouldApplyLoad(startedAt, changes.current)) return;
+      show(loaded);
       setStatus("ready");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) void handleNotSignedIn();
@@ -53,6 +61,7 @@ export function useNotificationSettings() {
   const change = useCallback(
     async (c: SettingsChange) => {
       if (latest.current === null) return;
+      changes.current += 1;
       setSaveFailed(false);
       const { failed } = await saveChange(
         () => latest.current as NotificationSettings,

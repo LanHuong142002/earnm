@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { isReconnect } from "../sync/reconnect";
 import { createMemoryStore } from "../sync/storage";
-import { addPendingRead, flushPendingRead, loadPendingRead, READ_BATCH } from "./pendingRead";
+import {
+  addPendingRead,
+  clearPendingRead,
+  flushPendingRead,
+  flushReadAll,
+  hasPendingReadAll,
+  loadPendingRead,
+  markPendingReadAll,
+  READ_BATCH,
+} from "./pendingRead";
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `e${i}`);
 
@@ -75,5 +84,62 @@ describe("pending reads (AC34)", () => {
     );
     expect(result).toBe("sent");
     expect(await loadPendingRead(store, "u1")).toEqual([]);
+  });
+});
+
+describe("pending read-all marker (R31, R34)", () => {
+  it("persists offline, per person", async () => {
+    const store = createMemoryStore();
+    expect(await hasPendingReadAll(store, "u1")).toBe(false);
+    await markPendingReadAll(store, "u1");
+    expect(await hasPendingReadAll(store, "u1")).toBe(true);
+    expect(await hasPendingReadAll(store, "u2")).toBe(false);
+  });
+
+  it("is sent on reconnect and cleared on success", async () => {
+    const store = createMemoryStore();
+    await markPendingReadAll(store, "u1");
+    let calls = 0;
+    expect(await flushReadAll(store, "u1", async () => void (calls += 1))).toBe("sent");
+    expect(calls).toBe(1);
+    expect(await hasPendingReadAll(store, "u1")).toBe(false);
+    expect(await flushReadAll(store, "u1", async () => void (calls += 1))).toBe("empty");
+    expect(calls).toBe(1);
+  });
+
+  it("is kept after a failure", async () => {
+    const store = createMemoryStore();
+    await markPendingReadAll(store, "u1");
+    const result = await flushReadAll(store, "u1", async () => {
+      throw new Error("network");
+    });
+    expect(result).toBe("failed");
+    expect(await hasPendingReadAll(store, "u1")).toBe(true);
+  });
+
+  it("is dropped when the server refuses for good", async () => {
+    const store = createMemoryStore();
+    await markPendingReadAll(store, "u1");
+    const result = await flushReadAll(
+      store,
+      "u1",
+      async () => {
+        throw new Error("no");
+      },
+      () => true,
+    );
+    expect(result).toBe("sent");
+    expect(await hasPendingReadAll(store, "u1")).toBe(false);
+  });
+
+  it("is cleared with the waiting ids on sign-out", async () => {
+    const store = createMemoryStore();
+    await addPendingRead(store, "u1", ["a"]);
+    await markPendingReadAll(store, "u1");
+    await markPendingReadAll(store, "u2");
+    await clearPendingRead(store, "u1");
+    expect(await hasPendingReadAll(store, "u1")).toBe(false);
+    expect(await loadPendingRead(store, "u1")).toEqual([]);
+    expect(await hasPendingReadAll(store, "u2")).toBe(true);
   });
 });
