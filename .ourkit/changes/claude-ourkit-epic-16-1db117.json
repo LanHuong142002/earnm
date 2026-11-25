@@ -79,5 +79,93 @@
     "9": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "apps/api/src/activity/scheduler.ts: only one timer for the earliest dueAt and no re-arm after a flush; user B's event due at T+90s while A's timer fires at T+60s waits for the 5-min tick (up to ~4 min late), same for retries. R12 says about 1 minute. Fix: after each flush re-arm for the earliest remaining pending dueAt/retry time.",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "apps/api/src/activity/record.ts open-window lookup uses dueAt > now: an unsent row whose window already ended makes a new event open a fresh 60s window, so two pushes for one project. Cosmetic.",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/api/src/internal/routes.ts /tick: flushActivity runs after runCatchUp in one try; a throw in runCatchUp skips activity pushes, a throw in flushActivity returns 500 and skips cleanup. Fix: run them independently.",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/activity.ts L149-154: data.eventIds is unbounded; a group of ~90+ events exceeds Expo's 4 KB payload limit, every send fails, after 3 tries all rows are dropped (still in feed). Fix: cap eventIds (e.g. newest 50) or split groups.",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/api/src/push/activity.ts L121-163: attempts is incremented before send and sent is settled after; a crash between Expo accepting and settle leaves rows pending and a retry 2 min later sends them again (duplicate push, against R15). Accept and document as at-least-once, or mark sent before sending.",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "apps/api/src/activity/routes.ts L95-99, L115-119: upsert on userId_type / userId_projectId may raise P2002 under two identical concurrent PUTs (double tap, offline replay) -> 500, against R23. Fix: treat unique violation as success or createMany skipDuplicates.",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "apps/api/src/internal/routes.ts /tick: a throw in flushActivity returns 500 after reminders were sent and skips the 30-day cleanup (same area as finding 3). Fix: wrap flushActivity in its own try/catch.",
+        "resolved": true
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/activity/ActivityProvider.tsx markAllAsRead (~L199-216): offline 'Đọc hết' only re-queues loaded unread ids; unread events on unloaded pages come back unread after reconnect (50 unread, 30 loaded -> 20 return). Fix: queue a read-all marker and resend markAllActivityRead on reconnect.",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/notifications/useNotificationSettings.ts L29-45: a slow load() finishing after a switch flip calls show(server) and overwrites the optimistic value; switch jumps back briefly. Fix: ignore loads started before the latest change (generation counter).",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/notifications/useNotificationSettings.ts L36-37: getToken() null leaves status 'loading' forever (only while signed out).",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/activity/ActivityProvider.tsx loadMore: no generation check after awaits; a slow page across sign-out/sign-in could append stale rows (store remounts per user, low risk).",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/activity/ActivityProvider.tsx markAllAsRead/flushReadAll: the offline read-all marker has no time bound, so when sent it also marks events that arrived after the tap. Probably acceptable.",
+        "resolved": false
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "apps/api/src/activity/scheduler.ts: re-arm reads nextDueAt through an untyped cast on flush()'s result; a refactor of the index.ts wrapper could silently drop re-arming. A typed return would be safer.",
+        "resolved": false
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "apps/api/src/internal/routes.ts: if reminders and activity both fail in one tick, only the first error is returned; the second is only logged.",
+        "resolved": false
+      }
+    ]
   }
 }
