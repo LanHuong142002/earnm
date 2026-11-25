@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
 import { createCloudinaryStore } from "./photos/cloudinary.js";
+import { createTimerScheduler } from "./activity/scheduler.js";
+import { flushActivity } from "./push/activity.js";
 import { createExpoSender } from "./push/sender.js";
 import { ConfigError, loadConfig } from "./config.js";
 import { createPrismaClient } from "./db.js";
@@ -17,15 +19,20 @@ try {
 }
 
 const prisma = createPrismaClient(config.databaseUrl);
+const pushSender = createExpoSender({ accessToken: config.expoAccessToken });
+const now = () => new Date();
 const app = createApp({
   prisma,
-  now: () => new Date(),
+  now,
   trustProxy: config.trustProxy,
   internalSecret: config.internalSecret,
   inviteInstallUrl: config.inviteInstallUrl,
   inviteCodeKey: config.inviteCodeKey,
   photoStore: config.cloudinary ? createCloudinaryStore(config.cloudinary) : null,
-  pushSender: createExpoSender({ accessToken: config.expoAccessToken }),
+  pushSender,
+  activityScheduler: pushSender
+    ? createTimerScheduler(() => flushActivity({ prisma, sender: pushSender, now: now() }), now)
+    : null,
 });
 
 app.listen(config.port, () => {

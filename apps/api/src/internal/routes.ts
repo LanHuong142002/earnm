@@ -3,7 +3,10 @@ import { Router, type RequestHandler } from "express";
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import { AppError } from "../http/errors.js";
 import { runCatchUp } from "../push/catchUp.js";
+import { flushActivity } from "../push/activity.js";
 import type { PushSender } from "../push/sender.js";
+
+const ACTIVITY_KEEP_MS = 30 * 86_400_000;
 
 function digest(value: string): Buffer {
   return createHash("sha256").update(value).digest();
@@ -43,8 +46,21 @@ export function createInternalRouter(deps: {
   router.post("/tick", async (_req, res, next) => {
     try {
       const { prisma, pushSender } = deps;
+      const now = (deps.now ?? (() => new Date()))();
       if (prisma && pushSender) {
-        await runCatchUp({ prisma, sender: pushSender, now: (deps.now ?? (() => new Date()))() });
+        await runCatchUp({ prisma, sender: pushSender, now });
+        await flushActivity({ prisma, sender: pushSender, now });
+      }
+      if (prisma) {
+        // Activity is kept for 30 days; the recipient rows go with their event.
+        // Housekeeping only: a failure here must not fail the tick.
+        try {
+          await prisma.activityEvent.deleteMany({
+            where: { occurredAt: { lt: new Date(now.getTime() - ACTIVITY_KEEP_MS) } },
+          });
+        } catch (err) {
+          console.error("activity: cleanup failed", err instanceof Error ? err.name : "unknown");
+        }
       }
       res.json({ status: "ok" });
     } catch (err) {
