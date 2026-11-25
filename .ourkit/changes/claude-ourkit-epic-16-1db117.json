@@ -1,0 +1,53 @@
+{
+  "tier": "feature",
+  "tierReason": "Issue #16 is one Feature from the MVP Epic; adds event and mute tables plus mute settings API",
+  "sensitiveAreas": [
+    "schema",
+    "data",
+    "public-api"
+  ],
+  "notSensitiveReason": null,
+  "ticket": "16",
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "f23374514001e529cfee3f2bbaf1ecd2ce013f11183da9e089f1cc850faf2235",
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "16",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature with Sensitive Areas schema, data, public-api",
+      "why": "One Epic Feature whose blockers are closed; adds event and mute tables and new endpoints."
+    },
+    {
+      "id": 2,
+      "decision": "Activity feed, read state and bell dot are part of #16",
+      "why": "The user asked to add the in-app feed on 2026-11-25 and approved the mockup with a dot instead of a count."
+    },
+    {
+      "id": 3,
+      "decision": "Bell sits on the Home header, not the project list",
+      "why": "Home is the first screen; the user approved it in the mockup."
+    },
+    {
+      "id": 4,
+      "decision": "Recipient rows double as push queue, feed and read state; 1-min timer plus tick recovery",
+      "why": "One source of truth; the tick alone would delay pushes up to 5 minutes."
+    },
+    {
+      "id": 5,
+      "decision": "Prior Art: reuse PushSender and extract catchUp send/settle into push/deliver.ts; claim SQL written new",
+      "why": "The send/settle part is generic; the reminder claim keys are not."
+    },
+    {
+      "id": 6,
+      "decision": "Offline mark-read uses a small pending-read set, not sync/queue.ts",
+      "why": "Mark-read is idempotent and the queue is built for entity changes; a past lesson warns against folding odd changes into it."
+    }
+  ]
+}
