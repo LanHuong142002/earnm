@@ -398,6 +398,13 @@ describe("/projects/:projectId/drafts", () => {
       expect(res.status).toBe(200);
       expect(res.body.status).toBe("working");
     });
+
+    it("goes back to working when a new line without a price is added", async () => {
+      const { a, p, d } = await doneDraft();
+      const res = await addLine(a, p, idOf(d), newLine({ newName: "Siro hoa hồng", newKind: "volume", amount: 15 }));
+      expect(res.status).toBe(201);
+      expect(res.body.status).toBe("working");
+    });
   });
 
   describe("currency lock (AC12)", () => {

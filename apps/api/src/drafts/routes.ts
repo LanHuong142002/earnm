@@ -337,6 +337,7 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
               ...times,
             },
           });
+          await reopenIfIncomplete(tx, draftId);
           return 201;
         }),
       );
