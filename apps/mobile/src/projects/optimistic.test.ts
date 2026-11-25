@@ -131,6 +131,15 @@ describe("editing only what the person changed (R13)", () => {
     expect(planUpdate(p("1"), { targetMargin: 50.5 })).toEqual({ ok: false, errors: { targetMargin: "invalid" } });
   });
 
+  it("queues expected cups per month: a whole number from 1 to 1.000.000, or null to clear it", () => {
+    expect(planUpdate(p("1"), { expectedCupsPerMonth: 1500 })).toEqual({ ok: true, changed: { expectedCupsPerMonth: 1500 } });
+    expect(planUpdate(p("1"), { expectedCupsPerMonth: null })).toEqual({ ok: true, changed: { expectedCupsPerMonth: null } });
+    expect(planUpdate(p("1"), { expectedCupsPerMonth: 1_000_000 })).toEqual({ ok: true, changed: { expectedCupsPerMonth: 1_000_000 } });
+    for (const bad of [0, 1_000_001, 50.5, -3]) {
+      expect(planUpdate(p("1"), { expectedCupsPerMonth: bad })).toEqual({ ok: false, errors: { expectedCupsPerMonth: "invalid" } });
+    }
+  });
+
   it("validates the merged result", () => {
     expect(planUpdate(p("1"), { name: "  " })).toEqual({ ok: false, errors: { name: "required" } });
   });

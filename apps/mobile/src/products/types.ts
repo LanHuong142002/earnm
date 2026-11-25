@@ -32,3 +32,18 @@ export type SizeRecipe = {
 };
 
 export type ExtraCost = { id: string; projectId: string; name: string; amount: number; isDefault: boolean; createdAt: string };
+
+export type FixedCostKind = "monthly" | "weekly" | "oneTime";
+
+/** A fixed cost of the project (rent, wages, equipment...). `months` is set only for a one-time cost. */
+export type FixedCost = {
+  id: string;
+  projectId: string;
+  name: string;
+  kind: FixedCostKind;
+  amount: number;
+  months: number | null;
+  createdAt: string;
+};
+
+export const FIXED_COST_KINDS: readonly FixedCostKind[] = ["monthly", "weekly", "oneTime"];

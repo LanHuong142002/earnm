@@ -1,10 +1,10 @@
 import type { KeyValueStore } from "../sync/storage";
-import { SIZE_NAMES, type ExtraCost, type Product } from "./types";
+import { FIXED_COST_KINDS, SIZE_NAMES, type ExtraCost, type FixedCost, type Product } from "./types";
 
 const CACHE_KEY = "products.cache.v1";
 
-/** One project's products and extra costs as the server last sent them. */
-export type ProjectProducts = { products: Product[]; extraCosts: ExtraCost[] };
+/** One project's products, extra costs and fixed costs as the server last sent them. */
+export type ProjectProducts = { products: Product[]; extraCosts: ExtraCost[]; fixedCosts: FixedCost[] };
 
 /**
  * The products as the server last sent them, per project. Waiting changes are never saved in here: they live in the
@@ -61,13 +61,36 @@ export function isExtraCost(value: unknown): value is ExtraCost {
   );
 }
 
+export function isFixedCost(value: unknown): value is FixedCost {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.projectId === "string" &&
+    typeof value.name === "string" &&
+    (FIXED_COST_KINDS as readonly unknown[]).includes(value.kind) &&
+    typeof value.amount === "number" &&
+    (value.months === null || typeof value.months === "number") &&
+    typeof value.createdAt === "string"
+  );
+}
+
 function read(raw: unknown, ownerId: string): ProductCache | null {
   if (!isRecord(raw) || raw.ownerId !== ownerId || !isRecord(raw.byProject)) return null;
   const byProject: Record<string, ProjectProducts> = {};
   for (const [projectId, entry] of Object.entries(raw.byProject)) {
     // One bad project makes only its own copy untrusted; it is fetched again.
-    if (isRecord(entry) && Array.isArray(entry.products) && entry.products.every(isProduct) && Array.isArray(entry.extraCosts) && entry.extraCosts.every(isExtraCost)) {
-      byProject[projectId] = { products: entry.products, extraCosts: entry.extraCosts };
+    // A copy saved before fixed costs existed has none yet; the next refresh brings them.
+    const fixedCosts = entry && "fixedCosts" in (entry as object) ? (entry as Record<string, unknown>).fixedCosts : [];
+    if (
+      isRecord(entry) &&
+      Array.isArray(entry.products) &&
+      entry.products.every(isProduct) &&
+      Array.isArray(entry.extraCosts) &&
+      entry.extraCosts.every(isExtraCost) &&
+      Array.isArray(fixedCosts) &&
+      fixedCosts.every(isFixedCost)
+    ) {
+      byProject[projectId] = { products: entry.products, extraCosts: entry.extraCosts, fixedCosts };
     }
   }
   return { ownerId, byProject };
@@ -100,9 +123,11 @@ export const clearProductCache = (store: KeyValueStore): Promise<void> => store.
 
 const NO_PRODUCTS: Product[] = [];
 const NO_EXTRAS: ExtraCost[] = [];
+const NO_FIXED: FixedCost[] = [];
 
 export const productsOf = (cache: ProductCache, projectId: string): Product[] => cache.byProject[projectId]?.products ?? NO_PRODUCTS;
 export const extraCostsOf = (cache: ProductCache, projectId: string): ExtraCost[] => cache.byProject[projectId]?.extraCosts ?? NO_EXTRAS;
+export const fixedCostsOf = (cache: ProductCache, projectId: string): FixedCost[] => cache.byProject[projectId]?.fixedCosts ?? NO_FIXED;
 export const hasProducts = (cache: ProductCache, projectId: string): boolean => cache.byProject[projectId] !== undefined;
 
 export const setProjectProducts = (cache: ProductCache, projectId: string, entry: ProjectProducts): ProductCache => ({
@@ -119,6 +144,8 @@ export const withProduct = (list: Product[], item: Product): Product[] => withIt
 export const withoutProduct = (list: Product[], id: string): Product[] => list.filter((p) => p.id !== id);
 export const withExtraCost = (list: ExtraCost[], item: ExtraCost): ExtraCost[] => withItem(list, item);
 export const withoutExtraCost = (list: ExtraCost[], id: string): ExtraCost[] => list.filter((x) => x.id !== id);
+export const withFixedCost = (list: FixedCost[], item: FixedCost): FixedCost[] => withItem(list, item);
+export const withoutFixedCost = (list: FixedCost[], id: string): FixedCost[] => list.filter((x) => x.id !== id);
 
 /** Drops the products of projects that are no longer in `projectIds`. */
 export function pruneProductCache(cache: ProductCache, projectIds: string[]): ProductCache {

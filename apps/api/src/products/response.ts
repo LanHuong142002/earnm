@@ -66,3 +66,23 @@ export function extraCostResponse(row: {
     createdAt: row.createdAt.toISOString(),
   };
 }
+
+export function fixedCostResponse(row: {
+  id: string;
+  projectId: string;
+  name: string;
+  kind: "monthly" | "weekly" | "oneTime";
+  amount: number;
+  months: number | null;
+  createdAt: Date;
+}) {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    name: row.name,
+    kind: row.kind,
+    amount: row.amount,
+    months: row.months,
+    createdAt: row.createdAt.toISOString(),
+  };
+}

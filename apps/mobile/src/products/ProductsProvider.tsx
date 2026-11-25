@@ -7,14 +7,24 @@ import { newProjectId as newId } from "../projects/newProjectId";
 import { useProjects } from "../projects/ProjectsProvider";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import type { Change, NewChange } from "../sync/queue";
-import { listExtraCosts, listProducts } from "./api";
+import { listExtraCosts, listFixedCosts, listProducts } from "./api";
 import { buildDefaults } from "./defaults";
 import { PRODUCT_LINES_ENTITY, PRODUCT_PRICE_ENTITY } from "./entities";
-import { applyExtraCostOverlay, applyProductOverlay, pendingExtraCostIds, pendingProductIds } from "./overlay";
+import { fixedTotal, kindMonthsChanges, perCupShare } from "./fixedCost";
+import {
+  applyExtraCostOverlay,
+  applyFixedCostOverlay,
+  applyProductOverlay,
+  pendingExpectedCups,
+  pendingExtraCostIds,
+  pendingFixedCostIds,
+  pendingProductIds,
+} from "./overlay";
 import {
   clearProductCache,
   emptyProductCache,
   extraCostsOf,
+  fixedCostsOf,
   hasProducts,
   openProductCache,
   productsOf,
@@ -28,6 +38,9 @@ import {
   extraCostCreateChange,
   extraCostDeleteChange,
   extraCostUpdateChange,
+  fixedCostCreateChange,
+  fixedCostDeleteChange,
+  fixedCostUpdateChange,
   productCreateChange,
   productDeleteChange,
   productLinesChange,
@@ -37,12 +50,13 @@ import {
   sizeKey,
   type DefaultsBySize,
   type ExtraCostFieldChanges,
+  type FixedCostFieldChanges,
 } from "./sync";
 import { createProductSyncCycle, type ProductRefreshResult, type ProductRejectedNotice } from "./syncCycle";
-import { SIZE_NAMES, type ExtraCost, type Product, type SizeName, type SizeRecipe } from "./types";
+import { SIZE_NAMES, type ExtraCost, type FixedCost, type FixedCostKind, type Product, type SizeName, type SizeRecipe } from "./types";
 
 export type { ProductRefreshResult, ProductRejectedNotice } from "./syncCycle";
-export type { ExtraCostFieldChanges } from "./sync";
+export type { ExtraCostFieldChanges, FixedCostFieldChanges } from "./sync";
 
 /** The server's default target margin, shown until the project's own value is known. */
 export const DEFAULT_TARGET_MARGIN = 65;
@@ -52,6 +66,15 @@ export type ProductMutationResult<T = object> = ({ ok: true } & T) | { ok: false
 
 export type ExtraCostInput = { name: string; amount: number; isDefault?: boolean };
 
+/** `months` is for a one-time cost only (1 to 120); any other kind has none. */
+export type FixedCostInput = { name: string; kind: FixedCostKind; amount: number; months?: number | null };
+
+/** The server's limits, checked here too so a bad value never waits in the queue. */
+export const FIXED_COST_NAME_MAX = 80;
+export const FIXED_COST_MAX_COUNT = 50;
+export const FIXED_COST_MAX_AMOUNT = 1_000_000_000;
+export const FIXED_COST_MAX_MONTHS = 120;
+
 type ProductsContextValue = {
   /** True once the local copy for the signed-in person is loaded. Mutations and refresh wait for it. */
   ready: boolean;
@@ -60,6 +83,18 @@ type ProductsContextValue = {
   /** The project's products with the waiting changes laid over them. Not sorted (see `order.ts`). */
   productsFor: (projectId: string) => Product[];
   extraCostsFor: (projectId: string) => ExtraCost[];
+  /** The project's fixed costs with the waiting changes laid over them. */
+  fixedCostsFor: (projectId: string) => FixedCost[];
+  /** The fixed costs of the project with a change waiting ("Chờ lưu"). */
+  fixedCostPendingFor: (projectId: string) => ReadonlySet<string>;
+  /** Cups the project expects to sell in a month; null until set. */
+  expectedCupsFor: (projectId: string) => number | null;
+  /** True while a change of the expected cups is waiting ("Chờ lưu"). */
+  expectedCupsPendingFor: (projectId: string) => boolean;
+  /** The month's fixed costs added up (one-time costs spread over their months). */
+  fixedTotalFor: (projectId: string) => number;
+  /** The fixed cost each cup carries; null without expected cups or without fixed costs. */
+  perCupShareFor: (projectId: string) => number | null;
   /** The project's target profit margin in percent. */
   targetMarginFor: (projectId: string) => number;
   /** The products of the project with a change waiting ("Chờ lưu"). */
@@ -76,6 +111,13 @@ type ProductsContextValue = {
   createExtraCost: (projectId: string, input: ExtraCostInput) => Promise<ProductMutationResult<{ id: string }>>;
   updateExtraCost: (projectId: string, extraCostId: string, fields: ExtraCostFieldChanges) => Promise<ProductMutationResult>;
   removeExtraCost: (projectId: string, extraCostId: string) => Promise<void>;
+  /** `ok: false` for an invalid input, a name already used (any letter case), or a project at its 50 fixed costs. */
+  addFixedCost: (projectId: string, input: FixedCostInput) => Promise<ProductMutationResult<{ id: string }>>;
+  /** Only what really changed is queued. Moving to one-time needs `months`; moving away from it drops them. */
+  editFixedCost: (projectId: string, fixedCostId: string, fields: FixedCostFieldChanges) => Promise<ProductMutationResult>;
+  deleteFixedCost: (projectId: string, fixedCostId: string) => Promise<void>;
+  /** A whole number from 1 to 1.000.000, or null to clear it; queued through the project's own sync path. */
+  setExpectedCups: (projectId: string, value: number | null) => Promise<ProductMutationResult>;
   /** A whole percent from 1 to 95; queued through the project's own sync path. */
   setTargetMargin: (projectId: string, value: number) => Promise<ProductMutationResult>;
   /** Fetches the project's products and extra costs and saves them. "skipped" until `ready`. */
@@ -94,6 +136,13 @@ export function useProducts(): ProductsContextValue {
 
 const NAME_MAX = 60;
 const EXTRA_NAME_MAX = 40;
+const validAmount = (v: number) => Number.isInteger(v) && v >= 1 && v <= FIXED_COST_MAX_AMOUNT;
+/** Months go with a one-time cost (1 to 120) and with nothing else. */
+const validMonthsFor = (kind: FixedCostKind, months: number | null) =>
+  kind === "oneTime" ? months !== null && Number.isInteger(months) && months >= 1 && months <= FIXED_COST_MAX_MONTHS : months === null;
+/** Names are unique per project, whatever the letter case (the server's rule). */
+const nameTaken = (list: readonly FixedCost[], name: string, exceptId: string | null) =>
+  list.some((x) => x.id !== exceptId && x.name.trim().toLowerCase() === name.toLowerCase());
 const sortedSizes = (sizes: readonly SizeName[]) => SIZE_NAMES.filter((s) => sizes.includes(s));
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
@@ -159,6 +208,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       getToken,
       listProducts,
       listExtraCosts,
+      listFixedCosts,
       getEntry: (projectId) => cacheRef.current.byProject[projectId] ?? null,
       commit,
       setNotice: setRejectedNotice,
@@ -265,6 +315,10 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     (projectId: string) => applyExtraCostOverlay(projectId, extraCostsOf(cacheRef.current, projectId), waiting),
     [waiting],
   );
+  const fixedCostsShown = useCallback(
+    (projectId: string) => applyFixedCostOverlay(projectId, fixedCostsOf(cacheRef.current, projectId), waiting),
+    [waiting],
+  );
 
   const productsFor = useCallback<ProductsContextValue["productsFor"]>(
     (projectId) => applyProductOverlay(projectId, productsOf(cache, projectId), waiting),
@@ -273,6 +327,30 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   const extraCostsFor = useCallback<ProductsContextValue["extraCostsFor"]>(
     (projectId) => applyExtraCostOverlay(projectId, extraCostsOf(cache, projectId), waiting),
     [cache, waiting],
+  );
+  const fixedCostsFor = useCallback<ProductsContextValue["fixedCostsFor"]>(
+    (projectId) => applyFixedCostOverlay(projectId, fixedCostsOf(cache, projectId), waiting),
+    [cache, waiting],
+  );
+  const fixedCostPendingFor = useCallback<ProductsContextValue["fixedCostPendingFor"]>(
+    (projectId) => pendingFixedCostIds(projectId, waiting),
+    [waiting],
+  );
+  const expectedCupsFor = useCallback<ProductsContextValue["expectedCupsFor"]>(
+    (projectId) => projects.find((p) => p.id === projectId)?.expectedCupsPerMonth ?? null,
+    [projects],
+  );
+  const expectedCupsPendingFor = useCallback<ProductsContextValue["expectedCupsPendingFor"]>(
+    (projectId) => pendingExpectedCups(projectId, waiting),
+    [waiting],
+  );
+  const fixedTotalFor = useCallback<ProductsContextValue["fixedTotalFor"]>(
+    (projectId) => fixedTotal(fixedCostsFor(projectId)),
+    [fixedCostsFor],
+  );
+  const perCupShareFor = useCallback<ProductsContextValue["perCupShareFor"]>(
+    (projectId) => perCupShare(fixedTotalFor(projectId), expectedCupsFor(projectId)),
+    [fixedTotalFor, expectedCupsFor],
   );
   const targetMarginFor = useCallback<ProductsContextValue["targetMarginFor"]>(
     (projectId) => projects.find((p) => p.id === projectId)?.targetMargin ?? DEFAULT_TARGET_MARGIN,
@@ -430,6 +508,69 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     [extraCostsShown, enqueueAll],
   );
 
+  const addFixedCost = useCallback<ProductsContextValue["addFixedCost"]>(
+    async (projectId, input) => {
+      if (!usable()) return { ok: false };
+      const name = input.name.trim();
+      const months = input.kind === "oneTime" ? (input.months ?? null) : null;
+      if (name.length === 0 || name.length > FIXED_COST_NAME_MAX || !validAmount(input.amount) || !validMonthsFor(input.kind, months)) return { ok: false };
+      const shown = fixedCostsShown(projectId);
+      if (shown.length >= FIXED_COST_MAX_COUNT || nameTaken(shown, name, null)) return { ok: false };
+      const id = newId();
+      await enqueueAll([fixedCostCreateChange({ id, projectId, name, kind: input.kind, amount: input.amount, months, now: new Date() })]);
+      return { ok: true, id };
+    },
+    [fixedCostsShown, enqueueAll],
+  );
+
+  const editFixedCost = useCallback<ProductsContextValue["editFixedCost"]>(
+    async (projectId, fixedCostId, fields) => {
+      if (!usable()) return { ok: false };
+      const shown = fixedCostsShown(projectId);
+      const current = shown.find((x) => x.id === fixedCostId);
+      if (!current) return { ok: false };
+      // Only what really changed is queued, so an unchanged field never gets a newer time than another phone's edit.
+      const changed: FixedCostFieldChanges = {};
+      if (fields.name !== undefined) {
+        const name = fields.name.trim();
+        if (name.length === 0 || name.length > FIXED_COST_NAME_MAX || nameTaken(shown, name, fixedCostId)) return { ok: false };
+        if (name !== current.name) changed.name = name;
+      }
+      if (fields.amount !== undefined) {
+        if (!validAmount(fields.amount)) return { ok: false };
+        if (fields.amount !== current.amount) changed.amount = fields.amount;
+      }
+      const kind = fields.kind ?? current.kind;
+      const months = kind === "oneTime" ? (fields.months !== undefined ? fields.months : current.months) : null;
+      if (!validMonthsFor(kind, months)) return { ok: false };
+      // Months are queued for a one-time cost only (always when the kind moves to it); the server (and the overlay) clear them otherwise.
+      Object.assign(changed, kindMonthsChanges(current, kind, months));
+      if (Object.keys(changed).length > 0) {
+        await enqueueAll([fixedCostUpdateChange({ id: fixedCostId, projectId, fields: changed, now: new Date() })]);
+      }
+      return { ok: true };
+    },
+    [fixedCostsShown, enqueueAll],
+  );
+
+  const deleteFixedCost = useCallback<ProductsContextValue["deleteFixedCost"]>(
+    async (projectId, fixedCostId) => {
+      if (!readyRef.current) return;
+      if (!fixedCostsShown(projectId).some((x) => x.id === fixedCostId)) return;
+      await enqueueAll([fixedCostDeleteChange({ id: fixedCostId, projectId })]);
+    },
+    [fixedCostsShown, enqueueAll],
+  );
+
+  const setExpectedCups = useCallback<ProductsContextValue["setExpectedCups"]>(
+    async (projectId, value) => {
+      if (!usable()) return { ok: false };
+      const result = await updateProject(projectId, { expectedCupsPerMonth: value });
+      return result.ok ? { ok: true } : { ok: false };
+    },
+    [updateProject],
+  );
+
   const setTargetMargin = useCallback<ProductsContextValue["setTargetMargin"]>(
     async (projectId, value) => {
       if (!usable()) return { ok: false };
@@ -462,6 +603,12 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       targetMarginFor,
       pendingFor,
       extraCostPendingFor,
+      fixedCostsFor,
+      fixedCostPendingFor,
+      expectedCupsFor,
+      expectedCupsPendingFor,
+      fixedTotalFor,
+      perCupShareFor,
       create,
       rename,
       setSizes,
@@ -471,6 +618,10 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       createExtraCost,
       updateExtraCost,
       removeExtraCost,
+      addFixedCost,
+      editFixedCost,
+      deleteFixedCost,
+      setExpectedCups,
       setTargetMargin,
       refresh,
       rejectedNotice,
@@ -484,6 +635,12 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       targetMarginFor,
       pendingFor,
       extraCostPendingFor,
+      fixedCostsFor,
+      fixedCostPendingFor,
+      expectedCupsFor,
+      expectedCupsPendingFor,
+      fixedTotalFor,
+      perCupShareFor,
       create,
       rename,
       setSizes,
@@ -493,6 +650,10 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       createExtraCost,
       updateExtraCost,
       removeExtraCost,
+      addFixedCost,
+      editFixedCost,
+      deleteFixedCost,
+      setExpectedCups,
       setTargetMargin,
       refresh,
       rejectedNotice,

@@ -1,12 +1,14 @@
+import { PROJECT_ENTITY } from "../projects/sync";
 import type { Change } from "../sync/queue";
 import type { SizeDefaults } from "./defaults";
-import { EXTRA_COST_ENTITY, PRODUCT_ENTITY, PRODUCT_LINES_ENTITY, PRODUCT_PRICE_ENTITY } from "./entities";
-import { SIZE_NAMES, type ExtraCost, type Product, type ProductSize, type SizeName, type SizeRecipe } from "./types";
+import { EXTRA_COST_ENTITY, FIXED_COST_ENTITY, PRODUCT_ENTITY, PRODUCT_LINES_ENTITY, PRODUCT_PRICE_ENTITY } from "./entities";
+import { FIXED_COST_KINDS, SIZE_NAMES, type ExtraCost, type FixedCost, type Product, type ProductSize, type SizeName, type SizeRecipe } from "./types";
 
 const PRODUCT_ENTITIES = [PRODUCT_ENTITY, PRODUCT_PRICE_ENTITY, PRODUCT_LINES_ENTITY];
 
 const isProductChange = (change: Change, projectId: string) => PRODUCT_ENTITIES.includes(change.entity) && change.data.projectId === projectId;
 const isExtraCostChange = (change: Change, projectId: string) => change.entity === EXTRA_COST_ENTITY && change.data.projectId === projectId;
+const isFixedCostChange = (change: Change, projectId: string) => change.entity === FIXED_COST_ENTITY && change.data.projectId === projectId;
 
 /** The product a change is about: its own id, or for a price or recipe the product it belongs to. */
 const productIdOf = (change: Change): string => (change.entity === PRODUCT_ENTITY ? change.entityId : String(change.data.productId));
@@ -120,3 +122,44 @@ export function applyExtraCostOverlay(projectId: string, serverList: ExtraCost[]
 export function pendingExtraCostIds(projectId: string, waiting: Change[]): ReadonlySet<string> {
   return new Set(waiting.filter((c) => isExtraCostChange(c, projectId)).map((c) => c.entityId));
 }
+
+function fixedWithFields(item: FixedCost, data: Record<string, unknown>): FixedCost {
+  const next = { ...item };
+  if (typeof data.name === "string") next.name = data.name;
+  if ((FIXED_COST_KINDS as readonly unknown[]).includes(data.kind)) next.kind = data.kind as FixedCost["kind"];
+  if (typeof data.amount === "number") next.amount = data.amount;
+  if (typeof data.months === "number" || data.months === null) next.months = data.months;
+  // Months belong to one-time costs only; the server clears them when the kind changes the same way.
+  if (next.kind !== "oneTime") next.months = null;
+  return next;
+}
+
+/** The project's fixed costs with the waiting changes laid over them, like `applyExtraCostOverlay`. */
+export function applyFixedCostOverlay(projectId: string, serverList: FixedCost[], waiting: Change[]): FixedCost[] {
+  // Months belong to one-time costs only, so a stale value on another kind is never shown.
+  let list = serverList.map((x) => (x.kind !== "oneTime" && x.months !== null ? { ...x, months: null } : x));
+  for (const change of waiting) {
+    if (!isFixedCostChange(change, projectId)) continue;
+    const index = list.findIndex((x) => x.id === change.entityId);
+    if (change.kind === "delete") {
+      list = list.filter((x) => x.id !== change.entityId);
+    } else if (index === -1) {
+      if (change.kind === "create") {
+        const base: FixedCost = { id: change.entityId, projectId, name: "", kind: "monthly", amount: 0, months: null, createdAt: change.createdAt };
+        list = [...list, fixedWithFields(base, change.data)];
+      }
+    } else {
+      list = list.map((x, n) => (n === index ? fixedWithFields(x, change.data) : x));
+    }
+  }
+  return list;
+}
+
+/** The fixed costs of `projectId` with a change waiting: they show "Chờ lưu". */
+export function pendingFixedCostIds(projectId: string, waiting: Change[]): ReadonlySet<string> {
+  return new Set(waiting.filter((c) => isFixedCostChange(c, projectId)).map((c) => c.entityId));
+}
+
+/** True while an edit of the project's expected cups per month is waiting ("Chờ lưu"). */
+export const pendingExpectedCups = (projectId: string, waiting: Change[]): boolean =>
+  waiting.some((c) => c.entity === PROJECT_ENTITY && c.entityId === projectId && c.kind !== "delete" && "expectedCupsPerMonth" in c.data);

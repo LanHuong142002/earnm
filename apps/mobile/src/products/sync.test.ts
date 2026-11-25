@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createQueue, type Change, type Queue } from "../sync/queue";
 import { createMemoryStore } from "../sync/storage";
-import { extraCost, product } from "./fixtures";
+import { extraCost, fixedCost, product } from "./fixtures";
 import {
+  fixedCostCreateChange,
+  fixedCostDeleteChange,
+  fixedCostUpdateChange,
   extraCostCreateChange,
   extraCostDeleteChange,
   extraCostUpdateChange,
@@ -36,6 +39,9 @@ function setup() {
     createExtraCost: vi.fn(async (_t: string, _p: string, b: { id: string }) => extraCost({ id: b.id })),
     patchExtraCost: vi.fn(async (_t: string, _p: string, id: string) => extraCost({ id })),
     deleteExtraCost: vi.fn(async () => undefined),
+    createFixedCost: vi.fn(async (_t: string, _p: string, b: { id: string }) => fixedCost({ id: b.id })),
+    patchFixedCost: vi.fn(async (_t: string, _p: string, id: string, _f: unknown) => fixedCost({ id })),
+    deleteFixedCost: vi.fn(async () => undefined),
   };
   registerProductEntities(queue, { onApplied: (c) => void applied.push(c), onRejected: (c) => void rejected.push(c) }, deps);
   return { queue, deps, applied, rejected };
@@ -177,5 +183,54 @@ describe("sending product changes", () => {
     await queue.enqueue(productCreateChange({ id: "pr1", projectId: "p1", name: "A", sizes: ["M"], defaults: {}, now: T0 }));
     await queue.flush();
     expect(sent).toEqual(["ingredient", "product"]);
+  });
+});
+
+describe("queued fixed cost changes (spec R8, AC9)", () => {
+  it("merges edits per field, each with its own time, including months", async () => {
+    const { queue } = setup();
+    await queue.enqueue(fixedCostUpdateChange({ id: "f1", projectId: "p1", fields: { name: "A" }, now: T0 }));
+    await queue.enqueue(fixedCostUpdateChange({ id: "f1", projectId: "p1", fields: { amount: 900, kind: "oneTime", months: 12 }, now: T1 }));
+    const waiting = await queue.waiting();
+    expect(waiting).toHaveLength(1);
+    expect(waiting[0].data).toMatchObject({ name: "A", amount: 900, kind: "oneTime", months: 12 });
+    expect(waiting[0].fieldTimes).toMatchObject({ name: T0.toISOString(), amount: T1.toISOString() });
+  });
+
+  it("an edit of a cost still waiting to be created folds into the create", async () => {
+    const { queue } = setup();
+    await queue.enqueue(fixedCostCreateChange({ id: "f1", projectId: "p1", name: "A", kind: "monthly", amount: 100, months: null, now: T0 }));
+    await queue.enqueue(fixedCostUpdateChange({ id: "f1", projectId: "p1", fields: { amount: 200 }, now: T1 }));
+    const waiting = await queue.waiting();
+    expect(waiting).toHaveLength(1);
+    expect(waiting[0]).toMatchObject({ kind: "create", data: { name: "A", amount: 200 } });
+  });
+
+  it("deleting a cost that was never sent removes its create", async () => {
+    const { queue } = setup();
+    await queue.enqueue(fixedCostCreateChange({ id: "f1", projectId: "p1", name: "A", kind: "monthly", amount: 100, months: null, now: T0 }));
+    await queue.enqueue(fixedCostDeleteChange({ id: "f1", projectId: "p1" }));
+    expect(await ids(queue)).toEqual([]);
+  });
+
+  it("sends create, update and delete", async () => {
+    const { queue, deps } = setup();
+    await queue.enqueue(fixedCostCreateChange({ id: "f1", projectId: "p1", name: "Máy", kind: "oneTime", amount: 18000000, months: 24, now: T0 }));
+    await queue.enqueue(fixedCostCreateChange({ id: "f4", projectId: "p1", name: "Thuê", kind: "monthly", amount: 5000000, months: null, now: T0 }));
+    await queue.enqueue(fixedCostUpdateChange({ id: "f2", projectId: "p1", fields: { amount: 700 }, now: T1 }));
+    await queue.enqueue(fixedCostDeleteChange({ id: "f3", projectId: "p1" }));
+    await queue.flush();
+    expect(deps.createFixedCost).toHaveBeenCalledWith("tok", "p1", { id: "f1", name: "Máy", kind: "oneTime", amount: 18000000, months: 24 });
+    expect(deps.createFixedCost).toHaveBeenCalledWith("tok", "p1", { id: "f4", name: "Thuê", kind: "monthly", amount: 5000000, months: null });
+    expect(deps.patchFixedCost).toHaveBeenCalledWith("tok", "p1", "f2", { amount: { value: 700, editedAt: T1.toISOString() } });
+    expect(deps.deleteFixedCost).toHaveBeenCalledWith("tok", "p1", "f3");
+  });
+
+  it("does not send months along with a kind that is not one-time (a merged edit may carry stale months)", async () => {
+    const { queue, deps } = setup();
+    await queue.enqueue(fixedCostUpdateChange({ id: "f1", projectId: "p1", fields: { kind: "oneTime", months: 6 }, now: T0 }));
+    await queue.enqueue(fixedCostUpdateChange({ id: "f1", projectId: "p1", fields: { kind: "monthly" }, now: T1 }));
+    await queue.flush();
+    expect(deps.patchFixedCost).toHaveBeenCalledWith("tok", "p1", "f1", { kind: { value: "monthly", editedAt: T1.toISOString() } });
   });
 });

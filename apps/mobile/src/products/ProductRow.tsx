@@ -35,7 +35,7 @@ export function ProductRowView({
     : sizes;
   const third = sum
     ? sum.figures.profit === null || sum.figures.price === null
-      ? t("products.rowCost", { cost: moneyOf(sum.figures.cost, currency) })
+      ? t("products.rowCost", { cost: moneyOf(sum.figures.fullCost, currency) })
       : sum.figures.margin === null
         ? moneyOf(sum.figures.profit, currency)
         : t("products.rowProfit", { profit: moneyOf(sum.figures.profit, currency), margin: sum.figures.margin })

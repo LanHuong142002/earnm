@@ -1,8 +1,9 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { baseUnitOf, formatQuantity, moneyOf } from "../ingredients/display";
+import { baseUnitOf, formatPriceText, formatQuantity, moneyOf } from "../ingredients/display";
 import type { Ingredient } from "../ingredients/types";
 import type { Currency } from "../lib/currency";
 import { useTheme } from "../theme/useTheme";
@@ -10,9 +11,12 @@ import { Card } from "../ui/Card";
 import { Collapsible } from "../ui/Collapsible";
 import { PressableScale } from "../ui/PressableScale";
 import { lineCost } from "./cost";
-import { DefaultChip, LinkRow, Tick } from "./ProductBits";
+import { DefaultChip, Hint, LinkRow, Tick } from "./ProductBits";
 import type { ProductSize } from "./types";
-import type { SizeFigures } from "./view";
+import type { FixedCostState, SizeFigures } from "./view";
+
+/** What the detail screen knows about the fixed costs: how they reach this product, the share and what it is made of. */
+export type FixedCostInfo = { state: FixedCostState; share: number | null; total: number; cups: number | null };
 
 /** One line of a recipe or of the extras: optional tick, name, a quiet second line and its cost. Tapping the body opens its sheet. */
 function Line({
@@ -73,6 +77,8 @@ export function RecipeSections({
   figures,
   ingredients,
   currency,
+  fixed,
+  onOpenFixed,
   onToggleLine,
   onOpenLine,
   onAddLine,
@@ -84,6 +90,8 @@ export function RecipeSections({
   figures: SizeFigures;
   ingredients: Readonly<Record<string, Ingredient | undefined>>;
   currency: Currency;
+  fixed: FixedCostInfo;
+  onOpenFixed: () => void;
   onToggleLine: (ingredientId: string) => void;
   onOpenLine: (ingredientId: string) => void;
   onAddLine: () => void;
@@ -92,7 +100,7 @@ export function RecipeSections({
   onAddExtra: () => void;
 }) {
   const { t } = useTranslation();
-  const { colors, typography, layout, spacing } = useTheme();
+  const { colors, typography, layout, spacing, iconSize } = useTheme();
   const [open, setOpen] = useState({ recipe: false, extras: false });
   const lines = size.lines.filter((l) => ingredients[l.ingredientId]);
   return (
@@ -153,6 +161,33 @@ export function RecipeSections({
           </Collapsible>
         </View>
       </Card>
+      {fixed.state === "none" ? null : (
+        <>
+          <Card flush>
+            <View style={{ paddingHorizontal: spacing[2] }}>
+              <PressableScale
+                accessibilityRole="link"
+                accessibilityLabel={`${t("products.fixedShareRow")}, ${fixed.share === null ? t("products.fixedShareUnset") : moneyOf(fixed.share, currency)}`}
+                onPress={onOpenFixed}
+                style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing[1], minHeight: layout.controlHeight + spacing[0] }}
+              >
+                <Text style={[typography.body, { color: colors.text }]}>{t("products.fixedShareRow")}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing[0] }}>
+                  <Text style={[typography.bodyStrong, { color: fixed.share === null ? colors.accentStrong : colors.text }]}>
+                    {fixed.share === null ? t("products.fixedShareUnset") : moneyOf(fixed.share, currency)}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.textSecondary} />
+                </View>
+              </PressableScale>
+            </View>
+          </Card>
+          <Hint>
+            {fixed.share !== null && fixed.cups !== null
+              ? t("products.fixedShareHint", { total: moneyOf(fixed.total, currency), cups: formatPriceText(String(fixed.cups), "VND") })
+              : t("products.fixedUnsetHint", { total: moneyOf(fixed.total, currency) })}
+          </Hint>
+        </>
+      )}
       {open.recipe || open.extras ? (
         <View
           accessible

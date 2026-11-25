@@ -1,5 +1,6 @@
 import type { Ingredient } from "../ingredients/types";
 import type { Currency } from "../lib/currency";
+import { fullCost } from "./fixedCost";
 import { hintPrice, marginPct, profit, sizeCost } from "./cost";
 import { sortProducts, summarySize } from "./order";
 import type { ExtraCost, Product, ProductSize, SizeName } from "./types";
@@ -19,7 +20,12 @@ export function ingredientLookup(ingredients: readonly Ingredient[]): Record<str
 export type SizeFigures = {
   recipeCost: number;
   extrasCost: number;
+  /** The size's own cost: recipe plus extras. */
   cost: number;
+  /** The fixed cost each cup carries; null when it cannot be shared out. */
+  share: number | null;
+  /** `cost` plus the share: what profit, margin and the hint are worked out from. */
+  fullCost: number;
   price: number | null;
   profit: number | null;
   margin: number | null;
@@ -29,22 +35,33 @@ export type SizeFigures = {
   belowTarget: boolean;
 };
 
-export function sizeFigures(size: ProductSize, ingredients: IngredientLookup, target: number, currency: Currency): SizeFigures {
+export function sizeFigures(size: ProductSize, ingredients: IngredientLookup, target: number, currency: Currency, share: number | null = null): SizeFigures {
   const recipeCost = sizeCost(size.lines, ingredients, []);
   const extrasCost = sizeCost([], ingredients, size.extras);
   const cost = recipeCost + extrasCost;
-  const gain = profit(size.sellingPrice, cost);
+  const full = fullCost(cost, share);
+  const gain = profit(size.sellingPrice, full);
   const margin = gain === null ? null : marginPct(gain, size.sellingPrice);
   return {
     recipeCost,
     extrasCost,
     cost,
+    share,
+    fullCost: full,
     price: size.sellingPrice,
     profit: gain,
     margin,
-    hint: hintPrice(cost, target, currency),
+    hint: hintPrice(full, target, currency),
     belowTarget: margin !== null && margin < target,
   };
+}
+
+/** How the fixed costs reach a product: "none" when the project has none, "unset" when they cannot be shared yet (no expected cups), else "share". */
+export type FixedCostState = "none" | "unset" | "share";
+
+export function fixedCostState(total: number, share: number | null): FixedCostState {
+  if (share !== null) return "share";
+  return total > 0 ? "unset" : "none";
 }
 
 export type ProductRow = {
@@ -56,7 +73,7 @@ export type ProductRow = {
 };
 
 /** The products A-Z, each with its sizes and the figures of the size it summarises (spec R16). */
-export function productRows(products: readonly Product[], ingredients: IngredientLookup, target: number, currency: Currency): ProductRow[] {
+export function productRows(products: readonly Product[], ingredients: IngredientLookup, target: number, currency: Currency, share: number | null = null): ProductRow[] {
   return sortProducts(products).map((product) => {
     const sizes = product.sizes.map((s) => s.size);
     const picked = summarySize(product.sizes);
@@ -64,7 +81,7 @@ export function productRows(products: readonly Product[], ingredients: Ingredien
       id: product.id,
       name: product.name,
       sizes,
-      summary: picked ? { size: picked.size, figures: sizeFigures(picked, ingredients, target, currency) } : null,
+      summary: picked ? { size: picked.size, figures: sizeFigures(picked, ingredients, target, currency, share) } : null,
     };
   });
 }

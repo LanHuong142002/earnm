@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { createMemoryStore } from "../sync/storage";
-import { extraCost, product } from "./fixtures";
+import { extraCost, fixedCost, product } from "./fixtures";
 import {
   clearProductCache,
   emptyProductCache,
   extraCostsOf,
+  fixedCostsOf,
+  isFixedCost,
+  withFixedCost,
+  withoutFixedCost,
   hasProducts,
   isExtraCost,
   isProduct,
@@ -24,7 +28,7 @@ import {
 describe("product cache", () => {
   it("saves and loads per owner; another owner's copy reads as empty and is removed on open", async () => {
     const store = createMemoryStore();
-    const cache = setProjectProducts(emptyProductCache("u1"), "p1", { products: [product({ id: "pr1" })], extraCosts: [extraCost({ id: "x1" })] });
+    const cache = setProjectProducts(emptyProductCache("u1"), "p1", { products: [product({ id: "pr1" })], extraCosts: [extraCost({ id: "x1" })], fixedCosts: [fixedCost({ id: "f1" })] });
     await saveProductCache(store, cache);
     expect(await loadProductCache(store, "u1")).toEqual(cache);
     expect(await loadProductCache(store, "u2")).toEqual(emptyProductCache("u2"));
@@ -36,11 +40,32 @@ describe("product cache", () => {
     const store = createMemoryStore();
     await store.setJSON("products.cache.v1", {
       ownerId: "u1",
-      byProject: { p1: { products: [{ id: 1 }], extraCosts: [] }, p2: { products: [product({ id: "pr1", projectId: "p2" })], extraCosts: [] } },
+      byProject: { p1: { products: [{ id: 1 }], extraCosts: [], fixedCosts: [] }, p2: { products: [product({ id: "pr1", projectId: "p2" })], extraCosts: [], fixedCosts: [] }, p3: { products: [], extraCosts: [], fixedCosts: [{ id: 1 }] } },
     });
     const cache = await loadProductCache(store, "u1");
     expect(hasProducts(cache, "p1")).toBe(false);
+    expect(hasProducts(cache, "p3")).toBe(false);
     expect(productsOf(cache, "p2")).toHaveLength(1);
+  });
+
+  it("a copy saved before fixed costs existed keeps its products and has no fixed costs yet", async () => {
+    const store = createMemoryStore();
+    await store.setJSON("products.cache.v1", { ownerId: "u1", byProject: { p1: { products: [product({ id: "pr1" })], extraCosts: [] } } });
+    const cache = await loadProductCache(store, "u1");
+    expect(productsOf(cache, "p1")).toHaveLength(1);
+    expect(fixedCostsOf(cache, "p1")).toEqual([]);
+  });
+
+  it("replaces, adds and removes fixed costs by id and recognises well-formed ones", () => {
+    const f = fixedCost({ id: "f" });
+    expect(withFixedCost([f], fixedCost({ id: "f", amount: 1 }))[0].amount).toBe(1);
+    expect(withFixedCost([f], fixedCost({ id: "g" })).map((x) => x.id)).toEqual(["f", "g"]);
+    expect(withoutFixedCost([f], "f")).toEqual([]);
+    expect(isFixedCost(f)).toBe(true);
+    expect(isFixedCost(fixedCost({ id: "o", kind: "oneTime", months: 12 }))).toBe(true);
+    expect(isFixedCost({ ...f, kind: "daily" })).toBe(false);
+    expect(isFixedCost({ ...f, months: "12" })).toBe(false);
+    expect(isFixedCost({ ...f, months: undefined })).toBe(false);
   });
 
   it("clears", async () => {
@@ -54,6 +79,7 @@ describe("product cache", () => {
     const c = emptyProductCache("u1");
     expect(productsOf(c, "p1")).toEqual([]);
     expect(extraCostsOf(c, "p1")).toEqual([]);
+    expect(fixedCostsOf(c, "p1")).toEqual([]);
     expect(hasProducts(c, "p1")).toBe(false);
   });
 
@@ -65,7 +91,7 @@ describe("product cache", () => {
     const x = extraCost({ id: "x" });
     expect(withExtraCost([x], extraCost({ id: "x", amount: 1 }))[0].amount).toBe(1);
     expect(withoutExtraCost([x], "x")).toEqual([]);
-    const c = setProjectProducts(setProjectProducts(emptyProductCache("u"), "p1", { products: [], extraCosts: [] }), "p2", { products: [], extraCosts: [] });
+    const c = setProjectProducts(setProjectProducts(emptyProductCache("u"), "p1", { products: [], extraCosts: [], fixedCosts: [] }), "p2", { products: [], extraCosts: [], fixedCosts: [] });
     expect(Object.keys(pruneProductCache(c, ["p2"]).byProject)).toEqual(["p2"]);
   });
 

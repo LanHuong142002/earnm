@@ -5,8 +5,10 @@ import { validateProjectInput, type ProjectCache, type ProjectInput, type Projec
 const FIELDS: (keyof ProjectInput)[] = ["name", "description", "currency"];
 
 /** An edit may also carry the target margin: a whole percent from 1 to 95 (the server's range). */
-export type ProjectEdit = Partial<ProjectInput> & { targetMargin?: number };
+export type ProjectEdit = Partial<ProjectInput> & { targetMargin?: number; expectedCupsPerMonth?: number | null };
 export const isValidTargetMargin = (v: number) => Number.isInteger(v) && v >= 1 && v <= 95;
+/** Expected cups per month: a whole number from 1 to 1.000.000 (the server's range), or null to clear it. */
+export const isValidExpectedCups = (v: number | null) => v === null || (Number.isInteger(v) && v >= 1 && v <= 1_000_000);
 
 /** Only the fields whose value differs from `current` (the values a form opened with, or a project). */
 export function changedFields(
@@ -34,13 +36,15 @@ export function planUpdate(
     description: fields.description ?? current.description,
     currency: fields.currency ?? current.currency,
   });
-  if (fields.targetMargin !== undefined && !isValidTargetMargin(fields.targetMargin)) {
-    return { ok: false, errors: { ...(result.ok ? {} : result.errors), targetMargin: "invalid" } };
-  }
+  const bad: ProjectInputErrors = {};
+  if (fields.targetMargin !== undefined && !isValidTargetMargin(fields.targetMargin)) bad.targetMargin = "invalid";
+  if (fields.expectedCupsPerMonth !== undefined && !isValidExpectedCups(fields.expectedCupsPerMonth)) bad.expectedCupsPerMonth = "invalid";
+  if (Object.keys(bad).length > 0) return { ok: false, errors: { ...(result.ok ? {} : result.errors), ...bad } };
   if (!result.ok) return result;
   const changed: Record<string, unknown> = {};
   for (const field of FIELDS) if (fields[field] !== undefined) changed[field] = result.value[field];
   if (fields.targetMargin !== undefined) changed.targetMargin = fields.targetMargin;
+  if (fields.expectedCupsPerMonth !== undefined) changed.expectedCupsPerMonth = fields.expectedCupsPerMonth;
   return { ok: true, changed: changed as Partial<Pick<Project, ProjectField>> };
 }
 
