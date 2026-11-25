@@ -362,5 +362,7 @@
       "what": "AC26, AC30, AC32, AC34: Activity screen and bell vs mockup",
       "steps": "On A: Home shows a bell with an orange dot when there is unread activity, none after 'Đọc hết'; tap the bell opens Hoạt động, back returns Home. Check rows grouped Hôm nay/Hôm qua/Trước đó with icons and relative times, empty state on a fresh account, placeholder rows while loading, airplane mode keeps the list with 'Đang ngoại tuyến' and 'Đọc hết' offline syncs after reconnect. Check light/dark, VI/EN, and VoiceOver reads the bell and switch names. Compare with mockup 2a-3e and 6a-6b."
     }
-  ]
+  ],
+  "shipApproval": "c02b3c1b60574ac6139ed20f9a0410ae4a7c0ffe22bf4d6f0daad61efac48a0c",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/56"
 }

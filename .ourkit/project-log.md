@@ -16,3 +16,4 @@
 | 2026-11-19 | #13 products | feature | Products with S/M/L recipes, extra costs, selling price, profit, margin and price hint; ingredient-in-use block | https://github.com/LanHuong142002/earnm/pull/49 |
 | 2026-11-25 | #14 Fixed costs | feature | Fixed costs and expected cups give a per-cup share; products show profit and price hint on the full cost | https://github.com/LanHuong142002/earnm/pull/54 |
 | 2026-11-25 | #15 Drink drafts | feature | Drink drafts with a base recipe convert in one tap into a product and its missing ingredients | https://github.com/LanHuong142002/earnm/pull/55 |
+| 2026-11-25 | Activity push and feed (#16) | feature | Pushes for assigned, comment, done, idea and join events batched per project in 1 minute, mutes by type and project, and an Activity screen with a Home bell. | https://github.com/LanHuong142002/earnm/pull/56 |
