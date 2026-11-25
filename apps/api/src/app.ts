@@ -17,6 +17,7 @@ import { createProjectRemindersRouter, createRemindersRouter } from "./reminders
 import { createPhotosRouter } from "./photos/routes.js";
 import type { PhotoStore } from "./photos/cloudinary.js";
 import type { PushSender } from "./push/sender.js";
+import type { ActivityScheduler } from "./activity/record.js";
 import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 import { createIdeasRouter } from "./ideas/routes.js";
@@ -46,6 +47,8 @@ export interface AppDeps {
   photoStore?: PhotoStore | null;
   /** Sends reminder pushes on each tick. Null or absent: ticks send nothing. */
   pushSender?: PushSender | null;
+  /** Told, after a commit, when the earliest new activity push comes due. Null or absent: nothing is scheduled. */
+  activityScheduler?: ActivityScheduler | null;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -84,7 +87,14 @@ export function createApp(deps: AppDeps): Express {
   // Without INVITE_CODE_KEY or INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.
   const keySource = pickInviteKeySource(deps);
   const inviteKey = keySource !== undefined ? deriveInviteKey(keySource) : randomBytes(32);
-  app.use(createInvitesRouter({ prisma: deps.prisma, now: deps.now, inviteKey }));
+  app.use(
+    createInvitesRouter({
+      prisma: deps.prisma,
+      now: deps.now,
+      inviteKey,
+      activityScheduler: deps.activityScheduler ?? null,
+    }),
+  );
   app.use(
     createInvitePageRouter({
       prisma: deps.prisma,

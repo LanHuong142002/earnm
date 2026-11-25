@@ -7,6 +7,8 @@ import { AppError } from "../http/errors.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
 import { lockProject, requireOwner } from "../projects/access.js";
 import { toResponse } from "../projects/routes.js";
+import { recordActivity, scheduleAfterCommit, type ActivityScheduler } from "../activity/record.js";
+import { projectMembers } from "../activity/recipients.js";
 import { formatCode, generateCode as realGenerateCode, hashCode, normalizeCode } from "./code.js";
 
 export const INVITE_LIFETIME_MS = 7 * 24 * 3600 * 1000;
@@ -43,6 +45,7 @@ export function createInvitesRouter(deps: {
   now: () => Date;
   inviteKey: Buffer;
   generateCode?: () => string;
+  activityScheduler?: ActivityScheduler | null;
 }): Router {
   const { prisma, now, inviteKey } = deps;
   const generateCode = deps.generateCode ?? realGenerateCode;
@@ -202,12 +205,28 @@ export function createInvitesRouter(deps: {
             data: { usedAt: at, usedById: userId },
           });
           if (count === 0) throw invalidInvite();
+          // The people already in the project, read before the joiner is added.
+          const others = await projectMembers(tx, invite.projectId);
           await tx.projectMember.create({
             data: { projectId: invite.projectId, userId, role: "member" },
           });
-          return tx.project.findUniqueOrThrow({ where: { id: invite.projectId } });
+          const dueAt = await recordActivity(tx, {
+            type: "member_joined",
+            projectId: invite.projectId,
+            actorId: userId,
+            memberId: userId,
+            subjectTitle: "",
+            occurredAt: at,
+            recipients: others,
+            now: at,
+          });
+          return {
+            project: await tx.project.findUniqueOrThrow({ where: { id: invite.projectId } }),
+            dueAt,
+          };
         });
-        res.status(200).json(toResponse(joined, "member"));
+        scheduleAfterCommit(deps.activityScheduler, joined.dueAt);
+        res.status(200).json(toResponse(joined.project, "member"));
       } catch (err) {
         if (err instanceof AppError) joinLimiter.fail(handle);
         throw err;
