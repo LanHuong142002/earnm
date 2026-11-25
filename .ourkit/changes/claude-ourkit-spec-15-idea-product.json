@@ -187,50 +187,62 @@
         "severity": "non-blocking",
         "text": "Deleting an ingredient doesn't reopen done drafts; caught by draftMissing at view/convert",
         "resolved": true
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "routes.ts L407-409: a line PATCH whose newName collides with an ingredient rolls back the whole PATCH incl. amount/price (edge case)",
+        "resolved": false
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "routes.ts L293-306: line-create retry on a converted draft returns 200 (echo only, harmless)",
+        "resolved": false
       }
     ],
-    "reviewed": "b1aa12c33a82ee86f6026a23b6ef319983125b3b2458aacfe996a9331e5e4f92"
+    "reviewed": "a0da27a7b025d4af95ffacc3ea74f2e998e1886859d302ea81086232945eeeab"
   },
   "qa": {
     "results": {
       "1": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "API test: create, edit and delete a draft; an empty name, no sizes, or the 201st draft is refused."
       },
       "2": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "API test: add, edit and remove both line kinds. These are refused: a duplicate ingredient, amount 0, a new-line name already used by an ingredient, and line 101."
       },
       "3": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "API test: per-field LWW; the same id twice is idempotent; a non-member gets `404`; a signed-out request gets `401`; editing a converted draft gets `409 draft_converted`."
       },
       "4": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "Unit test: the estimate with defaults; no estimate and the missing names while a new line lacks a price; expected profit and margin. It uses the mockup numbers: 9.579 and 12.679."
       },
       "5": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "API test: `done` is refused with `missing` reasons for each rule; `done` back to `working` works."
       },
       "6": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "API test: convert creates the ingredients and the product with its sizes, lines, defaults and the base price, in one transaction, and reuses a same-name ingredient. A failure part-way leaves nothing created."
       },
       "7": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "API test: each refusal reason in R7 returns its own code, and the draft is unchanged."
       },
       "8": {
         "result": "manual",
-        "evidence": "By hand on iPhone, mockup A8 (#47 section I)",
+        "evidence": "By hand on iPhone, mockup A8 (#47 section I); reused lines say they keep the existing price",
         "criterion": "By hand, mockup A8."
       },
       "9": {
@@ -250,12 +262,12 @@
       },
       "12": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "API test: a currency change is refused with a priced draft."
       },
       "13": {
         "result": "pass",
-        "evidence": "After latest fixes: full API suite alone 758 passed + drafts files 36 passed after the last fix; mobile 1471 passed (subagent); build clean",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
         "criterion": "Unit test: every new i18n key exists in both languages."
       },
       "14": {
@@ -264,7 +276,7 @@
         "criterion": "Check: `prisma migrate deploy` succeeds on an empty database and on one with #13's data."
       }
     },
-    "checked": "b1aa12c33a82ee86f6026a23b6ef319983125b3b2458aacfe996a9331e5e4f92"
+    "checked": "a0da27a7b025d4af95ffacc3ea74f2e998e1886859d302ea81086232945eeeab"
   },
   "shipApproval": "66e4924c0803d9522fcee3693f555459ddf2ceba25632234c4309efdca6d2777",
   "pr": "https://github.com/LanHuong142002/earnm/pull/55"
