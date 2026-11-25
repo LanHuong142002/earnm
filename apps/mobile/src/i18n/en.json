@@ -1164,5 +1164,64 @@
       "volume": "Volume",
       "portion": "Count"
     }
+  },
+  "activity": {
+    "title": "Activity",
+    "markAllRead": "Mark all read",
+    "someone": "Someone",
+    "noTitle": "an item",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{n}} min ago",
+      "hoursAgo": "{{n}} hr ago",
+      "yesterdayAt": "Yesterday, {{time}}"
+    },
+    "text": {
+      "assigned": "{{actor}} assigned you {{title}}",
+      "comment": "{{actor}} commented on {{title}}",
+      "done": "{{actor}} finished {{title}}",
+      "idea": "{{actor}} added the idea {{title}}",
+      "member_joined": "{{name}} joined the project"
+    },
+    "rowLabel": "{{text}}. {{meta}}",
+    "rowLabelUnread": "Unread. {{text}}. {{meta}}",
+    "empty": {
+      "title": "No activity yet",
+      "body": "When someone assigns you work, comments or adds an idea that involves you, you'll see it here.",
+      "home": "Back to Home"
+    },
+    "error": {
+      "message": "Couldn't load activity.",
+      "retry": "Try again"
+    },
+    "loadingMore": "Loading more",
+    "bell": {
+      "label": "Activity",
+      "labelUnread": "Activity, unread items"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "types": {
+      "assigned": "Assigned to me",
+      "comment": "New comments",
+      "done": "Tasks finished",
+      "idea": "New ideas",
+      "member_joined": "New members"
+    },
+    "caption": "Applies to all projects. Task reminders are always sent and can't be turned off. Muted activity still shows in Activity.",
+    "saveFailed": "Couldn't save. Switched back.",
+    "loadFailed": "Couldn't load notification settings.",
+    "project": {
+      "title": "Activity notifications",
+      "on": "Follows your Account settings",
+      "off": "Off. Still listed in Activity. Reminders still sent.",
+      "switchLabel": "Activity notifications for {{name}}"
+    }
   }
 }

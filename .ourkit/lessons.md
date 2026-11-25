@@ -27,3 +27,5 @@
 - [quality] Per-field LWW on linked fields (kind+months): never reject a whole PATCH for a stale field; resolve linked fields together and keep invariants after LWW
 - [cost] Two reviewers running the API suite on one shared test DB give flaky failures; run DB tests once, alone
 - [quality] Reusing records by name (convert, import) must check the reused record is compatible (unit/mode, name length) or the cost is silently wrong
+- [quality] Push payloads must be bounded (Expo rejects >4 KB): cap ids carried in push data in the plan, or a large batch fails every retry and is dropped.
+- [cost] A fresh worktree has no node_modules or .env: run npm ci in both apps and copy .env (docs/test-on-phone.md) before starting implementers, or the first tasks can't run tests.

@@ -10,6 +10,7 @@ import { createInvitePageRouter } from "./invites/page-routes.js";
 import { createInvitesRouter } from "./invites/routes.js";
 import { createMembersRouter } from "./members/routes.js";
 import { createMeRouter } from "./me/routes.js";
+import { createActivityRouter } from "./activity/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 import { createChecklistsRouter } from "./checklists/routes.js";
 import { createCommentsRouter } from "./comments/routes.js";
@@ -17,6 +18,7 @@ import { createProjectRemindersRouter, createRemindersRouter } from "./reminders
 import { createPhotosRouter } from "./photos/routes.js";
 import type { PhotoStore } from "./photos/cloudinary.js";
 import type { PushSender } from "./push/sender.js";
+import type { ActivityScheduler } from "./activity/record.js";
 import { createLabelsRouter } from "./labels/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 import { createIdeasRouter } from "./ideas/routes.js";
@@ -46,6 +48,8 @@ export interface AppDeps {
   photoStore?: PhotoStore | null;
   /** Sends reminder pushes on each tick. Null or absent: ticks send nothing. */
   pushSender?: PushSender | null;
+  /** Told, after a commit, when the earliest new activity push comes due. Null or absent: nothing is scheduled. */
+  activityScheduler?: ActivityScheduler | null;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -58,6 +62,8 @@ export function createApp(deps: AppDeps): Express {
   });
 
   app.use("/auth", createAuthRouter(deps));
+  // Checks sign-in per route, so it can sit before /me and before the /projects routers.
+  app.use(createActivityRouter(deps));
   app.use("/me", createMeRouter(deps));
   // Before /projects: that router requires sign-in for everything under it, which would run twice.
   // Before the tasks router, which also requires sign-in and would otherwise run first.
@@ -84,7 +90,14 @@ export function createApp(deps: AppDeps): Express {
   // Without INVITE_CODE_KEY or INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.
   const keySource = pickInviteKeySource(deps);
   const inviteKey = keySource !== undefined ? deriveInviteKey(keySource) : randomBytes(32);
-  app.use(createInvitesRouter({ prisma: deps.prisma, now: deps.now, inviteKey }));
+  app.use(
+    createInvitesRouter({
+      prisma: deps.prisma,
+      now: deps.now,
+      inviteKey,
+      activityScheduler: deps.activityScheduler ?? null,
+    }),
+  );
   app.use(
     createInvitePageRouter({
       prisma: deps.prisma,

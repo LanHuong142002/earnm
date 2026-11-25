@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../auth/AuthProvider";
 import type { Language } from "../../i18n";
+import { NotificationsSection } from "../../notifications/NotificationsSection";
 import { useProjects } from "../../projects/ProjectsProvider";
 import { useTheme } from "../../theme/useTheme";
 import { Button } from "../../ui/Button";
@@ -86,6 +87,9 @@ export default function SettingsScreen() {
         </View>
       </Enter>
       <Enter index={2}>
+        <NotificationsSection />
+      </Enter>
+      <Enter index={3}>
         <View style={{ gap: spacing[1] }}>
           <Text
             accessibilityRole="header"
@@ -96,7 +100,7 @@ export default function SettingsScreen() {
           <AppearancePicker contentOpacity={fade.opacity} />
         </View>
       </Enter>
-      <Enter index={3}>
+      <Enter index={4}>
         <Button label={t("settings.signOut")} variant="danger" onPress={confirmSignOut} />
       </Enter>
       </Animated.View>

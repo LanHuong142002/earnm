@@ -20,6 +20,8 @@ import {
   withRetry,
 } from "./common.js";
 import { ideaInclude, ideaResponse } from "./response.js";
+import { recordActivity, scheduleAfterCommit, type ActivityScheduler } from "../activity/record.js";
+import { projectMembers } from "../activity/recipients.js";
 
 /** A project holds at most this many ideas. */
 export const MAX_IDEAS_PER_PROJECT = 500;
@@ -56,6 +58,7 @@ export function createIdeasRouter(deps: {
   now: () => Date;
   /** Used to remove a deleted idea's images from Cloudinary; absent when photos are off. */
   photoStore?: PhotoStore | null;
+  activityScheduler?: ActivityScheduler | null;
 }): Router {
   const { prisma, now } = deps;
   const router = Router({ mergeParams: true });
@@ -130,7 +133,7 @@ export function createIdeasRouter(deps: {
             // A retry of a create the phone already sent (offline queue) answers with what was saved.
             // A body that differs from the saved idea is deliberately ignored, not an error: the idea
             // may have been edited since, and a retry must never overwrite or fail on those edits.
-            return { status: 200, idea: existing };
+            return { status: 200, idea: existing, dueAt: null };
           }
           // Counted under the project lock, so concurrent creates can't pass the limit together.
           if ((await tx.idea.count({ where: { projectId } })) >= MAX_IDEAS_PER_PROJECT) {
@@ -144,6 +147,7 @@ export function createIdeasRouter(deps: {
           // The field times start at the epoch: the create carries no edit time, and an edit the
           // phone queued after writing the idea must win even though the create reached us later.
           const epoch = new Date(0);
+          const at = now();
           const idea = await tx.idea.create({
             data: {
               id: body.id,
@@ -155,14 +159,25 @@ export function createIdeasRouter(deps: {
               descriptionEditedAt: epoch,
               statusEditedAt: epoch,
               labelsEditedAt: epoch,
-              createdAt: now(),
+              createdAt: at,
               labels: { create: body.labelIds.map((labelId) => ({ labelId })) },
             },
             include: ideaInclude,
           });
-          return { status: 201, idea };
+          const dueAt = await recordActivity(tx, {
+            type: "idea",
+            projectId,
+            actorId: userId,
+            ideaId: idea.id,
+            subjectTitle: idea.title,
+            occurredAt: at,
+            recipients: await projectMembers(tx, projectId),
+            now: at,
+          });
+          return { status: 201, idea, dueAt };
         }),
       );
+      scheduleAfterCommit(deps.activityScheduler, result.dueAt);
       res.status(result.status).json(ideaResponse(result.idea, userId));
     } catch (err) {
       next(err);

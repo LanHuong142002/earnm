@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { ProjectMuteRow } from "../../../../../notifications/ProjectMuteRow";
 import { useDrafts } from "../../../../../drafts/DraftsProvider";
 import { unconvertedCount } from "../../../../../drafts/view";
 import { MembersAvatarRow } from "../../../../../members/MembersAvatarRow";
@@ -237,13 +238,16 @@ export default function ProjectScreen() {
         </View>
       </Enter>
       <Enter index={3}>
+        <ProjectMuteRow projectId={project.id} projectName={project.name} />
+      </Enter>
+      <Enter index={4}>
         <Collapsible title={t("projects.details")}>
           <Text style={[typography.body, { color: colors.text }]}>
             {project.description !== "" ? project.description : t("projects.noDescription")}
           </Text>
         </Collapsible>
       </Enter>
-      <Enter index={4}>
+      <Enter index={5}>
         <View style={{ gap: spacing[1] }}>
           {project.role === "owner" ? (
             <Button

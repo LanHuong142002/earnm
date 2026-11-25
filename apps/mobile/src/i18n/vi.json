@@ -1157,5 +1157,64 @@
       "volume": "Đo",
       "portion": "Đếm"
     }
+  },
+  "activity": {
+    "title": "Hoạt động",
+    "markAllRead": "Đọc hết",
+    "someone": "Ai đó",
+    "noTitle": "một mục",
+    "groups": {
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "earlier": "Trước đó"
+    },
+    "time": {
+      "justNow": "Vừa xong",
+      "minutesAgo": "{{n}} phút trước",
+      "hoursAgo": "{{n}} giờ trước",
+      "yesterdayAt": "Hôm qua, {{time}}"
+    },
+    "text": {
+      "assigned": "{{actor}} đã giao cho bạn {{title}}",
+      "comment": "{{actor}} đã bình luận trong {{title}}",
+      "done": "{{actor}} đã hoàn thành {{title}}",
+      "idea": "{{actor}} đã thêm ý tưởng {{title}}",
+      "member_joined": "{{name}} đã vào dự án"
+    },
+    "rowLabel": "{{text}}. {{meta}}",
+    "rowLabelUnread": "Chưa đọc. {{text}}. {{meta}}",
+    "empty": {
+      "title": "Chưa có hoạt động nào",
+      "body": "Khi có người giao việc, bình luận hay thêm ý tưởng liên quan tới bạn, bạn sẽ thấy ở đây.",
+      "home": "Về trang chủ"
+    },
+    "error": {
+      "message": "Không tải được hoạt động.",
+      "retry": "Thử lại"
+    },
+    "loadingMore": "Đang tải thêm",
+    "bell": {
+      "label": "Hoạt động",
+      "labelUnread": "Hoạt động, có mục chưa đọc"
+    }
+  },
+  "notifications": {
+    "title": "Thông báo",
+    "types": {
+      "assigned": "Được giao việc",
+      "comment": "Bình luận mới",
+      "done": "Việc đã hoàn thành",
+      "idea": "Ý tưởng mới",
+      "member_joined": "Thành viên mới"
+    },
+    "caption": "Áp dụng cho mọi dự án. Lời nhắc công việc luôn được gửi và không tắt được. Những gì đã tắt vẫn hiện trong Hoạt động.",
+    "saveFailed": "Không lưu được. Đã trả lại như cũ.",
+    "loadFailed": "Không tải được cài đặt thông báo.",
+    "project": {
+      "title": "Thông báo hoạt động",
+      "on": "Theo cài đặt trong Tài khoản",
+      "off": "Đã tắt. Vẫn xem được trong Hoạt động. Lời nhắc vẫn gửi.",
+      "switchLabel": "Thông báo hoạt động của {{name}}"
+    }
   }
 }

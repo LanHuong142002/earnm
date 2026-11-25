@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Appearance } from "react-native";
 import { I18nextProvider } from "react-i18next";
 
+import { ActivityProvider, useActivity } from "../activity/ActivityProvider";
 import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import i18n from "../i18n";
 import { IdeasProvider } from "../ideas/IdeasProvider";
@@ -26,6 +27,7 @@ void SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { status } = useAuth();
+  const { markEventsRead } = useActivity();
 
   useEffect(() => {
     if (status !== "loading") SplashScreen.hide();
@@ -45,7 +47,7 @@ function RootNavigator() {
         </Stack.Protected>
       </Stack>
       {/* After the navigator, so a tapped notification has a stack to push onto. */}
-      {status === "signedIn" ? <NotificationGlue /> : null}
+      {status === "signedIn" ? <NotificationGlue onActivityOpened={markEventsRead} /> : null}
     </>
   );
 }
@@ -78,19 +80,21 @@ export default function RootLayout() {
   return (
     <I18nextProvider i18n={i18n}>
       <AuthProvider>
-        <ProjectsProvider>
-          <TasksProvider>
-            <IdeasProvider>
-              <IngredientsProvider>
-                <ProductsProvider>
-                  <DraftsProvider>
-                    <RootNavigator />
-                  </DraftsProvider>
-                </ProductsProvider>
-              </IngredientsProvider>
-            </IdeasProvider>
-          </TasksProvider>
-        </ProjectsProvider>
+        <ActivityProvider>
+          <ProjectsProvider>
+            <TasksProvider>
+              <IdeasProvider>
+                <IngredientsProvider>
+                  <ProductsProvider>
+                    <DraftsProvider>
+                      <RootNavigator />
+                    </DraftsProvider>
+                  </ProductsProvider>
+                </IngredientsProvider>
+              </IdeasProvider>
+            </TasksProvider>
+          </ProjectsProvider>
+        </ActivityProvider>
       </AuthProvider>
     </I18nextProvider>
   );

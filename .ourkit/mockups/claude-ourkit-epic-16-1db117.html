@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup #16: thông báo hoạt động</title>
+<style>
+:root{--bg:#FFFFFF;--surface:#FFFFFF;--field:#F3F4F6;--tile:#FFF1EB;--tileBorder:#FADCCB;--border:#EEEEEE;--text:#141414;--text2:#5F5F5F;--ph:#6B6B6B;--accent:#F4511E;--accentStrong:#C2410C;--onAccent:#FFFFFF;--danger:#B3261E;--dangerBg:#FDF0EF;--success:#1E7F4F;--page:#F6F1EE;--note:#6B4A3A}
+.dark{--bg:#121212;--surface:#1C1C1C;--field:#1E1E1E;--tile:#2A1A14;--tileBorder:#3D261B;--border:#2A2A2A;--text:#F2F2F2;--text2:#A3A3A3;--ph:#8F8F8F;--accent:#F4511E;--accentStrong:#F4511E;--onAccent:#141414;--danger:#F2B8B5;--dangerBg:#3A1715;--success:#6FCF97}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);font-family:"Plus Jakarta Sans",-apple-system,"Segoe UI",Roboto,sans-serif;color:#141414}
+header.page{max-width:1500px;margin:0 auto;padding:28px 24px 8px}
+header.page h1{font-size:24px;font-weight:800;margin:0 0 6px}
+header.page p{margin:4px 0;color:#5F5F5F;font-size:14px;line-height:20px;max-width:900px}
+section.group{max-width:1500px;margin:0 auto;padding:12px 24px 8px}
+section.group>h2{font-size:17px;font-weight:800;margin:18px 0 4px}
+section.group>p.legend{color:var(--note);font-size:13px;margin:0 0 14px;max-width:900px;line-height:19px}
+.shots{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.shot{display:flex;flex-direction:column;gap:8px;width:375px}
+.shot .cap{font-size:13px;font-weight:600;color:#5F5F5F}
+.shot .cap b{color:#141414}
+.phone{width:375px;min-height:740px;border-radius:40px;border:10px solid #1b1b1b;background:var(--bg);color:var(--text);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.phone.short{min-height:520px}
+.status-bar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:14px;font-weight:600}
+.nav{height:44px;display:flex;align-items:center;padding:0 12px;gap:6px;font-size:15px}
+.nav .ttl{font-size:17px;font-weight:800;flex:1}
+.nav .ttl.c{text-align:center}
+.nav .back{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--accentStrong)}
+.nav .act{min-width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--accentStrong);font-weight:600;position:relative}
+.scr{padding:4px 20px 28px;display:flex;flex-direction:column;gap:16px;flex:1}
+.h1{font-size:24px;font-weight:800;line-height:30px;margin:0}
+.h2{font-size:17px;font-weight:800;line-height:22px;margin:0}
+.lbl{font-size:13px;font-weight:600;color:var(--text2)}
+.cap12{font-size:12px;color:var(--text2)}
+.body{font-size:15px;line-height:21px}
+.ov{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.card{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:12px 14px}
+.card.flush{padding:0 14px}
+.banner{background:var(--accentStrong);color:var(--onAccent);border-radius:16px;padding:16px}
+.dark .banner{color:#141414}
+.banner .pname{font-size:20px;font-weight:800;margin:4px 0 10px}
+.banner .open{display:inline-flex;height:44px;align-items:center;padding:0 16px;border-radius:12px;background:var(--bg);color:var(--accentStrong);font-weight:600;font-size:15px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tile{background:var(--tile);border:1px solid var(--tileBorder);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:84px;font-size:13px;font-weight:600}
+.tile .soon{font-size:12px;font-weight:400;color:var(--text2)}
+.rowline{display:flex;align-items:center;gap:12px;min-height:52px;border-bottom:1px solid var(--border)}
+.rowline:last-child{border-bottom:0}
+.rowline .grow{flex:1;min-width:0}
+.sw{width:46px;height:28px;border-radius:999px;background:var(--field);border:1px solid var(--border);position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.sw.on{background:var(--accentStrong);border-color:var(--accentStrong)}
+.sw.on::after{left:20px}
+.sw.busy{opacity:.5}
+.btn{height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;padding:0 16px}
+.btn.pri{background:var(--accentStrong);color:var(--onAccent)}
+.btn.sec{background:var(--field);color:var(--accentStrong)}
+.btn.dan{background:var(--field);color:var(--danger)}
+.link{color:var(--accentStrong);font-weight:600;font-size:15px}
+.sk{background:var(--field);border-radius:12px}
+.notice{background:var(--dangerBg);color:var(--danger);border-radius:12px;padding:10px 12px;font-size:13px;line-height:18px;display:flex;gap:10px;align-items:center}
+.offline{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.ic{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ic.sm{width:20px;height:20px}
+.ic.xl{width:30px;height:30px}
+.ev{width:40px;height:40px;border-radius:12px;background:var(--tile);border:1px solid var(--tileBorder);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.badge{position:absolute;top:10px;right:11px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);box-sizing:content-box}
+.feedgroup{display:flex;flex-direction:column;gap:2px}
+.feedrow{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);min-height:60px}
+.feedrow:last-child{border-bottom:0}
+.feedrow .txt{flex:1;min-width:0;font-size:15px;line-height:21px}
+.feedrow .meta{font-size:12px;color:var(--text2);margin-top:2px}
+.feedrow.unread .txt{font-weight:600}
+.feedrow.read .txt{color:var(--text)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;margin-top:8px}
+.dot.off{background:transparent}
+.ann{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:18px;padding:0 5px;border-radius:9px;background:#2F6FEB;color:#fff;font:700 10px/1 -apple-system,"Segoe UI",sans-serif;vertical-align:middle;margin-left:4px}
+.tabbar{height:78px;border-top:1px solid var(--border);display:flex;justify-content:space-around;padding-top:8px;font-size:11px;font-weight:600;color:var(--text2);margin-top:auto}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabbar .on{color:var(--accentStrong)}
+/* lock screen */
+.lock{background:linear-gradient(180deg,#3b3f4a,#1f2229);color:#fff}
+.lock .time{text-align:center;font-size:72px;font-weight:300;margin-top:20px;letter-spacing:-1px}
+.lock .date{text-align:center;font-size:17px;font-weight:600;opacity:.9}
+.push{margin:10px 12px 0;background:rgba(245,245,245,.82);color:#111;border-radius:20px;padding:12px 14px;display:flex;gap:10px;font-family:-apple-system,"Segoe UI",sans-serif}
+.push .app{width:38px;height:38px;border-radius:9px;background:#C2410C;flex:none;display:flex;align-items:center;justify-content:center;color:#fff}
+.push .hd{display:flex;justify-content:space-between;font-size:14px;font-weight:600}
+.push .hd span{font-weight:400;color:#555;font-size:13px}
+.push .bd{font-size:14px;line-height:19px;margin-top:1px}
+.banner-in{position:absolute;top:50px;left:10px;right:10px;margin:0;background:#2B2B2E;color:#FFFFFF;border:0}
+.banner-in .hd span{color:#BDBDBD}
+/* nav map */
+.map{background:#fff;border:1px solid #E3DAD4;border-radius:16px;padding:18px 20px;font-size:14px;line-height:22px;color:#141414;max-width:1100px}
+.map table{border-collapse:collapse;width:100%}
+.map td,.map th{border-bottom:1px solid #EEE;padding:7px 10px;text-align:left;vertical-align:top}
+.map th{font-size:12px;color:#5F5F5F;text-transform:uppercase;letter-spacing:.6px}
+.note{color:var(--note);font-size:13px;line-height:19px}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;background:var(--tile);color:var(--accentStrong);font-size:12px;font-weight:600}
+.sep{height:1px;background:var(--border)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-assign" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 13h7M12.5 10l3 3-3 3"/></symbol>
+  <symbol id="i-join" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6s7 2.5 7 6"/><path d="M19 8v6M16 11h6"/></symbol>
+  <symbol id="i-comment" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.6L16 9.5"/></symbol>
+  <symbol id="i-idea" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M17 14.5c2.6.2 4.5 2 4.5 4.5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9l2-5h14l2 5"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v8h14v-8"/></symbol>
+  <symbol id="i-cloudoff" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M7 18h10.5M20.5 15.5A4 4 0 0 0 17 10h-1A7 7 0 0 0 7.6 7.6M5 10.2A4 4 0 0 0 7 18"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 10.5-4M18 9c0 6 2.5 7.5 2.5 7.5H8"/><path d="M10 20a2 2 0 0 0 4 0"/><path d="M3 3l18 18"/></symbol>
+</svg>
+
+<header class="page">
+  <h1>Mockup #16: thông báo hoạt động và màn Hoạt động</h1>
+  <p>Spec: <code>.ourkit/specs/claude-ourkit-epic-16-1db117.md</code>. Nhãn xanh như <span class="ann">R13</span> chỉ yêu cầu trong spec mà phần đó đáp ứng. Giao diện theo <code>DESIGN.md</code>: cam một màu, không đổ bóng, không gradient ngoài thẻ chính, icon thay cho avatar chữ cái.</p>
+  <p>Mỗi người đều được dùng tên giả. Dự án ví dụ: <b>Trà sữa Gác Nhỏ</b> và <b>Cà phê Ngõ 12</b>.</p>
+</header>
+
+<!-- ============ 1. Lock screen pushes ============ -->
+<section class="group">
+  <h2>1. Thông báo đẩy</h2>
+  <p class="legend">Một thông báo cho mỗi dự án, gom các sự việc trong 1 phút. Tiêu đề là tên dự án; tối đa 3 dòng, mới nhất trước, rồi "+N nữa". Viết theo ngôn ngữ của người nhận.</p>
+  <div class="shots">
+    <div class="shot">
+      <div class="cap"><b>1a</b> · Màn khóa, tiếng Việt <span class="ann">R13</span><span class="ann">R24</span></div>
+      <div class="phone short lock">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="time">9:41</div>
+        <div class="date">Thứ Tư, 25 tháng 11</div>
+        <div style="height:28px"></div>
+        <div class="push">
+          <div class="app"><svg class="ic sm"><use href="#i-store"/></svg></div>
+          <div style="flex:1">
+            <div class="hd">Trà sữa Gác Nhỏ <span>bây giờ</span></div>
+            <div class="bd">Minh đã bình luận trong Đặt bột năng<br>Hà đã giao cho bạn Kiểm tra máy dán ly<br>Hà đã hoàn thành Đặt bột năng<br>+2 nữa</div>
+          </div>
+        </div>
+        <div class="push">
+          <div class="app"><svg class="ic sm"><use href="#i-store"/></svg></div>
+          <div style="flex:1">
+            <div class="hd">Cà phê Ngõ 12 <span>3 phút trước</span></div>
+            <div class="bd">Tuấn đã giao cho bạn Chụp ảnh menu mới</div>
+          </div>
+        </div>
+        <div class="push">
+          <div class="app"><svg class="ic sm"><use href="#i-store"/></svg></div>
+          <div style="flex:1">
+            <div class="hd">Trà sữa Gác Nhỏ <span>12 phút trước</span></div>
+            <div class="bd">Lan đã vào dự án</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Chạm thông báo đầu: có nhiều việc khác nhau, nên mở <b>màn dự án</b>. Chạm thông báo thứ hai: chỉ một việc, nên mở <b>chi tiết việc đó</b>. Chạm thông báo thứ ba: chỉ có người mới, nên mở <b>Thành viên</b>.</div>
+    </div>
+
+    <div class="shot">
+      <div class="cap"><b>1b</b> · Màn khóa, tiếng Anh <span class="ann">R13</span></div>
+      <div class="phone short lock">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="time">9:41</div>
+        <div class="date">Wednesday, 25 November</div>
+        <div style="height:28px"></div>
+        <div class="push">
+          <div class="app"><svg class="ic sm"><use href="#i-store"/></svg></div>
+          <div style="flex:1">
+            <div class="hd">Trà sữa Gác Nhỏ <span>now</span></div>
+            <div class="bd">Minh commented on Đặt bột năng<br>Hà assigned you Kiểm tra máy dán ly<br>Hà finished Đặt bột năng<br>+2 more</div>
+          </div>
+        </div>
+        <div class="push">
+          <div class="app"><svg class="ic sm"><use href="#i-store"/></svg></div>
+          <div style="flex:1">
+            <div class="hd">Cà phê Ngõ 12 <span>8m ago</span></div>
+            <div class="bd">Tuấn added an idea: Bánh mì que kèm cà phê</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Tên dự án, tên việc, tên ý tưởng giữ nguyên như người dùng đã nhập; chỉ phần câu chữ của app được dịch.</div>
+    </div>
+
+    <div class="shot">
+      <div class="cap"><b>1c</b> · Khi app đang mở <span class="ann">R25</span></div>
+      <div class="phone short">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="push banner-in">
+          <div class="app"><svg class="ic sm"><use href="#i-store"/></svg></div>
+          <div style="flex:1">
+            <div class="hd">Trà sữa Gác Nhỏ <span>bây giờ</span></div>
+            <div class="bd">Hà đã giao cho bạn Kiểm tra máy dán ly</div>
+          </div>
+        </div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Công việc</div></div>
+        <div class="scr">
+          <div class="sk" style="height:56px"></div><div class="sk" style="height:56px"></div><div class="sk" style="height:56px"></div>
+        </div>
+      </div>
+      <div class="note">Thông báo hiện thành banner phía trên, như lời nhắc ở #10. Chạm vào thì đi tới việc đó; bỏ qua thì tự ẩn.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. Home + bell ============ -->
+<section class="group">
+  <h2>2. Trang chủ có chuông</h2>
+  <p class="legend">Chỉ thêm nút chuông ở góc phải tiêu đề Trang chủ. Phần còn lại vẽ như app hiện tại.</p>
+  <div class="shots">
+    <div class="shot">
+      <div class="cap"><b>2a</b> · Trang chủ, có hoạt động chưa đọc <span class="ann">R32</span></div>
+      <div class="phone">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="ttl" style="padding-left:8px">earnm</div><div class="act" aria-label="Hoạt động, có mục chưa đọc"><svg class="ic"><use href="#i-bell"/></svg><span class="badge"></span></div></div>
+        <div class="scr">
+          <div class="banner">
+            <div class="ov">Dự án hiện tại</div>
+            <div class="pname">Trà sữa Gác Nhỏ</div>
+            <div class="open">Mở dự án</div>
+          </div>
+          <div class="tiles">
+            <div class="tile"><svg class="ic" style="color:var(--accent)"><use href="#i-folder"/></svg>Dự án</div>
+            <div class="tile"><svg class="ic" style="color:var(--accent)"><use href="#i-idea"/></svg>Ý tưởng<span class="soon">Sắp có</span></div>
+            <div class="tile"><svg class="ic" style="color:var(--accent)"><use href="#i-cal"/></svg>Lịch chung<span class="soon">Sắp có</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="h2">Dự án của bạn</div><span class="link">Xem tất cả</span></div>
+          <div class="card flush">
+            <div class="rowline"><div class="grow body">Trà sữa Gác Nhỏ</div><span class="pill">VND</span></div>
+            <div class="rowline"><div class="grow body">Cà phê Ngõ 12</div><span class="pill">VND</span></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on"><svg class="ic"><use href="#i-home"/></svg>Trang chủ</div><div><svg class="ic"><use href="#i-person"/></svg>Tài khoản</div></div>
+      </div>
+      <div class="note">Có mục chưa đọc thì chuông có một chấm cam, không ghi số. Đọc hết thì chấm biến mất. VoiceOver đọc: "Hoạt động, có mục chưa đọc".</div>
+    </div>
+
+    <div class="shot">
+      <div class="cap"><b>2b</b> · Nút chuông, các trường hợp (phóng to) <span class="ann">R32</span></div>
+      <div class="card" style="display:flex;gap:40px;align-items:center;justify-content:center;padding:24px">
+        <div style="text-align:center"><div class="nav" style="justify-content:center"><div class="act"><svg class="ic"><use href="#i-bell"/></svg></div></div><div class="cap12">Không có gì mới</div></div>
+        <div style="text-align:center"><div class="nav" style="justify-content:center"><div class="act"><svg class="ic"><use href="#i-bell"/></svg><span class="badge"></span></div></div><div class="cap12">Có mục chưa đọc</div></div>
+        <div class="dark" style="text-align:center;background:var(--bg);border-radius:12px;padding:4px 12px;color:var(--text)"><div class="nav" style="justify-content:center"><div class="act"><svg class="ic"><use href="#i-bell"/></svg><span class="badge"></span></div></div><div class="cap12">Chế độ tối</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. Activity feed ============ -->
+<section class="group">
+  <h2>3. Màn Hoạt động</h2>
+  <p class="legend">Liệt kê mọi sự việc liên quan tới bạn trong 30 ngày, mới nhất trước, kể cả những loại hay dự án bạn đã tắt thông báo. Dòng chưa đọc in đậm và có chấm cam. Chạm một dòng để đánh dấu đã đọc và mở đúng chỗ.</p>
+  <div class="shots">
+    <div class="shot">
+      <div class="cap"><b>3a</b> · Bình thường <span class="ann">R29</span><span class="ann">R30</span><span class="ann">R31</span></div>
+      <div class="phone">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Hoạt động</div><div class="act" style="padding:0 8px">Đọc hết</div></div>
+        <div class="scr" style="gap:12px">
+          <div class="lbl">Hôm nay</div>
+          <div class="feedgroup">
+            <div class="feedrow unread"><div class="ev"><svg class="ic"><use href="#i-comment"/></svg></div><div class="txt">Minh đã bình luận trong Đặt bột năng<div class="meta">Trà sữa Gác Nhỏ · 2 phút trước</div></div><span class="dot"></span></div>
+            <div class="feedrow unread"><div class="ev"><svg class="ic"><use href="#i-assign"/></svg></div><div class="txt">Hà đã giao cho bạn Kiểm tra máy dán ly<div class="meta">Trà sữa Gác Nhỏ · 3 phút trước</div></div><span class="dot"></span></div>
+            <div class="feedrow unread"><div class="ev"><svg class="ic"><use href="#i-done"/></svg></div><div class="txt">Hà đã hoàn thành Đặt bột năng<div class="meta">Trà sữa Gác Nhỏ · 3 phút trước</div></div><span class="dot"></span></div>
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-idea"/></svg></div><div class="txt" style="font-weight:400">Tuấn đã thêm ý tưởng Bánh mì que kèm cà phê<div class="meta">Cà phê Ngõ 12 · 1 giờ trước</div></div><span class="dot off"></span></div>
+          </div>
+          <div class="lbl">Hôm qua</div>
+          <div class="feedgroup">
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-join"/></svg></div><div class="txt" style="font-weight:400">Lan đã vào dự án<div class="meta">Trà sữa Gác Nhỏ · Hôm qua, 20:14</div></div><span class="dot off"></span></div>
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-comment"/></svg></div><div class="txt" style="font-weight:400">Hà đã bình luận trong Thử công thức trà đào<div class="meta">Trà sữa Gác Nhỏ · Hôm qua, 16:02</div></div><span class="dot off"></span></div>
+          </div>
+          <div class="lbl">Trước đó</div>
+          <div class="feedgroup">
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-done"/></svg></div><div class="txt" style="font-weight:400">Tuấn đã hoàn thành Thuê mặt bằng<div class="meta">Cà phê Ngõ 12 · 21/11</div></div><span class="dot off"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Mỗi loại có một icon riêng trong ô cam nhạt: giao việc (tờ việc có mũi tên vào), bình luận, hoàn thành, ý tưởng, thành viên mới (người có dấu +). Không dùng avatar chữ cái. Kéo xuống cuối thì tải thêm 30 dòng.</div>
+    </div>
+
+    <div class="shot">
+      <div class="cap"><b>3b</b> · Đang tải <span class="ann">R34</span></div>
+      <div class="phone short">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Hoạt động</div></div>
+        <div class="scr" style="gap:12px">
+          <div class="sk" style="height:14px;width:70px"></div>
+          <div style="display:flex;gap:12px"><div class="sk" style="width:40px;height:40px"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:16px"></div><div class="sk" style="height:12px;width:60%"></div></div></div>
+          <div style="display:flex;gap:12px"><div class="sk" style="width:40px;height:40px"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:16px"></div><div class="sk" style="height:12px;width:50%"></div></div></div>
+          <div style="display:flex;gap:12px"><div class="sk" style="width:40px;height:40px"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:16px"></div><div class="sk" style="height:12px;width:65%"></div></div></div>
+        </div>
+      </div>
+      <div class="cap" style="margin-top:12px"><b>3c</b> · Chưa có gì <span class="ann">R34</span></div>
+      <div class="phone short">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Hoạt động</div></div>
+        <div class="scr" style="justify-content:center;align-items:center;text-align:center;gap:10px">
+          <div class="ev" style="width:56px;height:56px"><svg class="ic xl"><use href="#i-bell"/></svg></div>
+          <div class="h2">Chưa có hoạt động nào</div>
+          <div class="body" style="color:var(--text2)">Khi có người giao việc, bình luận hay thêm ý tưởng liên quan tới bạn, bạn sẽ thấy ở đây.</div>
+          <div class="btn sec">Về trang chủ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shot">
+      <div class="cap"><b>3d</b> · Mất mạng, vẫn thấy danh sách đã tải <span class="ann">R34</span></div>
+      <div class="phone short">
+        <div class="status-bar"><span>9:41</span><span>●●● ✕ ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Hoạt động</div><div class="act" style="padding:0 8px">Đọc hết</div></div>
+        <div class="scr" style="gap:12px">
+          <div class="offline"><svg class="ic sm"><use href="#i-cloudoff"/></svg>Đang ngoại tuyến</div>
+          <div class="lbl">Hôm nay</div>
+          <div class="feedgroup">
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-comment"/></svg></div><div class="txt" style="font-weight:400">Minh đã bình luận trong Đặt bột năng<div class="meta">Trà sữa Gác Nhỏ · 2 phút trước</div></div><span class="dot off"></span></div>
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-assign"/></svg></div><div class="txt" style="font-weight:400">Hà đã giao cho bạn Kiểm tra máy dán ly<div class="meta">Trà sữa Gác Nhỏ · 3 phút trước</div></div><span class="dot off"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Đã bấm "Đọc hết" khi mất mạng: các dòng hiện đã đọc ngay, và app gửi lên khi có mạng lại.</div>
+      <div class="cap" style="margin-top:12px"><b>3e</b> · Lỗi tải lần đầu</div>
+      <div class="phone short">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Hoạt động</div></div>
+        <div class="scr">
+          <div class="notice" style="flex-direction:column;align-items:stretch;gap:10px"><div style="display:flex;gap:8px;align-items:center"><svg class="ic sm"><use href="#i-alert"/></svg>Không tải được hoạt động.</div><div class="btn sec" style="background:var(--bg)">Thử lại</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. Account notifications ============ -->
+<section class="group">
+  <h2>4. Tài khoản: mục Thông báo</h2>
+  <p class="legend">Mục mới nằm giữa "Ngôn ngữ" và "Giao diện". Mỗi loại một công tắc, áp dụng cho mọi dự án. Lời nhắc không tắt được.</p>
+  <div class="shots">
+    <div class="shot">
+      <div class="cap"><b>4a</b> · Tài khoản, đã tắt "Bình luận" <span class="ann">R17</span><span class="ann">R18</span><span class="ann">R22</span></div>
+      <div class="phone">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="ttl" style="padding-left:8px">Tài khoản</div></div>
+        <div class="scr">
+          <div class="card"><div class="lbl">Hồ sơ của bạn</div><div class="body" style="font-weight:600;margin-top:4px">Huyền</div><div class="cap12">huyen@example.com</div></div>
+          <div class="card flush"><div class="rowline"><div class="grow"><div class="lbl">Ngôn ngữ</div><div class="body">Tiếng Việt</div></div><svg class="ic sm" style="color:var(--text2)"><use href="#i-chev"/></svg></div></div>
+          <div>
+            <div class="h2" style="margin-bottom:8px">Thông báo</div>
+            <div class="card flush">
+              <div class="rowline"><div class="grow body">Được giao việc</div><span class="sw on" role="switch" aria-label="Thông báo khi được giao việc"></span></div>
+              <div class="rowline"><div class="grow body">Bình luận mới</div><span class="sw" role="switch" aria-label="Thông báo bình luận mới"></span></div>
+              <div class="rowline"><div class="grow body">Việc đã hoàn thành</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">Ý tưởng mới</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">Thành viên mới</div><span class="sw on"></span></div>
+            </div>
+            <div class="cap12" style="margin-top:8px;line-height:17px">Áp dụng cho mọi dự án. Lời nhắc công việc luôn được gửi và không tắt được. Những gì đã tắt vẫn hiện trong Hoạt động.</div>
+          </div>
+          <div class="card flush"><div class="rowline"><div class="grow"><div class="lbl">Giao diện</div><div class="body">Theo hệ thống</div></div></div></div>
+          <div class="btn dan">Đăng xuất</div>
+        </div>
+        <div class="tabbar"><div><svg class="ic"><use href="#i-home"/></svg>Trang chủ</div><div class="on"><svg class="ic"><use href="#i-person"/></svg>Tài khoản</div></div>
+      </div>
+    </div>
+
+    <div class="shot">
+      <div class="cap"><b>4b</b> · Lưu công tắc bị lỗi <span class="ann">R27</span></div>
+      <div class="phone short">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="ttl" style="padding-left:8px">Tài khoản</div></div>
+        <div class="scr">
+          <div>
+            <div class="h2" style="margin-bottom:8px">Thông báo</div>
+            <div class="notice" style="margin-bottom:10px"><svg class="ic sm"><use href="#i-alert"/></svg>Không lưu được. Đã trả lại như cũ.</div>
+            <div class="card flush">
+              <div class="rowline"><div class="grow body">Được giao việc</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">Bình luận mới</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">Việc đã hoàn thành</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">Ý tưởng mới</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">Thành viên mới</div><span class="sw on"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Người dùng vừa tắt "Bình luận mới" nhưng lưu thất bại: công tắc bật lại, kèm thông báo lỗi kiểu đang có trong app.</div>
+      <div class="cap" style="margin-top:12px"><b>4c</b> · Đang tải cài đặt</div>
+      <div class="phone short" style="min-height:360px">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="scr"><div class="h2">Thông báo</div><div class="sk" style="height:260px;border-radius:16px"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. Project mute ============ -->
+<section class="group">
+  <h2>5. Màn dự án: tắt thông báo của dự án</h2>
+  <p class="legend">Một công tắc ngay dưới các ô khu vực, trên "Chi tiết". Tắt thì không nhận thông báo hoạt động nào từ dự án này; dự án khác không đổi.</p>
+  <div class="shots">
+    <div class="shot">
+      <div class="cap"><b>5a</b> · Thông báo đang bật <span class="ann">R19</span></div>
+      <div class="phone">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Dự án</div></div>
+        <div class="scr">
+          <div><div class="ov" style="color:var(--accentStrong)">Dự án</div><div class="h1">Trà sữa Gác Nhỏ</div></div>
+          <div class="tiles">
+            <div class="tile"><svg class="ic" style="color:var(--accent)"><use href="#i-done"/></svg>Công việc<span class="soon">5 chưa xong</span></div>
+            <div class="tile"><svg class="ic" style="color:var(--accent)"><use href="#i-idea"/></svg>Ý tưởng<span class="soon">2 mới</span></div>
+            <div class="tile"><svg class="ic" style="color:var(--accent)"><use href="#i-store"/></svg>Nguyên liệu<span class="soon">18</span></div>
+          </div>
+          <div class="card flush"><div class="rowline"><svg class="ic" style="color:var(--accent)"><use href="#i-people"/></svg><div class="grow body">Thành viên · 4 người</div><svg class="ic sm" style="color:var(--text2)"><use href="#i-chev"/></svg></div></div>
+          <div class="card flush"><div class="rowline"><svg class="ic" style="color:var(--accent)"><use href="#i-bell"/></svg><div class="grow"><div class="body">Thông báo hoạt động</div><div class="cap12">Theo cài đặt trong Tài khoản</div></div><span class="sw on" role="switch" aria-label="Thông báo hoạt động của Trà sữa Gác Nhỏ"></span></div></div>
+          <div class="card flush"><div class="rowline"><div class="grow body" style="font-weight:600">Chi tiết</div><svg class="ic sm" style="color:var(--text2)"><use href="#i-chev"/></svg></div></div>
+        </div>
+      </div>
+      <div class="note">Phần trên công tắc vẽ gọn lại; màn thật giữ nguyên các ô khu vực đang có.</div>
+    </div>
+
+    <div class="shot">
+      <div class="cap"><b>5b</b> · Đã tắt cho dự án này <span class="ann">R19</span><span class="ann">R20</span></div>
+      <div class="phone short">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Dự án</div></div>
+        <div class="scr">
+          <div><div class="ov" style="color:var(--accentStrong)">Dự án</div><div class="h1">Trà sữa Gác Nhỏ</div></div>
+          <div class="card flush"><div class="rowline"><svg class="ic" style="color:var(--text2)"><use href="#i-mute"/></svg><div class="grow"><div class="body">Thông báo hoạt động</div><div class="cap12">Đã tắt. Vẫn xem được trong Hoạt động. Lời nhắc vẫn gửi.</div></div><span class="sw"></span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. Dark ============ -->
+<section class="group">
+  <h2>6. Chế độ tối và tiếng Anh</h2>
+  <p class="legend">Cùng các màn ở trên, dùng màu tối từ DESIGN.md.</p>
+  <div class="shots">
+    <div class="shot">
+      <div class="cap"><b>6a</b> · Activity, dark, English <span class="ann">R26</span><span class="ann">R30</span></div>
+      <div class="phone dark">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="back"><svg class="ic"><use href="#i-back"/></svg></div><div class="ttl">Activity</div><div class="act" style="padding:0 8px">Mark all read</div></div>
+        <div class="scr" style="gap:12px">
+          <div class="lbl">Today</div>
+          <div class="feedgroup">
+            <div class="feedrow unread"><div class="ev"><svg class="ic"><use href="#i-comment"/></svg></div><div class="txt">Minh commented on Đặt bột năng<div class="meta">Trà sữa Gác Nhỏ · 2 min ago</div></div><span class="dot"></span></div>
+            <div class="feedrow unread"><div class="ev"><svg class="ic"><use href="#i-assign"/></svg></div><div class="txt">Hà assigned you Kiểm tra máy dán ly<div class="meta">Trà sữa Gác Nhỏ · 3 min ago</div></div><span class="dot"></span></div>
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-idea"/></svg></div><div class="txt" style="font-weight:400">Tuấn added the idea Bánh mì que kèm cà phê<div class="meta">Cà phê Ngõ 12 · 1 hr ago</div></div><span class="dot off"></span></div>
+          </div>
+          <div class="lbl">Yesterday</div>
+          <div class="feedgroup">
+            <div class="feedrow read"><div class="ev"><svg class="ic"><use href="#i-join"/></svg></div><div class="txt" style="font-weight:400">Lan joined the project<div class="meta">Trà sữa Gác Nhỏ · Yesterday, 20:14</div></div><span class="dot off"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot">
+      <div class="cap"><b>6b</b> · Account, dark, English <span class="ann">R18</span><span class="ann">R22</span></div>
+      <div class="phone dark short">
+        <div class="status-bar"><span>9:41</span><span>●●● 5G ▮</span></div>
+        <div class="nav"><div class="ttl" style="padding-left:8px">Account</div></div>
+        <div class="scr">
+          <div>
+            <div class="h2" style="margin-bottom:8px">Notifications</div>
+            <div class="card flush">
+              <div class="rowline"><div class="grow body">Assigned to me</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">New comments</div><span class="sw"></span></div>
+              <div class="rowline"><div class="grow body">Tasks finished</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">New ideas</div><span class="sw on"></span></div>
+              <div class="rowline"><div class="grow body">New members</div><span class="sw on"></span></div>
+            </div>
+            <div class="cap12" style="margin-top:8px;line-height:17px">Applies to all projects. Task reminders are always sent and can't be turned off. Muted activity still shows in Activity.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. Navigation map ============ -->
+<section class="group">
+  <h2>7. Bản đồ chuyển màn</h2>
+  <p class="legend">Các màn mới đều được mở bằng push trong cùng ngăn xếp Trang chủ, nên có nút quay lại và vuốt từ mép để quay lại.</p>
+  <div class="map">
+    <table>
+      <tr><th>Từ</th><th>Thao tác</th><th>Mở</th><th>Quay lại về</th></tr>
+      <tr><td>Trang chủ (2a)</td><td>Chạm chuông</td><td>Hoạt động (3a)</td><td>Trang chủ</td></tr>
+      <tr><td>Hoạt động (3a)</td><td>Chạm dòng giao việc, bình luận hoặc hoàn thành</td><td>Chi tiết công việc</td><td>Hoạt động</td></tr>
+      <tr><td>Hoạt động (3a)</td><td>Chạm dòng ý tưởng</td><td>Chi tiết ý tưởng</td><td>Hoạt động</td></tr>
+      <tr><td>Hoạt động (3a)</td><td>Chạm dòng thành viên mới</td><td>Thành viên của dự án</td><td>Hoạt động</td></tr>
+      <tr><td>Hoạt động (3a)</td><td>Chạm dòng mà việc hoặc ý tưởng đã bị xóa, hoặc bạn đã rời dự án</td><td>Danh sách dự án</td><td>Trang chủ</td></tr>
+      <tr><td>Hoạt động (3c)</td><td>"Về trang chủ"</td><td>Trang chủ</td><td>-</td></tr>
+      <tr><td>Thông báo đẩy (1a)</td><td>Chạm: một việc / một ý tưởng / chỉ người mới / nhiều thứ</td><td>Chi tiết việc / Chi tiết ý tưởng / Thành viên / Màn dự án</td><td>Trang chủ (mở từ đầu ngăn xếp, như lời nhắc ở #10)</td></tr>
+      <tr><td>Tab Tài khoản (4a)</td><td>Bật / tắt công tắc</td><td>Ở lại màn; lưu ngay</td><td>-</td></tr>
+      <tr><td>Màn dự án (5a)</td><td>Bật / tắt "Thông báo hoạt động"</td><td>Ở lại màn; lưu ngay</td><td>-</td></tr>
+    </table>
+  </div>
+</section>
+<div style="height:40px"></div>
+</body>
+</html>

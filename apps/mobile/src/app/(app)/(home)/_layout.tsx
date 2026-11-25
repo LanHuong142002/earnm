@@ -1,6 +1,8 @@
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 
+import { ActivityBell } from "../../../activity/ActivityBell";
+import { ActivityMarkAll } from "../../../activity/ActivityMarkAll";
 import { fontFamily } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
 import { HeaderBack } from "../../../ui/HeaderBack";
@@ -29,7 +31,8 @@ export default function HomeStackLayout() {
         headerLeft: (props) => <HeaderBack canGoBack={props.canGoBack} />,
       }}
     >
-      <Stack.Screen name="index" options={{ title: t("common.appName") }} />
+      <Stack.Screen name="index" options={{ title: t("common.appName"), headerRight: () => <ActivityBell /> }} />
+      <Stack.Screen name="activity" options={{ title: t("activity.title"), headerRight: () => <ActivityMarkAll /> }} />
       <Stack.Screen name="projects/index" options={{ title: t("projects.title") }} />
       <Stack.Screen name="projects/new" options={{ title: t("projects.newTitle") }} />
       <Stack.Screen name="projects/join" options={{ title: t("join.title") }} />

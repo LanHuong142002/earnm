@@ -14,6 +14,7 @@ import {
   timeSchema,
   titleSchema,
 } from "../tasks/routes.js";
+import { recordActivity, scheduleAfterCommit, type ActivityScheduler } from "../activity/record.js";
 import { lockedMember, notFound, requireIdea } from "./common.js";
 import { ideaInclude, ideaResponse } from "./response.js";
 
@@ -34,7 +35,11 @@ const bodySchema = z
   });
 
 /** `POST /projects/:projectId/ideas/:ideaId/task`: turns an accepted idea into a task, once. */
-export function createIdeaToTaskRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
+export function createIdeaToTaskRouter(deps: {
+  prisma: PrismaClient;
+  now: () => Date;
+  activityScheduler?: ActivityScheduler | null;
+}): Router {
   const { prisma, now } = deps;
   const router = Router({ mergeParams: true });
   router.use(requireAuth(deps));
@@ -95,11 +100,23 @@ export function createIdeaToTaskRouter(deps: { prisma: PrismaClient; now: () => 
           },
         });
         await tx.idea.update({ where: { id: ideaId }, data: { taskId: task.id } });
+        const dueAt = await recordActivity(tx, {
+          type: "assigned",
+          projectId,
+          actorId: userId,
+          taskId: task.id,
+          subjectTitle: task.title,
+          occurredAt: at,
+          recipients: body.assigneeIds,
+          now: at,
+        });
         return {
+          dueAt,
           task: await tx.task.findUniqueOrThrow({ where: { id: task.id }, include: taskInclude }),
           idea: await tx.idea.findUniqueOrThrow({ where: { id: ideaId }, include: ideaInclude }),
         };
       });
+      scheduleAfterCommit(deps.activityScheduler, result.dueAt);
       res.status(201).json({ task: taskResponse(result.task), idea: ideaResponse(result.idea, userId) });
     } catch (err) {
       next(err);

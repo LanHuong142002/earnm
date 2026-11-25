@@ -8,6 +8,8 @@ import { isUniqueViolation } from "../http/prisma-errors.js";
 import { multiLineText } from "../http/text.js";
 import { findForMember, lockProject } from "../projects/access.js";
 import { isInvolved } from "../tasks/involved.js";
+import { recordActivity, scheduleAfterCommit, type ActivityScheduler } from "../activity/record.js";
+import { taskPeople } from "../activity/recipients.js";
 
 /** A task holds at most this many comments. */
 export const MAX_COMMENTS_PER_TASK = 500;
@@ -68,7 +70,11 @@ function forbidden(message: string): AppError {
 
 type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
-export function createCommentsRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
+export function createCommentsRouter(deps: {
+  prisma: PrismaClient;
+  now: () => Date;
+  activityScheduler?: ActivityScheduler | null;
+}): Router {
   const { prisma, now } = deps;
   const router = Router({ mergeParams: true });
   router.use(requireAuth(deps));
@@ -112,7 +118,7 @@ export function createCommentsRouter(deps: { prisma: PrismaClient; now: () => Da
   async function lockedTask(tx: Tx, projectId: string, taskId: string) {
     const task = await tx.task.findFirst({
       where: { id: taskId, projectId },
-      select: { id: true, createdById: true },
+      select: { id: true, createdById: true, title: true },
     });
     if (!task) throw notFound();
     return task;
@@ -153,7 +159,7 @@ export function createCommentsRouter(deps: { prisma: PrismaClient; now: () => Da
             if (existing.taskId !== taskId) {
               throw new AppError(409, "id_conflict", "That comment id is already taken.");
             }
-            return { status: 200, comment: existing };
+            return { status: 200, comment: existing, dueAt: null };
           }
           if (body.remindWith && !(await isInvolved(tx, task, userId))) {
             throw forbidden("Only people involved in the task can set this.");
@@ -169,6 +175,9 @@ export function createCommentsRouter(deps: { prisma: PrismaClient; now: () => Da
           // The field times start at the epoch: the create carries no edit time, and an edit the
           // phone queued after writing the comment must win even though the create reached us later.
           const epoch = new Date(0);
+          // Before the insert, so the list holds only the people who commented earlier.
+          const people = await taskPeople(tx, taskId);
+          const at = now();
           const comment = await tx.taskComment.create({
             data: {
               id: body.id,
@@ -178,13 +187,24 @@ export function createCommentsRouter(deps: { prisma: PrismaClient; now: () => Da
               remindWith: body.remindWith ?? false,
               textEditedAt: epoch,
               remindWithEditedAt: epoch,
-              createdAt: now(),
+              createdAt: at,
             },
             include,
           });
-          return { status: 201, comment };
+          const dueAt = await recordActivity(tx, {
+            type: "comment",
+            projectId,
+            actorId: userId,
+            taskId,
+            subjectTitle: task.title,
+            occurredAt: at,
+            recipients: people,
+            now: at,
+          });
+          return { status: 201, comment, dueAt };
         }),
       );
+      scheduleAfterCommit(deps.activityScheduler, result.dueAt);
       res.status(result.status).json(commentResponse(result.comment));
     } catch (err) {
       next(err);

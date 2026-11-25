@@ -9,6 +9,8 @@ import { isUniqueViolation } from "../http/prisma-errors.js";
 import { findForMember, lockProject } from "../projects/access.js";
 import type { PhotoStore } from "../photos/cloudinary.js";
 import { destroyImages } from "../photos/destroy.js";
+import { recordActivity, scheduleAfterCommit, type ActivityScheduler } from "../activity/record.js";
+import { taskPeople } from "../activity/recipients.js";
 
 /** A project holds at most this many tasks. */
 export const MAX_TASKS_PER_PROJECT = 1000;
@@ -160,6 +162,13 @@ function notFound(): AppError {
   return new AppError(404, "not_found", "Project not found.");
 }
 
+/** The earliest of the times that are set, or null when none is. */
+function earliest(times: Array<Date | null>): Date | null {
+  let min: Date | null = null;
+  for (const t of times) if (t && (!min || t < min)) min = t;
+  return min;
+}
+
 type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
 export function createTasksRouter(deps: {
@@ -167,6 +176,7 @@ export function createTasksRouter(deps: {
   now: () => Date;
   /** Used to remove a deleted task's images from Cloudinary; absent when photos are off. */
   photoStore?: PhotoStore | null;
+  activityScheduler?: ActivityScheduler | null;
 }): Router {
   const { prisma, now } = deps;
   const router = Router({ mergeParams: true });
@@ -240,7 +250,7 @@ export function createTasksRouter(deps: {
             if (existing.projectId !== projectId) {
               throw new AppError(409, "id_conflict", "That task id is already taken.");
             }
-            return { status: 200, task: existing };
+            return { status: 200, task: existing, dueAt: null };
           }
           // Counted under the project lock, so concurrent creates can't pass the limit together.
           if ((await tx.task.count({ where: { projectId } })) >= MAX_TASKS_PER_PROJECT) {
@@ -271,7 +281,17 @@ export function createTasksRouter(deps: {
             },
             include: taskInclude,
           });
-          return { status: 201, task };
+          const dueAt = await recordActivity(tx, {
+            type: "assigned",
+            projectId,
+            actorId: userId,
+            taskId: task.id,
+            subjectTitle: task.title,
+            occurredAt: editedAt,
+            recipients: body.assigneeIds,
+            now: now(),
+          });
+          return { status: 201, task, dueAt };
         });
 
       let result;
@@ -283,6 +303,7 @@ export function createTasksRouter(deps: {
         if (!isUniqueViolation(err)) throw err;
         result = await createOnce();
       }
+      scheduleAfterCommit(deps.activityScheduler, result.dueAt);
       res.status(result.status).json(taskResponse(result.task));
     } catch (err) {
       next(err);
@@ -298,9 +319,16 @@ export function createTasksRouter(deps: {
 
       // Last write wins per field, all in one transaction. The column names come from the
       // field names, so TypeScript can't check them here; the route tests do.
-      await prisma.$transaction(async (tx) => {
+      const dueAt = await prisma.$transaction(async (tx) => {
         await lockedRole(tx, projectId, userId);
-        await applyLastWriteWins(fields, now(), async (where, data) => {
+        const at = now();
+        const before = await tx.task.findUnique({
+          where: { id: taskId },
+          select: { status: true },
+        });
+        // People newly put on the task by this request; set only when the assignees change applied.
+        let added: string[] = [];
+        const applied = await applyLastWriteWins(fields, at, async (where, data) => {
           const scope = { id: taskId, projectId, ...where };
           if ("due" in data) {
             // The day and the time are one field: both are written, or neither.
@@ -321,21 +349,19 @@ export function createTasksRouter(deps: {
               where: scope,
               data: { assigneesEditedAt: data["assigneesEditedAt"] as Date },
             });
-            if (claimed.count !== 1) return;
+            if (claimed.count !== 1) return claimed;
             const ids = data["assignees"] as string[];
             // Only people being added are checked; those already on the task can stay or go.
             const current = await tx.taskAssignee.findMany({ where: { taskId } });
             const already = new Set(current.map((a) => a.userId));
-            await assertAssigneesAreMembers(
-              tx,
-              projectId,
-              ids.filter((id) => !already.has(id)),
-            );
+            const newcomers = ids.filter((id) => !already.has(id));
+            await assertAssigneesAreMembers(tx, projectId, newcomers);
             await tx.taskAssignee.deleteMany({ where: { taskId } });
             await tx.taskAssignee.createMany({
               data: ids.map((id) => ({ taskId, userId: id })),
             });
-            return;
+            added = newcomers;
+            return claimed;
           }
           if ("labels" in data) {
             // Claim the field's time first. Only the request that wins checks and replaces the rows.
@@ -354,9 +380,55 @@ export function createTasksRouter(deps: {
             await tx.taskLabel.createMany({ data: ids.map((labelId) => ({ taskId, labelId })) });
             return;
           }
-          await tx.task.updateMany({ where: scope, data } as Prisma.TaskUpdateManyArgs);
+          // Returned, so the status counts as applied only when the row really changed.
+          return tx.task.updateMany({ where: scope, data } as Prisma.TaskUpdateManyArgs);
         });
+
+        // Same transaction as the change, so a rolled-back change leaves no event. A field's time
+        // is capped at the server's now, like the write itself does.
+        const capped = (editedAt: Date) => new Date(Math.min(editedAt.getTime(), at.getTime()));
+        const events: Array<Date | null> = [];
+        const task = await tx.task.findUnique({ where: { id: taskId }, select: { title: true } });
+        if (!task) return null;
+        const assigneesChange = fields["assignees"];
+        if (assigneesChange && applied.includes("assignees") && added.length > 0) {
+          events.push(
+            await recordActivity(tx, {
+              type: "assigned",
+              projectId,
+              actorId: userId,
+              taskId,
+              subjectTitle: task.title,
+              occurredAt: capped(assigneesChange.editedAt),
+              recipients: added,
+              now: at,
+            }),
+          );
+        }
+        const statusChange = fields["status"];
+        if (
+          statusChange &&
+          applied.includes("status") &&
+          statusChange.value === "done" &&
+          before !== null &&
+          before.status !== "done"
+        ) {
+          events.push(
+            await recordActivity(tx, {
+              type: "done",
+              projectId,
+              actorId: userId,
+              taskId,
+              subjectTitle: task.title,
+              occurredAt: capped(statusChange.editedAt),
+              recipients: await taskPeople(tx, taskId),
+              now: at,
+            }),
+          );
+        }
+        return earliest(events);
       });
+      scheduleAfterCommit(deps.activityScheduler, dueAt);
 
       // Always answer with the current state, even when every change lost.
       const current = await prisma.task.findFirst({
