@@ -12,8 +12,8 @@ import { useDrafts } from "../../../../../../drafts/DraftsProvider";
 import { draftEstimate, missingForDone } from "../../../../../../drafts/estimate";
 import { LinkCard } from "../../../../../../drafts/LinkCard";
 import type { DraftLineRow } from "../../../../../../drafts/types";
-import { baseSize, convertErrorKey, convertSplit, estimateLines, missingItems, type MissingItem } from "../../../../../../drafts/view";
-import { moneyOf } from "../../../../../../ingredients/display";
+import { baseSize, convertErrorKey, convertSplit, estimateLines, missingItems, reuseTexts, type MissingItem } from "../../../../../../drafts/view";
+import { baseUnitOf, moneyOf } from "../../../../../../ingredients/display";
 import { useIngredients } from "../../../../../../ingredients/IngredientsProvider";
 import type { Ingredient } from "../../../../../../ingredients/types";
 import { OfflineNote } from "../../../../../../projects/OfflineNote";
@@ -192,7 +192,16 @@ export default function DraftScreen() {
           : t("drafts.confirmOne", { base, price: priceText });
     const message = [
       split.create.length > 0 ? t("drafts.confirmAdd", { names: split.create.join(", ") }) : null,
-      split.reuse.length > 0 ? t("drafts.confirmReuse", { names: split.reuse.join(", ") }) : null,
+      split.reuse.length > 0
+        ? t("drafts.confirmReuse", {
+            names: reuseTexts(
+              split.reuse,
+              currency,
+              (name, price) => t("drafts.confirmReuseItem", { name, price }),
+              (purchase) => t(`ingredients.units.${baseUnitOf(purchase.unit)}`),
+            ).join("; "),
+          })
+        : null,
       productLine,
       t("drafts.confirmReadOnly"),
     ]

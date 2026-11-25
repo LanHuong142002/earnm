@@ -7,8 +7,11 @@ import {
   convertSplit,
   estimateLines,
   baseSize,
+  convertedHeader,
+  draftsUsing,
   groupDrafts,
   missingItems,
+  reuseTexts,
   rowSummary,
   unconvertedCount,
   unitPriceText,
@@ -85,23 +88,31 @@ describe("rowSummary", () => {
 });
 
 describe("convertSplit", () => {
-  const existing = [{ name: "Vải ngâm", mode: "weight" as const }, { name: "Đường nước", mode: "volume" as const }];
+  const existing = [
+    { name: "Vải ngâm", mode: "weight" as const, purchase: { quantity: 1000, unit: "g" as const, price: 79650 } },
+    { name: "Đường nước", mode: "volume" as const, purchase: { quantity: 1000, unit: "ml" as const, price: 20000 } },
+  ];
   it("reuses a new line whose name now matches an ingredient, ignoring case, and creates the rest", () => {
     const lines = [
       draftLine({ id: "1", kind: "new", ingredientId: null, newName: "vải NGÂM", newKind: "weight", amount: 60 }),
       draftLine({ id: "2", kind: "new", ingredientId: null, newName: "Siro hoa hồng", newKind: "volume", amount: 15 }),
       draftLine({ id: "3", kind: "existing", ingredientId: "tea", amount: 5 }),
     ];
-    expect(convertSplit(lines, existing)).toEqual({ create: ["Siro hoa hồng"], reuse: ["vải NGÂM"], mismatch: [] });
+    expect(convertSplit(lines, existing)).toEqual({
+      create: ["Siro hoa hồng"],
+      reuse: [{ name: "vải NGÂM", purchase: existing[0].purchase }],
+      mismatch: [],
+    });
   });
 
   it("flags a new line whose same-name ingredient is counted a different way", () => {
-    const known = [{ name: "Siro hoa hồng", mode: "weight" as const }, { name: "Vải ngâm", mode: "weight" as const }];
+    const purchase = { quantity: 500, unit: "g" as const, price: 1000 };
+    const known = [{ name: "Siro hoa hồng", mode: "weight" as const, purchase }, { name: "Vải ngâm", mode: "weight" as const, purchase }];
     const lines = [
       draftLine({ id: "1", kind: "new", ingredientId: null, newName: "siro HOA hồng", newKind: "volume", amount: 15 }),
       draftLine({ id: "2", kind: "new", ingredientId: null, newName: "Vải ngâm", newKind: "weight", amount: 60 }),
     ];
-    expect(convertSplit(lines, known)).toEqual({ create: [], reuse: ["Vải ngâm"], mismatch: ["siro HOA hồng"] });
+    expect(convertSplit(lines, known)).toEqual({ create: [], reuse: [{ name: "Vải ngâm", purchase }], mismatch: ["siro HOA hồng"] });
   });
 
   it("is empty when the draft only uses existing ingredients", () => {
@@ -172,5 +183,36 @@ describe("baseSize", () => {
   });
   it("is null without sizes", () => {
     expect(baseSize([])).toBeNull();
+  });
+});
+
+describe("reuseTexts", () => {
+  it("names each reused ingredient with the unit price it keeps, not the draft's", () => {
+    const reuse = [{ name: "Vải ngâm", purchase: { quantity: 1000, unit: "g" as const, price: 79650 } }];
+    const texts = reuseTexts(reuse, "VND", (name, price) => `${name} | ${price}`, () => "g");
+    expect(texts).toEqual(["Vải ngâm | 79,65 ₫/g"]);
+  });
+});
+
+describe("convertedHeader", () => {
+  it("counts the server's converted total and says when the list shows fewer", () => {
+    expect(convertedHeader(50, 73)).toEqual({ count: 73, capped: true });
+    expect(convertedHeader(3, 3)).toEqual({ count: 3, capped: false });
+    expect(convertedHeader(3, null)).toEqual({ count: 3, capped: false });
+    expect(convertedHeader(4, 2)).toEqual({ count: 4, capped: false });
+  });
+});
+
+describe("draftsUsing", () => {
+  it("names the unconverted drafts with a line on the ingredient, once each, in order", () => {
+    const on = (id: string) => [draftLine({ id: `l-${id}`, kind: "existing", ingredientId: "milk" })];
+    const drafts = [
+      draft({ id: "d1", name: "Trà vải hoa hồng", lines: on("1") }),
+      draft({ id: "d2", name: "Cà phê", lines: [draftLine({ id: "x", kind: "existing", ingredientId: "tea" })] }),
+      draft({ id: "d3", name: "Atiso", lines: [...on("3"), draftLine({ id: "l-3b", kind: "existing", ingredientId: "milk" })] }),
+      draft({ id: "d4", name: "Đã chuyển", convertedAt: "2026-11-20T00:00:00.000Z", lines: on("4") }),
+    ];
+    expect(draftsUsing("milk", drafts)).toEqual(["Atiso", "Trà vải hoa hồng"]);
+    expect(draftsUsing("none", drafts)).toEqual([]);
   });
 });

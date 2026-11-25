@@ -9,7 +9,12 @@ const CACHE_KEY = "drafts.cache.v1";
  * The drafts as the server last sent them, per project. Waiting changes are never saved in here: they live in the
  * queue and are laid over this list when it is shown (`applyDraftOverlay`).
  */
-export type DraftCache = { ownerId: string; byProject: Record<string, Draft[]> };
+export type DraftCache = {
+  ownerId: string;
+  byProject: Record<string, Draft[]>;
+  /** How many converted drafts the server has per project (the list sends only the newest 50). Absent in older copies. */
+  convertedTotals?: Record<string, number>;
+};
 
 export const emptyDraftCache = (ownerId: string): DraftCache => ({ ownerId, byProject: {} });
 
@@ -53,7 +58,13 @@ function read(raw: unknown, ownerId: string): DraftCache {
     // A project whose copy is unreadable is dropped; the next fetch brings it back.
     if (Array.isArray(list) && list.every(isDraft)) byProject[projectId] = list;
   }
-  return { ownerId, byProject };
+  const convertedTotals: Record<string, number> = {};
+  if (isRecord(raw.convertedTotals)) {
+    for (const [projectId, n] of Object.entries(raw.convertedTotals)) {
+      if (typeof n === "number" && Number.isInteger(n) && n >= 0 && byProject[projectId] !== undefined) convertedTotals[projectId] = n;
+    }
+  }
+  return { ownerId, byProject, convertedTotals };
 }
 
 export async function loadDraftCache(store: KeyValueStore, ownerId: string): Promise<DraftCache> {
@@ -79,10 +90,14 @@ const NO_DRAFTS: Draft[] = [];
 export const draftsOf = (cache: DraftCache, projectId: string): Draft[] => cache.byProject[projectId] ?? NO_DRAFTS;
 export const hasDrafts = (cache: DraftCache, projectId: string): boolean => cache.byProject[projectId] !== undefined;
 
-export const setProjectDrafts = (cache: DraftCache, projectId: string, list: Draft[]): DraftCache => ({
+/** Saves the project's list; `convertedTotal` replaces the saved total, and left out it keeps the saved one. */
+export const setProjectDrafts = (cache: DraftCache, projectId: string, list: Draft[], convertedTotal?: number): DraftCache => ({
   ...cache,
   byProject: { ...cache.byProject, [projectId]: list },
+  ...(convertedTotal === undefined ? {} : { convertedTotals: { ...cache.convertedTotals, [projectId]: convertedTotal } }),
 });
+
+export const convertedTotalOf = (cache: DraftCache, projectId: string): number | null => cache.convertedTotals?.[projectId] ?? null;
 
 export function withDraft(list: Draft[], item: Draft): Draft[] {
   const index = list.findIndex((d) => d.id === item.id);
@@ -95,5 +110,10 @@ export const withoutDraftLine = (list: Draft[], draftId: string, lineId: string)
 /** Drops the drafts of projects that are no longer in `projectIds`. */
 export function pruneDraftCache(cache: DraftCache, projectIds: string[]): DraftCache {
   const keep = new Set(projectIds);
-  return { ...cache, byProject: Object.fromEntries(Object.entries(cache.byProject).filter(([id]) => keep.has(id))) };
+  const only = <T,>(map: Record<string, T>) => Object.fromEntries(Object.entries(map).filter(([id]) => keep.has(id)));
+  return {
+    ...cache,
+    byProject: only(cache.byProject),
+    ...(cache.convertedTotals ? { convertedTotals: only(cache.convertedTotals) } : {}),
+  };
 }

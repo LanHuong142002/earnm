@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 
 import { formFromIngredient } from "../../../../../../ingredients/display";
 import { IngredientForm } from "../../../../../../ingredients/IngredientForm";
+import { useDrafts } from "../../../../../../drafts/DraftsProvider";
+import { draftsUsing } from "../../../../../../drafts/view";
 import { useIngredients } from "../../../../../../ingredients/IngredientsProvider";
 import type { Ingredient } from "../../../../../../ingredients/types";
 import { PriceHistory } from "../../../../../../ingredients/PriceHistory";
@@ -27,6 +29,7 @@ export default function EditIngredientScreen() {
   const { id, ingredientId } = useLocalSearchParams<{ id: string; ingredientId: string }>();
   const { status, projects } = useProjects();
   const { ready, ingredientsFor, update, remove } = useIngredients();
+  const { ready: draftsReady, draftsFor } = useDrafts();
   const { ready: productsReady, productsFor, refresh: refreshProducts } = useProducts();
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
@@ -62,6 +65,7 @@ export default function EditIngredientScreen() {
 
   const first = opened;
   const usedBy = productsReady ? productsUsing(first.id, productsFor(project.id)) : [];
+  const draftNames = draftsReady ? draftsUsing(first.id, draftsFor(project.id)) : [];
   const confirmDelete = () =>
     usedBy.length > 0
       ? // Mockup 1g: an ingredient in a recipe can't be deleted; the products that use it are named.
@@ -70,7 +74,9 @@ export default function EditIngredientScreen() {
           t("ingredients.inUseMessage", { name: item?.name ?? first.name, products: joinNames(usedBy, t("products.and")) }),
           [{ text: t("ingredients.inUseOk") }],
         )
-      : Alert.alert(t("ingredients.deleteTitle", { name: item?.name ?? first.name }), t("ingredients.deleteMessage"), [
+      : Alert.alert(t("ingredients.deleteTitle", { name: item?.name ?? first.name }), [t("ingredients.deleteMessage"), draftNames.length > 0 ? t("ingredients.deleteUsedByDrafts", { drafts: joinNames(draftNames, t("products.and")) }) : null]
+          .filter(Boolean)
+          .join("\n"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("ingredients.deleteConfirm"),

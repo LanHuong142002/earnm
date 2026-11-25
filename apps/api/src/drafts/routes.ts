@@ -13,10 +13,13 @@ import { nameKey } from "../labels/nameKey.js";
 import { findForMember } from "../projects/access.js";
 import { amountSchema } from "../products/routes.js";
 import { SIZE_ORDER } from "../products/response.js";
-import { draftInclude, draftMissing, draftResponse } from "./response.js";
+import { draftInclude, draftMissing, draftResponse, reopenIfIncomplete as reopenDraft } from "./response.js";
+import type { MissingItem } from "./response.js";
 
 /** A project holds at most this many unconverted drafts. */
 export const MAX_DRAFTS_PER_PROJECT = 200;
+/** The list sends every open draft but only this many converted ones, the newest first. */
+export const MAX_CONVERTED_LISTED = 50;
 /** A draft holds at most this many recipe lines. */
 export const MAX_LINES_PER_DRAFT = 100;
 const MAX_NOTE_LENGTH = 2000;
@@ -137,11 +140,7 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
   }
 
   /** A done draft that an edit left incomplete goes back to working, stamped with the edit's time. */
-  async function reopenIfIncomplete(tx: Tx, draftId: string) {
-    const row = await load(tx, draftId);
-    if (!row || row.status !== "done" || draftMissing(row).length === 0) return;
-    await tx.draft.updateMany({ where: { id: draftId, status: "done" }, data: { status: "working", statusEditedAt: now() } });
-  }
+  const reopenIfIncomplete = (tx: Tx, draftId: string) => reopenDraft(tx, draftId, now());
 
   async function assertPriceInRange(tx: Tx, projectId: string, price: number | null | undefined, field: string) {
     if (price === null || price === undefined) return;
@@ -157,12 +156,20 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
     try {
       const userId = getAuth(res.locals).userId;
       const projectId = await requireMember(param(req, "projectId"), userId);
-      const rows = await prisma.draft.findMany({
-        where: { projectId },
-        include: draftInclude,
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      });
-      res.json({ drafts: rows.map(draftResponse) });
+      const [open, convertedRecent, convertedTotal] = await Promise.all([
+        prisma.draft.findMany({ where: { projectId, convertedAt: null }, include: draftInclude }),
+        prisma.draft.findMany({
+          where: { projectId, convertedAt: { not: null } },
+          include: draftInclude,
+          orderBy: [{ convertedAt: "desc" }, { id: "asc" }],
+          take: MAX_CONVERTED_LISTED,
+        }),
+        prisma.draft.count({ where: { projectId, convertedAt: { not: null } } }),
+      ]);
+      const rows = [...open, ...convertedRecent].sort(
+        (x, y) => x.createdAt.getTime() - y.createdAt.getTime() || (x.id < y.id ? -1 : 1),
+      );
+      res.json({ drafts: rows.map(draftResponse), convertedTotal });
     } catch (err) {
       next(err);
     }
@@ -224,11 +231,12 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
       const { status, ...rest } = body;
       const fields = { ...rest, status };
 
-      await prisma.$transaction(async (tx) => {
+      const refused = await prisma.$transaction(async (tx) => {
         await lockedMember(tx, projectId, userId);
-        await lockedOpenDraft(tx, projectId, draftId);
+        const before = await lockedOpenDraft(tx, projectId, draftId);
         // A price over the maximum is wrong on its own, however recent; the rest resolves per field.
         if (fields.expectedPrice) await assertPriceInRange(tx, projectId, fields.expectedPrice.value, "expectedPrice");
+        let missingForDone: MissingItem[] | null = null;
         await applyLastWriteWins(fields, now(), async (where, data) => {
           const claimed = await tx.draft.updateMany({
             where: { id: draftId, projectId, ...where },
@@ -239,12 +247,19 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
             const row = await load(tx, draftId);
             const missing = row ? draftMissing(row) : [];
             if (missing.length > 0) {
-              throw new AppError(409, "draft_incomplete", "The draft is missing what it needs to be done.", { missing });
+              // Refuse done alone: the other fields of this request stay applied.
+              await tx.draft.updateMany({
+                where: { id: draftId },
+                data: { status: before.status, statusEditedAt: before.statusEditedAt },
+              });
+              missingForDone = missing;
             }
           }
         });
         await reopenIfIncomplete(tx, draftId);
+        return missingForDone;
       });
+      if (refused) throw new AppError(409, "draft_incomplete", "The draft is missing what it needs to be done.", { missing: refused });
 
       const row = await load(prisma, draftId);
       if (!row) throw notFound(); // deleted meanwhile
@@ -281,7 +296,12 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
           const existing = await tx.draftLine.findUnique({ where: { id: body.id } });
           if (existing) {
             if (existing.draftId !== draftId) throw new AppError(409, "id_conflict", "That line id is already taken.");
-            // A retry of a create the phone already sent (offline queue).
+            // A retry of a create the phone already sent (offline queue), only if it is the same line.
+            const same =
+              existing.kind === body.kind &&
+              Number(existing.amount) === body.amount &&
+              (body.kind === "existing" ? existing.ingredientId === body.ingredientId : existing.newName === body.newName);
+            if (!same) throw new AppError(409, "id_conflict", "That line id is already taken.");
             return 200;
           }
           await lockedOpenDraft(tx, projectId, draftId);

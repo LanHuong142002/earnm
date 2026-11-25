@@ -65,11 +65,11 @@ export function missingOf(error: ApiError): ServerMissing[] {
 
 export type DraftSyncCycleDeps = {
   getToken: () => Promise<string | null>;
-  listDrafts: (token: string, projectId: string) => Promise<Draft[]>;
+  listDrafts: (token: string, projectId: string) => Promise<{ drafts: Draft[]; convertedTotal?: number }>;
   /** The project's cached list (the server's, no waiting changes); null when it was never fetched. */
   getEntry: (projectId: string) => Draft[] | null;
   /** Shows and saves one project's list. Writes are applied in the order given. */
-  commit: (projectId: string, list: Draft[]) => Promise<unknown>;
+  commit: (projectId: string, list: Draft[], convertedTotal?: number) => Promise<unknown>;
   setNotice: (notice: DraftRejectedNotice) => void;
   /** Changes when the session ends or the person changes; late results are then dropped. */
   getGeneration: () => number;
@@ -129,9 +129,9 @@ export function createDraftSyncCycle(deps: DraftSyncCycleDeps) {
     const token = await deps.getToken();
     if (!token || gen !== deps.getGeneration()) return "skipped";
     try {
-      const drafts = await deps.listDrafts(token, projectId);
+      const { drafts, convertedTotal } = await deps.listDrafts(token, projectId);
       if (gen !== deps.getGeneration()) return "skipped";
-      await deps.commit(projectId, drafts.filter(isDraft));
+      await deps.commit(projectId, drafts.filter(isDraft), typeof convertedTotal === "number" ? convertedTotal : undefined);
       return "ok";
     } catch (error) {
       if (gen !== deps.getGeneration()) return "skipped";

@@ -329,6 +329,63 @@ describe("/projects/:projectId/drafts", () => {
     });
   });
 
+  describe("review fixes (#15)", () => {
+    it("answers 409 id_conflict when a line id is retried with a different line", async () => {
+      const { a, p } = await world();
+      const d = body();
+      await create(a, p, d);
+      const milk = await ingredient(p, "Sữa");
+      const tea = await ingredient(p, "Trà");
+      const e = existingLine(milk);
+      expect((await addLine(a, p, idOf(d), e)).status).toBe(201);
+      expect((await addLine(a, p, idOf(d), e)).status).toBe(200);
+      expectError(await addLine(a, p, idOf(d), { ...e, amount: 31 }), 409, "id_conflict");
+      expectError(await addLine(a, p, idOf(d), { ...e, ingredientId: tea }), 409, "id_conflict");
+      const n = newLine({ newName: "Vải hộp" });
+      expect((await addLine(a, p, idOf(d), n)).status).toBe(201);
+      expect((await addLine(a, p, idOf(d), n)).status).toBe(200);
+      expectError(await addLine(a, p, idOf(d), { ...n, newName: "Khác" }), 409, "id_conflict");
+      expectError(await addLine(a, p, idOf(d), existingLine(milk, { id: n.id })), 409, "id_conflict");
+    });
+
+    it("applies the other fields when done is refused, keeps the status and still says 409", async () => {
+      const { a, p } = await world();
+      const d = body();
+      await create(a, p, d);
+      const t = later();
+      const res = await patch(a, p, idOf(d), { name: { value: "Tên mới", editedAt: t }, status: { value: "done", editedAt: t } });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe("draft_incomplete");
+      expect(missingCodes(res)).toEqual(["lines"]);
+      const got = (await list(a, p)).body.drafts[0];
+      expect(got.name).toBe("Tên mới");
+      expect(got.status).toBe("working");
+    });
+
+    it("lists every unconverted draft and the 50 most recently converted, with the converted total", async () => {
+      const { a, p } = await world();
+      const base0 = clock.now().getTime();
+      await prisma.draft.createMany({
+        data: [
+          ...Array.from({ length: 55 }, (_, i) => ({
+            id: randomUUID(), projectId: p, name: `C${i}`, sizes: ["M" as const], convertedAt: new Date(base0 + i * 1000),
+          })),
+          ...Array.from({ length: 3 }, (_, i) => ({ id: randomUUID(), projectId: p, name: `U${i}`, sizes: ["M" as const] })),
+        ],
+      });
+      const res = await list(a, p);
+      expect(res.status).toBe(200);
+      expect(res.body.convertedTotal).toBe(55);
+      const names = (res.body.drafts as { name: string; convertedAt: string | null }[]);
+      expect(names.filter((x) => x.convertedAt === null)).toHaveLength(3);
+      const conv = names.filter((x) => x.convertedAt !== null).map((x) => x.name);
+      expect(conv).toHaveLength(50);
+      expect(conv).toContain("C54");
+      expect(conv).toContain("C5");
+      expect(conv).not.toContain("C4");
+    });
+  });
+
   describe("status (AC5)", () => {
     it("refuses done with a missing list for each rule, and allows done and back to working", async () => {
       const { a, p } = await world();

@@ -23,6 +23,7 @@ import {
   pruneDraftCache,
   saveDraftCache,
   setProjectDrafts,
+  convertedTotalOf,
   type DraftCache,
 } from "./store";
 import {
@@ -61,6 +62,8 @@ type DraftsContextValue = {
   loadedFor: (projectId: string) => boolean;
   /** The project's drafts with the waiting changes laid over them. Not sorted. */
   draftsFor: (projectId: string) => Draft[];
+  /** How many converted drafts the server has (the list holds only the newest 50); null until known. */
+  convertedTotalFor: (projectId: string) => number | null;
   /** The drafts of the project with a change waiting ("Chờ lưu"). */
   draftPendingFor: (projectId: string) => ReadonlySet<string>;
   createDraft: (projectId: string, input: DraftInput) => Promise<DraftMutationResult<{ id: string }>>;
@@ -141,7 +144,10 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
     return write;
   }, []);
 
-  const commit = useCallback((projectId: string, list: Draft[]) => publish(setProjectDrafts(cacheRef.current, projectId, list)), [publish]);
+  const commit = useCallback(
+    (projectId: string, list: Draft[], convertedTotal?: number) => publish(setProjectDrafts(cacheRef.current, projectId, list, convertedTotal)),
+    [publish],
+  );
 
   const syncWaiting = useCallback(async () => {
     try {
@@ -263,6 +269,7 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
     (projectId) => applyDraftOverlay(projectId, draftsOf(cache, projectId), waiting),
     [cache, waiting],
   );
+  const convertedTotalFor = useCallback<DraftsContextValue["convertedTotalFor"]>((projectId) => convertedTotalOf(cache, projectId), [cache]);
   const draftPendingFor = useCallback<DraftsContextValue["draftPendingFor"]>((projectId) => pendingDraftIds(projectId, waiting), [waiting]);
   const loadedFor = useCallback<DraftsContextValue["loadedFor"]>((projectId) => hasDrafts(cache, projectId), [cache]);
 
@@ -466,6 +473,7 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
       ready,
       loadedFor,
       draftsFor,
+      convertedTotalFor,
       draftPendingFor,
       createDraft,
       editDraft,
@@ -479,7 +487,7 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
       rejectedNotice,
       dismissRejectedNotice,
     }),
-    [ready, loadedFor, draftsFor, draftPendingFor, createDraft, editDraft, setDraftStatus, deleteDraft, addLine, editLine, removeLine, convertDraft, refresh, rejectedNotice, dismissRejectedNotice],
+    [ready, loadedFor, draftsFor, convertedTotalFor, draftPendingFor, createDraft, editDraft, setDraftStatus, deleteDraft, addLine, editLine, removeLine, convertDraft, refresh, rejectedNotice, dismissRejectedNotice],
   );
 
   return <DraftsContext.Provider value={value}>{children}</DraftsContext.Provider>;

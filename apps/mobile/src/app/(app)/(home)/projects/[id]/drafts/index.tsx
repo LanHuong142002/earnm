@@ -9,7 +9,7 @@ import { DraftRejectedNoticeView } from "../../../../../../drafts/DraftRejectedN
 import { useDrafts } from "../../../../../../drafts/DraftsProvider";
 import { draftEstimate } from "../../../../../../drafts/estimate";
 import type { Draft } from "../../../../../../drafts/types";
-import { estimateLines, groupDrafts, rowSummary } from "../../../../../../drafts/view";
+import { convertedHeader, estimateLines, groupDrafts, rowSummary } from "../../../../../../drafts/view";
 import { moneyOf } from "../../../../../../ingredients/display";
 import { useIngredients } from "../../../../../../ingredients/IngredientsProvider";
 import { OfflineNote } from "../../../../../../projects/OfflineNote";
@@ -36,7 +36,7 @@ export default function DraftListScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { status, projects } = useProjects();
   const drafts = useDrafts();
-  const { ready, refresh, draftsFor, draftPendingFor, loadedFor } = drafts;
+  const { ready, refresh, draftsFor, draftPendingFor, loadedFor, convertedTotalFor } = drafts;
   const products = useProducts();
   const ingredients = useIngredients();
   const project = projects.find((p) => p.id === id) ?? null;
@@ -80,6 +80,7 @@ export default function DraftListScreen() {
   const extras = productsReady ? products.extraCostsFor(project.id) : [];
   const target = productsReady ? products.targetMarginFor(project.id) : 65;
   const groups = groupDrafts(all);
+  const convertedInfo = convertedHeader(groups.converted.length, convertedTotalFor(project.id));
   const pending = draftPendingFor(project.id);
   const listState = taskListState({ ready, cachedCount: all.length, loaded: load.loaded || (ready && loadedFor(project.id)), failed: load.failed });
   const openDraft = (draftId: string) => once(() => router.push({ pathname: "/projects/[id]/drafts/[draftId]", params: { id: project.id, draftId } }));
@@ -178,7 +179,7 @@ export default function DraftListScreen() {
             {groups.converted.length > 0 ? (
               <Card flush>
                 <View style={{ paddingHorizontal: spacing[2] }}>
-                  <Collapsible title={t("drafts.sectionConverted", { count: groups.converted.length })}>
+                  <Collapsible title={t("drafts.sectionConverted", { count: convertedInfo.count })}>
                     {groups.converted.map((draft, index) => (
                       <DraftRowView
                         key={draft.id}
@@ -190,6 +191,11 @@ export default function DraftListScreen() {
                         onOpen={() => openDraft(draft.id)}
                       />
                     ))}
+                    {convertedInfo.capped ? (
+                      <Text style={[typography.caption, { color: colors.textSecondary, paddingVertical: spacing[1] }]}>
+                        {t("drafts.convertedCapped", { count: groups.converted.length })}
+                      </Text>
+                    ) : null}
                   </Collapsible>
                 </View>
               </Card>

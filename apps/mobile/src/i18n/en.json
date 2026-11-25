@@ -824,6 +824,7 @@
     "editHintUsed_one": "Saving adds the new price to the history and updates the cost of {{count}} product.",
     "editHintUsed_other": "Saving adds the new price to the history and updates the cost of {{count}} products.",
     "inUseTitle": "Can't delete {{name}} yet",
+    "deleteUsedByDrafts": "Used in drafts: {{drafts}}. Those lines will need an ingredient chosen again.",
     "inUseMessage": "{{name}} is in the recipe of {{products}}. Remove it from those products first, then delete it.",
     "inUseOk": "Got it"
   },
@@ -1027,6 +1028,8 @@
     "sectionDone": "Done · {{count}}",
     "sectionWorking": "In progress · {{count}}",
     "sectionConverted": "Converted · {{count}}",
+    "convertedCapped": "Showing the latest {{count}} drafts",
+    "confirmReuseItem": "{{name}} (keeps its price {{price}}; the draft's price is not used)",
     "statusWorking": "In progress",
     "statusDone": "Done",
     "rowCost": "{{sizes}} · cost ~{{cost}}",

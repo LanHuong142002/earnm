@@ -32,7 +32,7 @@ const base = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/
 const one = (projectId: string, id: string) => `${base(projectId)}/${encodeURIComponent(id)}`;
 const lineOf = (projectId: string, id: string, lineId: string) => `${one(projectId, id)}/lines/${encodeURIComponent(lineId)}`;
 
-export const listDrafts = (token: string, projectId: string) => request<{ drafts: Draft[] }>(base(projectId), { token }).then((r) => r.drafts);
+export const listDrafts = (token: string, projectId: string) => request<{ drafts: Draft[]; convertedTotal?: number }>(base(projectId), { token });
 
 export const createDraft = (token: string, projectId: string, body: CreateDraftBody) =>
   request<Draft>(base(projectId), { method: "POST", body, token });

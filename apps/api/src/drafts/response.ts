@@ -1,4 +1,5 @@
 import type { Prisma } from "../../generated/prisma/client.js";
+import type { Tx } from "../ideas/common.js";
 import { SIZE_ORDER } from "../products/response.js";
 
 export const draftInclude = {
@@ -63,4 +64,11 @@ export function draftResponse(draft: DraftRow) {
     createdAt: draft.createdAt.toISOString(),
     lines: draft.lines.map(draftLineResponse),
   };
+}
+
+/** A done draft that an edit left incomplete goes back to working, stamped with the time of the edit. */
+export async function reopenIfIncomplete(tx: Tx, draftId: string, at: Date) {
+  const row = await tx.draft.findUnique({ where: { id: draftId }, include: draftInclude });
+  if (!row || row.status !== "done" || draftMissing(row).length === 0) return;
+  await tx.draft.updateMany({ where: { id: draftId, status: "done" }, data: { status: "working", statusEditedAt: at } });
 }

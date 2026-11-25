@@ -27,7 +27,7 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
 2. A draft has recipe lines for one cup of the base size, at most 100. Each line is one of two kinds:
    - **Existing:** an existing ingredient and an amount above 0. It can't repeat an ingredient.
    - **New:** a new-ingredient name, a kind (weigh/measure/count, as in #12), an amount per cup above 0, and an optional purchase quantity and purchase price. The name is unique among the draft's new lines, and also unique against the project's existing ingredients at the time of adding.
-3. Any member can create, edit and delete a draft, its lines and its status while it is unconverted. Edits use per-field last-write-wins, like products. A non-member gets `404`; a signed-out request gets `401`.
+3. Any member can create, edit and delete a draft, its lines and its status while it is unconverted. Edits use per-field last-write-wins, like products. A retry of a line create with the same id answers `200` only when it is the same line (kind, ingredient or new name, amount); otherwise `409 id_conflict`. The drafts list returns every unconverted draft and only the 50 most recently converted ones (newest conversion first), plus `convertedTotal`, the count of all converted drafts. A non-member gets `404`; a signed-out request gets `401`.
 4. The draft shows an estimated cost:
    - each line's cost is worked out like #13;
    - the total adds the project's default ingredients and default extra costs, as the product will get them.
@@ -38,7 +38,7 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
    - at least one size;
    - at least one line;
    - a purchase quantity and price on every new line.
-   `done` can go back to `working`. An edit that makes a done draft incomplete (for example deleting its last line or clearing a purchase price) returns it to `working`.
+   `done` can go back to `working`. An edit that makes a done draft incomplete (for example deleting its last line or clearing a purchase price) returns it to `working`. Deleting an ingredient that a done, unconverted draft uses (its lines lose the ingredient) also returns that draft to `working`, in the same transaction. When a request sets `done` together with other fields and `done` is refused, the other fields are kept, the status stays as it was, and the answer is `409 draft_incomplete` with the missing list.
 6. **Convert** is allowed only on a `done`, unconverted draft, and needs the network. It runs in one transaction:
    - each new line creates an ingredient with its purchase data, unless an ingredient with the same name now exists, in which case that one is used;
    - a product is created with the draft's name and sizes;
@@ -51,12 +51,12 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
    - the draft is not done or already converted;
    - a new line's name now matches an existing ingredient that is counted a different way (`draft_ingredient_mode_mismatch`);
    - lines for the same ingredient add up to more than one line can hold (`draft_line_amount_too_large`).
-8. Before converting, the phone shows a confirm dialog listing the ingredients to add, the existing ingredients it will reuse, and the product with its sizes and price (A8).
+8. Before converting, the phone shows a confirm dialog listing the ingredients to add, the existing ingredients it will reuse, and the product with its sizes and price (A8). A reused ingredient is shown with its own unit price and that the draft's price is not used (for example "Vải ngâm (giữ giá 79,65 ₫/g, không dùng giá trong nháp)").
 9. A converted draft shows a link to its product; the product shows "Từ nháp …" linking back. If the product is deleted, the draft keeps its read-only content with "Món đã bị xoá" and no link. A converted draft can be deleted (draft and lines); the product stays and its "Từ nháp" link disappears.
 10. Offline, edits to unconverted drafts are queued and synced ("Chờ lưu"); convert shows the network notice.
 11. The screens match mockup bản 2 group A:
     - project tile, A1;
-    - list with Done, Working and a collapsed Converted section, A2;
+    - list with Done, Working and a collapsed Converted section, A2 (its count is `convertedTotal`; when more exist than are shown, a caption says "Hiện 50 nháp gần nhất");
     - draft detail, A3;
     - add-line sheet with search and "new ingredient", A4;
     - new-ingredient line form, A5;
@@ -67,6 +67,7 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
     - product "Từ nháp" link, A10;
     - empty state and convert errors, A11;
     - dark mode, A12.
+    Deleting an ingredient used by unconverted drafts names those drafts in its confirm ("Đang dùng trong nháp: … Dòng đó sẽ cần chọn lại nguyên liệu.").
     The like row, comments and photos in A3 and A9 are not built here (ticket E).
 12. Changing the project currency is refused once an unconverted draft has an expected price or new-line purchase price.
 13. All text exists in Vietnamese and English.

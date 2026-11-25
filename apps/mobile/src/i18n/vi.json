@@ -819,6 +819,7 @@
     "usedIn_other": "Dùng trong {{count}} sản phẩm",
     "editHintUsed_other": "Lưu sẽ thêm giá mới vào lịch sử và cập nhật giá vốn của {{count}} sản phẩm.",
     "inUseTitle": "Chưa xoá được {{name}}",
+    "deleteUsedByDrafts": "Đang dùng trong nháp: {{drafts}}. Dòng đó sẽ cần chọn lại nguyên liệu.",
     "inUseMessage": "{{name}} đang có trong công thức của {{products}}. Bỏ nó khỏi các món này trước rồi xoá.",
     "inUseOk": "Đã hiểu"
   },
@@ -1020,6 +1021,8 @@
     "sectionDone": "Xong · {{count}}",
     "sectionWorking": "Đang làm · {{count}}",
     "sectionConverted": "Đã chuyển · {{count}}",
+    "convertedCapped": "Hiện {{count}} nháp gần nhất",
+    "confirmReuseItem": "{{name}} (giữ giá {{price}}, không dùng giá trong nháp)",
     "statusWorking": "Đang làm",
     "statusDone": "Xong",
     "rowCost": "{{sizes}} · vốn ~{{cost}}",

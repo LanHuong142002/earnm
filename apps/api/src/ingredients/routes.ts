@@ -20,6 +20,7 @@ import {
   recordPurchase as recordPurchaseRow,
 } from "./create.js";
 import type { Purchase } from "./create.js";
+import { reopenIfIncomplete } from "../drafts/response.js";
 import { ingredientInclude, ingredientResponse } from "./response.js";
 
 export { MAX_INGREDIENTS_PER_PROJECT, MAX_PRICE, MAX_QUANTITY };
@@ -289,9 +290,15 @@ export function createIngredientsRouter(deps: { prisma: PrismaClient; now: () =>
           const products = [...new Set(used.map((l) => l.sizeRow.product.name))].sort((a, b) => a.localeCompare(b));
           throw new AppError(409, "ingredient_in_use", "That ingredient is used in a product recipe.", { products });
         }
+        // Done drafts with a line on it: the line loses its ingredient, so they need another look.
+        const drafts = await tx.draft.findMany({
+          where: { projectId, convertedAt: null, status: "done", lines: { some: { ingredientId } } },
+          select: { id: true },
+        });
         // The price history goes with it by the database cascade.
         const { count } = await tx.ingredient.deleteMany({ where: { id: ingredientId, projectId } });
         if (count === 0) throw notFound(); // someone else deleted it first
+        for (const d of drafts) await reopenIfIncomplete(tx, d.id, now());
       });
       res.status(204).end();
     } catch (err) {

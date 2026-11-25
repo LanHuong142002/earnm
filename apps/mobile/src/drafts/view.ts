@@ -1,4 +1,4 @@
-import type { IngredientMode } from "../ingredients/types";
+import type { IngredientMode, Purchase } from "../ingredients/types";
 import { per1 } from "../ingredients/cost";
 import { formatUnitCost, type Currency } from "../lib/currency";
 import { SIZE_NAMES, type SizeName } from "../products/types";
@@ -59,11 +59,11 @@ const key = (name: string) => name.trim().toLocaleLowerCase("vi");
 /** For the confirm dialog (R8): new lines to create as ingredients, and new lines whose name an ingredient now has. */
 export function convertSplit(
   lines: readonly DraftLineRow[],
-  ingredients: readonly { name: string; mode: IngredientMode }[],
-): { create: string[]; reuse: string[]; mismatch: string[] } {
-  const known = new Map(ingredients.map((i) => [key(i.name), i.mode]));
+  ingredients: readonly { name: string; mode: IngredientMode; purchase: Purchase }[],
+): { create: string[]; reuse: ReuseItem[]; mismatch: string[] } {
+  const known = new Map(ingredients.map((i) => [key(i.name), i]));
   const create: string[] = [];
-  const reuse: string[] = [];
+  const reuse: ReuseItem[] = [];
   const mismatch: string[] = [];
   const seen = new Set<string>();
   for (const line of lines) {
@@ -71,11 +71,38 @@ export function convertSplit(
     const k = key(line.newName);
     if (seen.has(k)) continue;
     seen.add(k);
-    const mode = known.get(k);
+    const found = known.get(k);
     // The server refuses a same-name ingredient that is counted a different way (ml vs g): show a notice instead.
-    (mode === undefined ? create : mode === line.newKind ? reuse : mismatch).push(line.newName);
+    if (found === undefined) create.push(line.newName);
+    else if (found.mode === line.newKind) reuse.push({ name: line.newName, purchase: found.purchase });
+    else mismatch.push(line.newName);
   }
   return { create, reuse, mismatch };
+}
+
+/** The names of the unconverted drafts that have a line on the ingredient (deleting it empties those lines). */
+export function draftsUsing(ingredientId: string, drafts: readonly Draft[]): string[] {
+  const names = drafts.filter((d) => d.convertedAt === null && d.lines.some((l) => l.ingredientId === ingredientId)).map((d) => d.name);
+  return [...new Set(names)].sort((a, b) => a.localeCompare(b, "vi"));
+}
+
+/** A new line that reuses an ingredient already there: the ingredient keeps its own price. */
+export type ReuseItem = { name: string; purchase: Purchase };
+
+/** One text per reused ingredient, naming the unit price it keeps (the draft's price is not used). */
+export function reuseTexts(
+  reuse: readonly ReuseItem[],
+  currency: Currency,
+  text: (name: string, price: string) => string,
+  unitLabel: (purchase: Purchase) => string,
+): string[] {
+  return reuse.map((r) => text(r.name, unitPriceText(r.purchase, currency, unitLabel(r.purchase)) || "-"));
+}
+
+/** The converted section's count: the server's total when it sent one, and whether the list shows fewer than that. */
+export function convertedHeader(shown: number, total: number | null): { count: number; capped: boolean } {
+  const count = total === null ? shown : Math.max(total, shown);
+  return { count, capped: count > shown };
 }
 
 export type MissingItem = { kind: "name" } | { kind: "sizes" } | { kind: "lines" } | { kind: "price"; name: string } | { kind: "qty"; name: string };

@@ -177,6 +177,37 @@ describe("/projects/:projectId/ingredients", () => {
       expect(await prisma.ingredientPrice.count()).toBe(0);
     });
 
+    it("sends a done draft that used the deleted ingredient back to working, and leaves converted ones alone", async () => {
+      const { a, p } = await world();
+      const id = randomUUID();
+      await create(a, p, body({ id }));
+      const t = clock.now();
+      const mk = (name: string, status: "working" | "done", converted: boolean) =>
+        prisma.draft.create({
+          data: {
+            id: randomUUID(), projectId: p, name, sizes: ["M"], status, statusEditedAt: new Date(0),
+            ...(converted ? { convertedAt: t } : {}),
+            lines: {
+              create: [
+                { id: randomUUID(), kind: "existing", ingredientId: id, amount: 10, position: 1 },
+                { id: randomUUID(), kind: "new", newName: `X ${name}`, newNameKey: `x ${name}`, newKind: "weight", purchaseQty: 1, purchasePrice: 1, amount: 5, position: 2 },
+              ],
+            },
+          },
+        });
+      const done = await mk("done", "done", false);
+      const working = await mk("working", "working", false);
+      const converted = await mk("converted", "done", true);
+      clock.advanceMs(5000);
+      expect((await del(a, p, id)).status).toBe(204);
+      const status = async (d: string) => (await prisma.draft.findUniqueOrThrow({ where: { id: d } }));
+      const reopened = await status(done.id);
+      expect(reopened.status).toBe("working");
+      expect(reopened.statusEditedAt.getTime()).toBe(clock.now().getTime());
+      expect((await status(working.id)).status).toBe("working");
+      expect((await status(converted.id)).status).toBe("done");
+    });
+
     it("answers 404 when deleting an ingredient that is already gone", async () => {
       const { a, p } = await world();
       expect((await del(a, p, randomUUID())).status).toBe(404);

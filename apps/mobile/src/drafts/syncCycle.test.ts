@@ -19,20 +19,25 @@ const change = (over: Partial<Change> = {}): Change => ({
 
 function setup(initial: Record<string, Draft[]> = { p1: [draft({ id: "d1", name: "Cũ", lines: [draftLine({ id: "l1" })] })] }) {
   let entries = initial;
+  let totals: Record<string, number> = {};
   const notices: DraftRejectedNotice[] = [];
   const deps = {
     getToken: vi.fn(async () => "tok" as string | null),
-    listDrafts: vi.fn(async () => [draft({ id: "d1", name: "Từ máy chủ" })]),
+    listDrafts: vi.fn(async (): Promise<{ drafts: Draft[]; convertedTotal?: number }> => ({
+      drafts: [draft({ id: "d1", name: "Từ máy chủ" })],
+      convertedTotal: 73,
+    })),
     getEntry: (projectId: string) => entries[projectId] ?? null,
-    commit: async (projectId: string, list: Draft[]) => {
+    commit: async (projectId: string, list: Draft[], convertedTotal?: number) => {
       entries = { ...entries, [projectId]: list };
+      if (convertedTotal !== undefined) totals = { ...totals, [projectId]: convertedTotal };
     },
     setNotice: (n: DraftRejectedNotice) => void notices.push(n),
     getGeneration: () => 0,
     isWiped: () => false,
     onNotSignedIn: vi.fn(),
   };
-  return { cycle: createDraftSyncCycle(deps), deps, notices, get: () => entries };
+  return { cycle: createDraftSyncCycle(deps), deps, notices, get: () => entries, totals: () => totals };
 }
 
 describe("draft sync cycle", () => {
@@ -90,6 +95,7 @@ describe("draft sync cycle", () => {
     const s = setup();
     expect(await s.cycle.refresh("p1")).toBe("ok");
     expect(s.get().p1[0].name).toBe("Từ máy chủ");
+    expect(s.totals()).toEqual({ p1: 73 });
     s.deps.listDrafts.mockRejectedValueOnce(new ApiError("not_found", 404));
     expect(await s.cycle.refresh("p1")).toBe("gone");
     expect(s.get().p1).toEqual([]);
