@@ -24,3 +24,5 @@
 - [quality] Stamp a device as synced only after the exact data the server will rely on was fetched successfully, per scope; stamping on an earlier request silently lost reminders
 - [quality] A cleanup that destroys external files on a refused request must first check that no recorded row owns them; an orphan-cleanup fix let any member destroy another person's photo
 - [quality] When money columns are added, check every path that can change their meaning (project currency) in the plan; both #12 and #13 reviews caught an incomplete currency lock
+- [quality] Per-field LWW on linked fields (kind+months): never reject a whole PATCH for a stale field; resolve linked fields together and keep invariants after LWW
+- [cost] Two reviewers running the API suite on one shared test DB give flaky failures; run DB tests once, alone
