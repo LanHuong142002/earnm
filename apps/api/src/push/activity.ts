@@ -10,6 +10,8 @@ const MAX_ATTEMPTS = 3;
 export const ACTIVITY_LOCK_KEY = 1_016_001;
 /** Candidates handled per flush; the rest wait for the next one. */
 const BATCH = 2000;
+/** Event ids listed in one push's data. */
+const MAX_EVENT_IDS = 50;
 
 const NEEDS_TASK: ReadonlySet<ActivityType> = new Set(["assigned", "comment", "done"]);
 
@@ -21,10 +23,34 @@ export interface FlushSummary {
 }
 
 /**
+ * When the next activity push is due: the earliest `dueAt` of a never-tried pending row, or two
+ * minutes after the last attempt of a pending row still being retried. Null when nothing waits.
+ * The scheduler re-arms for this after each flush.
+ */
+export async function nextActivityDueAt(prisma: PrismaClient): Promise<Date | null> {
+  const [fresh, retry] = await Promise.all([
+    prisma.activityRecipient.aggregate({
+      where: { pushState: "pending", attempts: 0 },
+      _min: { dueAt: true },
+    }),
+    prisma.activityRecipient.aggregate({
+      where: { pushState: "pending", attempts: { gt: 0, lt: MAX_ATTEMPTS } },
+      _min: { lastAttemptAt: true },
+    }),
+  ]);
+  const candidates: number[] = [];
+  if (fresh._min.dueAt) candidates.push(fresh._min.dueAt.getTime());
+  if (retry._min.lastAttemptAt) candidates.push(retry._min.lastAttemptAt.getTime() + RETRY_AFTER_MS);
+  return candidates.length === 0 ? null : new Date(Math.min(...candidates));
+}
+
+/**
  * Sends the activity pushes that came due: one per person per project, listing the newest events.
  * Rows too old, for someone who left the project, or whose task or idea is gone are dropped;
  * rows the person muted are marked muted. Rows are claimed with a compare-and-set before sending
- * so no event goes out twice. Only one flush runs at a time. Without a sender nothing happens.
+ * so no event goes out twice (delivery is at-least-once: a crash between the push service
+ * accepting a message and the rows being settled can send it once more after the retry delay).
+ * Only one flush runs at a time. Without a sender nothing happens.
  */
 export async function flushActivity(deps: {
   prisma: PrismaClient;
@@ -150,7 +176,9 @@ async function flush(prisma: PrismaClient, sender: PushSender, now: Date): Promi
       kind: "activity",
       projectId: first.event.projectId,
       target: targetOf(events),
-      eventIds: events.map((e) => e.id),
+      // Newest first. Capped so the payload stays under the push service's 4 KB limit; the body
+      // already says "+N more" and every claimed row is settled whatever the cap.
+      eventIds: events.slice(0, MAX_EVENT_IDS).map((e) => e.id),
     };
     const messages: PushMessage[] = tokens.map((t) => ({ to: t.token, title, body, data }));
     const { delivered } = await deliverPushes(prisma, sender, messages);

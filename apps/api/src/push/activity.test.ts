@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "../app.js";
 import { recordActivity } from "../activity/record.js";
 import { addMember, createSignedInUser, prisma, useTestApp } from "../test/helpers.js";
-import { flushActivity } from "./activity.js";
+import { flushActivity, nextActivityDueAt } from "./activity.js";
 import { runCatchUp } from "./catchUp.js";
 import { createFakeSender } from "./sender.js";
 
@@ -309,6 +309,34 @@ describe("flushActivity", () => {
     expect(await states()).toEqual(["dropped"]);
     await flush(sender, 3000);
     expect(sender.sent).toHaveLength(3);
+  });
+
+  it("caps the event ids in the push data at the newest 50 and still settles every row (R15)", async () => {
+    const w = await world();
+    for (let i = 0; i < 120; i++) await record(w, "comment", { occurredAt: new Date(T0.getTime() - i * 1000) });
+    const sender = createFakeSender();
+    const summary = await flush(sender, 60);
+    expect(summary.sent).toBe(120);
+    expect(sender.sent).toHaveLength(1);
+    const ids = (sender.sent[0]!.data as { eventIds: string[] }).eventIds;
+    expect(ids).toHaveLength(50);
+    const newest = await prisma.activityEvent.findMany({ orderBy: { occurredAt: "desc" }, take: 50 });
+    expect(new Set(ids)).toEqual(new Set(newest.map((e) => e.id)));
+    expect((await states()).every((s) => s === "sent")).toBe(true);
+  });
+
+  it("reports when the next send is due: a window end, then a retry 2 minutes after a failure", async () => {
+    const w = await world();
+    await expect(nextActivityDueAt(prisma)).resolves.toBeNull();
+    await record(w, "assigned");
+    await expect(nextActivityDueAt(prisma)).resolves.toEqual(at(60));
+    const sender = createFakeSender();
+    sender.failing.add("ExponentPushToken[alice]");
+    await flush(sender, 60);
+    await expect(nextActivityDueAt(prisma)).resolves.toEqual(at(180));
+    sender.failing.clear();
+    await flush(sender, 181);
+    await expect(nextActivityDueAt(prisma)).resolves.toBeNull();
   });
 
   it("a retry succeeds once the sender recovers (AC16)", async () => {

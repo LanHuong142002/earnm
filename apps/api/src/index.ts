@@ -2,7 +2,7 @@ import "dotenv/config";
 import { createApp } from "./app.js";
 import { createCloudinaryStore } from "./photos/cloudinary.js";
 import { createTimerScheduler } from "./activity/scheduler.js";
-import { flushActivity } from "./push/activity.js";
+import { flushActivity, nextActivityDueAt } from "./push/activity.js";
 import { createExpoSender } from "./push/sender.js";
 import { ConfigError, loadConfig } from "./config.js";
 import { createPrismaClient } from "./db.js";
@@ -31,7 +31,10 @@ const app = createApp({
   photoStore: config.cloudinary ? createCloudinaryStore(config.cloudinary) : null,
   pushSender,
   activityScheduler: pushSender
-    ? createTimerScheduler(() => flushActivity({ prisma, sender: pushSender, now: now() }), now)
+    ? createTimerScheduler(async () => {
+        await flushActivity({ prisma, sender: pushSender, now: now() });
+        return { nextDueAt: await nextActivityDueAt(prisma) };
+      }, now)
     : null,
 });
 

@@ -145,6 +145,30 @@ describe("activity routes", () => {
       expect(await prisma.projectNotificationMute.count({ where: { userId: u.id } })).toBe(0);
     });
 
+    it("identical concurrent mute requests all succeed with one row (R23)", async () => {
+      const u = await user();
+      const p = await project(u);
+      const results = await Promise.all(
+        Array.from({ length: 12 }, () =>
+          request(app).put(`/projects/${p}/notification-mute`).set(...bearer(u)).send({ muted: true }),
+        ),
+      );
+      expect(results.map((r) => r.status)).toEqual(Array(12).fill(200));
+      expect(results.every((r) => r.body.muted === true)).toBe(true);
+      expect(await prisma.projectNotificationMute.count({ where: { userId: u.id } })).toBe(1);
+    });
+
+    it("identical concurrent type-mute requests all succeed with the same settings (R23)", async () => {
+      const u = await user();
+      const results = await Promise.all(
+        Array.from({ length: 12 }, () =>
+          request(app).put("/me/notification-settings/types/comment").set(...bearer(u)).send({ enabled: false }),
+        ),
+      );
+      expect(results.map((r) => r.status)).toEqual(Array(12).fill(200));
+      expect(await prisma.notificationTypeMute.count({ where: { userId: u.id } })).toBe(1);
+    });
+
     it("answers 404 not_found for a project the caller is not in, an unknown one, or a bad id", async () => {
       const owner = await user();
       const outsider = await user();

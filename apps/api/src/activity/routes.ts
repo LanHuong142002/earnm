@@ -92,11 +92,8 @@ export function createActivityRouter(deps: { prisma: PrismaClient; now: () => Da
       if (enabled) {
         await prisma.notificationTypeMute.deleteMany({ where: { userId, type } });
       } else {
-        await prisma.notificationTypeMute.upsert({
-          where: { userId_type: { userId, type } },
-          create: { userId, type },
-          update: {},
-        });
+        // skipDuplicates: a repeated or concurrent request is a no-op, never a unique violation.
+        await prisma.notificationTypeMute.createMany({ data: [{ userId, type }], skipDuplicates: true });
       }
       res.json(await loadSettings(prisma, userId));
     } catch (err) {
@@ -112,10 +109,9 @@ export function createActivityRouter(deps: { prisma: PrismaClient; now: () => Da
       const { muted } = mutedSchema.parse(req.body);
       if (!(await findForMember(prisma, projectId.data, userId))) throw notFound();
       if (muted) {
-        await prisma.projectNotificationMute.upsert({
-          where: { userId_projectId: { userId, projectId: projectId.data } },
-          create: { userId, projectId: projectId.data },
-          update: {},
+        await prisma.projectNotificationMute.createMany({
+          data: [{ userId, projectId: projectId.data }],
+          skipDuplicates: true,
         });
       } else {
         await prisma.projectNotificationMute.deleteMany({ where: { userId, projectId: projectId.data } });

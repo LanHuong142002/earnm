@@ -44,28 +44,41 @@ export function createInternalRouter(deps: {
   router.use(requireInternalSecret(deps.internalSecret));
 
   router.post("/tick", async (_req, res, next) => {
-    try {
-      const { prisma, pushSender } = deps;
-      const now = (deps.now ?? (() => new Date()))();
-      if (prisma && pushSender) {
+    const { prisma, pushSender } = deps;
+    const now = (deps.now ?? (() => new Date()))();
+    // Reminders, activity pushes and cleanup are independent: each runs even if another fails.
+    // A reminder or activity failure is still reported (500) once everything has had its turn;
+    // cleanup is housekeeping and never fails the tick.
+    let failure: unknown;
+    if (prisma && pushSender) {
+      try {
         await runCatchUp({ prisma, sender: pushSender, now });
+      } catch (err) {
+        console.error("reminders: catch-up failed", err instanceof Error ? err.name : "unknown");
+        failure ??= err;
+      }
+      try {
         await flushActivity({ prisma, sender: pushSender, now });
+      } catch (err) {
+        console.error("activity: flush failed", err instanceof Error ? err.name : "unknown");
+        failure ??= err;
       }
-      if (prisma) {
-        // Activity is kept for 30 days; the recipient rows go with their event.
-        // Housekeeping only: a failure here must not fail the tick.
-        try {
-          await prisma.activityEvent.deleteMany({
-            where: { occurredAt: { lt: new Date(now.getTime() - ACTIVITY_KEEP_MS) } },
-          });
-        } catch (err) {
-          console.error("activity: cleanup failed", err instanceof Error ? err.name : "unknown");
-        }
-      }
-      res.json({ status: "ok" });
-    } catch (err) {
-      next(err);
     }
+    if (prisma) {
+      // Activity is kept for 30 days; the recipient rows go with their event.
+      try {
+        await prisma.activityEvent.deleteMany({
+          where: { occurredAt: { lt: new Date(now.getTime() - ACTIVITY_KEEP_MS) } },
+        });
+      } catch (err) {
+        console.error("activity: cleanup failed", err instanceof Error ? err.name : "unknown");
+      }
+    }
+    if (failure !== undefined) {
+      next(failure);
+      return;
+    }
+    res.json({ status: "ok" });
   });
 
   router.get("/ip", (req, res) => {

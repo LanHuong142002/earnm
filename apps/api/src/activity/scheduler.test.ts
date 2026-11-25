@@ -48,6 +48,38 @@ describe("createTimerScheduler", () => {
     expect(flush).toHaveBeenCalledTimes(2);
   });
 
+  it("re-arms after a flush for the next due time it reports, so a second window needs no tick", async () => {
+    const flush = vi
+      .fn()
+      .mockResolvedValueOnce({ nextDueAt: new Date("2026-01-01T00:01:30Z") })
+      .mockResolvedValue({ nextDueAt: null });
+    const scheduler = createTimerScheduler(flush, () => new Date());
+    scheduler.schedule(new Date("2026-01-01T00:01:00Z"));
+    scheduler.schedule(new Date("2026-01-01T00:01:30Z")); // later: keeps the earlier timer
+    await vi.advanceTimersByTimeAsync(61_000);
+    expect(flush).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(flush).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    expect(flush).toHaveBeenCalledTimes(2);
+  });
+
+  it("an earlier due time replaces a pending later timer", async () => {
+    const { flush, scheduler } = make();
+    scheduler.schedule(new Date("2026-01-01T00:05:00Z"));
+    scheduler.schedule(new Date("2026-01-01T00:01:00Z"));
+    await vi.advanceTimersByTimeAsync(61_000);
+    expect(flush).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not re-arm when the flush reports nothing due", async () => {
+    const { flush, scheduler } = make();
+    scheduler.schedule(new Date("2026-01-01T00:00:10Z"));
+    await vi.advanceTimersByTimeAsync(11_000);
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    expect(flush).toHaveBeenCalledTimes(1);
+  });
+
   it("logs a failed flush without throwing and can be used again", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const flush = vi.fn().mockRejectedValueOnce(new Error("db down")).mockResolvedValue(undefined);
