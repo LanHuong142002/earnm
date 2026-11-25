@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import { occurrencesBetween } from "../reminders/occurrences.js";
 import { latestRemindWithComments } from "../reminders/remindWithComments.js";
+import { deliverPushes } from "./deliver.js";
 import type { PushMessage, PushSender } from "./sender.js";
 
 /** How far back a tick looks for occurrences it may have missed. */
@@ -210,17 +211,7 @@ async function sendDue(prisma: PrismaClient, sender: PushSender, from: Date, now
   }
   if (messages.length === 0) return 0;
 
-  let invalidTokens: string[] = [];
-  let delivered: boolean[] = messages.map(() => false);
-  try {
-    ({ invalidTokens, delivered } = await sender.send(messages));
-  } catch (err) {
-    // Nothing was delivered: the claims stay unsent and a later tick retries them.
-    console.error("push: sending failed", err instanceof Error ? err.name : "unknown");
-  }
-  if (invalidTokens.length > 0) {
-    await prisma.devicePushToken.deleteMany({ where: { token: { in: invalidTokens } } });
-  }
+  const { delivered, invalidTokens } = await deliverPushes(prisma, sender, messages);
 
   // A claim is done when any of its messages arrived, or when everything that failed was a token
   // that is gone (there is nothing left to retry on those devices).
