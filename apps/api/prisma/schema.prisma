@@ -52,22 +52,22 @@ enum LabelColour {
 }
 
 model User {
-  id                 String                  @id @default(uuid())
-  email              String                  @unique
+  id                 String                    @id @default(uuid())
+  email              String                    @unique
   passwordHash       String
   displayName        String
   language           Language?
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
   sessions           Session[]
   projects           ProjectMember[]
-  invitesCreated     Invite[]                @relation("InviteCreatedBy")
-  invitesUsed        Invite[]                @relation("InviteUsedBy")
-  createdTasks       Task[]                  @relation("TaskCreator")
+  invitesCreated     Invite[]                  @relation("InviteCreatedBy")
+  invitesUsed        Invite[]                  @relation("InviteUsedBy")
+  createdTasks       Task[]                    @relation("TaskCreator")
   assignments        TaskAssignee[]
   taskComments       TaskComment[]
   taskPhotos         TaskPhoto[]
-  remindersCreated   TaskReminder[]          @relation("ReminderCreator")
+  remindersCreated   TaskReminder[]            @relation("ReminderCreator")
   reminderRecipients TaskReminderRecipient[]
   pushTokens         DevicePushToken[]
   reminderPushes     ReminderPushSent[]
@@ -76,6 +76,11 @@ model User {
   ideaVotes          IdeaVote[]
   ideaComments       IdeaComment[]
   ideaPhotos         IdeaPhoto[]
+  activityActed      ActivityEvent[]           @relation("ActivityActor")
+  activityAbout      ActivityEvent[]           @relation("ActivityMember")
+  activityReceived   ActivityRecipient[]
+  typeMutes          NotificationTypeMute[]
+  projectMutes       ProjectNotificationMute[]
 }
 
 model ProjectMember {
@@ -91,15 +96,15 @@ model ProjectMember {
 }
 
 model Project {
-  id                   String              @id
+  id                   String                    @id
   name                 String
-  description          String              @default("")
+  description          String                    @default("")
   currency             Currency
   nameEditedAt         DateTime
   descriptionEditedAt  DateTime
   currencyEditedAt     DateTime
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
   members              ProjectMember[]
   tasks                Task[]
   invites              Invite[]
@@ -111,12 +116,14 @@ model Project {
   extraCosts           ExtraCost[]
   drafts               Draft[]
   fixedCosts           FixedCost[]
+  activityEvents       ActivityEvent[]
+  notificationMutes    ProjectNotificationMute[]
   /// Whole percent, 1-95. Drives the price hint on products.
-  targetMargin         Int                 @default(65)
-  targetMarginEditedAt DateTime            @default(now())
+  targetMargin         Int                       @default(65)
+  targetMarginEditedAt DateTime                  @default(now())
   /// Expected cups sold per month, 1-1,000,000, or null when not set. Spreads the fixed costs over each cup.
   expectedCupsPerMonth Int?
-  expectedCupsEditedAt DateTime            @default(now())
+  expectedCupsEditedAt DateTime                  @default(now())
 }
 
 model Session {
@@ -131,31 +138,32 @@ model Session {
 }
 
 model Task {
-  id                  String         @id
+  id                  String          @id
   projectId           String
-  project             Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project             Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title               String
-  description         String         @default("")
-  status              TaskStatus     @default(todo)
-  dueDate             DateTime?      @db.Date
+  description         String          @default("")
+  status              TaskStatus      @default(todo)
+  dueDate             DateTime?       @db.Date
   dueTime             String?
   titleEditedAt       DateTime
   descriptionEditedAt DateTime
   statusEditedAt      DateTime
   dueEditedAt         DateTime
   assigneesEditedAt   DateTime
-  labelsEditedAt      DateTime       @default(now())
+  labelsEditedAt      DateTime        @default(now())
   createdById         String?
-  createdBy           User?          @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  createdBy           User?           @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
   assignees           TaskAssignee[]
   checklists          Checklist[]
   labels              TaskLabel[]
   comments            TaskComment[]
   photos              TaskPhoto[]
   reminders           TaskReminder[]
-  fromIdea            Idea?          @relation("IdeaTask")
+  fromIdea            Idea?           @relation("IdeaTask")
+  activityEvents      ActivityEvent[]
 
   @@index([projectId])
 }
@@ -363,25 +371,26 @@ model TickState {
 }
 
 model Idea {
-  id                  String        @id
+  id                  String          @id
   projectId           String
-  project             Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project             Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   authorId            String?
-  author              User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author              User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
   title               String
-  description         String        @default("")
-  status              IdeaStatus    @default(new)
-  titleEditedAt       DateTime      @default(now())
-  descriptionEditedAt DateTime      @default(now())
-  statusEditedAt      DateTime      @default(now())
-  labelsEditedAt      DateTime      @default(now())
-  taskId              String?       @unique
-  task                Task?         @relation("IdeaTask", fields: [taskId], references: [id], onDelete: SetNull)
-  createdAt           DateTime      @default(now())
+  description         String          @default("")
+  status              IdeaStatus      @default(new)
+  titleEditedAt       DateTime        @default(now())
+  descriptionEditedAt DateTime        @default(now())
+  statusEditedAt      DateTime        @default(now())
+  labelsEditedAt      DateTime        @default(now())
+  taskId              String?         @unique
+  task                Task?           @relation("IdeaTask", fields: [taskId], references: [id], onDelete: SetNull)
+  createdAt           DateTime        @default(now())
   labels              IdeaLabel[]
   votes               IdeaVote[]
   comments            IdeaComment[]
   photos              IdeaPhoto[]
+  activityEvents      ActivityEvent[]
 
   @@index([projectId, createdAt])
 }
@@ -665,4 +674,81 @@ model DraftLine {
   @@unique([draftId, ingredientId])
   @@unique([draftId, newNameKey])
   @@index([ingredientId])
+}
+
+enum ActivityType {
+  assigned
+  comment
+  done
+  idea
+  member_joined
+}
+
+enum ActivityPushState {
+  pending
+  sent
+  late
+  muted
+  dropped
+}
+
+model ActivityEvent {
+  id           String              @id @default(uuid())
+  projectId    String
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type         ActivityType
+  actorId      String?
+  actor        User?               @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  taskId       String?
+  task         Task?               @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  ideaId       String?
+  idea         Idea?               @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  memberId     String?
+  member       User?               @relation("ActivityMember", fields: [memberId], references: [id], onDelete: SetNull)
+  /// Snapshot of the task or idea title when the event happened, "" for joins.
+  subjectTitle String
+  occurredAt   DateTime
+  createdAt    DateTime            @default(now())
+  recipients   ActivityRecipient[]
+
+  @@index([projectId])
+  @@index([occurredAt])
+}
+
+model ActivityRecipient {
+  eventId       String
+  event         ActivityEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Copied from the event so the feed pages without a join.
+  occurredAt    DateTime
+  readAt        DateTime?
+  pushState     ActivityPushState @default(pending)
+  dueAt         DateTime?
+  attempts      Int               @default(0)
+  lastAttemptAt DateTime?
+  sentAt        DateTime?
+
+  @@id([eventId, userId])
+  @@index([userId, occurredAt(sort: Desc), eventId])
+  @@index([pushState, dueAt])
+}
+
+model NotificationTypeMute {
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ActivityType
+  createdAt DateTime     @default(now())
+
+  @@id([userId, type])
+}
+
+model ProjectNotificationMute {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, projectId])
 }
