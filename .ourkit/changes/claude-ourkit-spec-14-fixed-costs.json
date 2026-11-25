@@ -1,0 +1,217 @@
+{
+  "tier": "feature",
+  "tierReason": "Fixed cost items and expected cups per month are new persisted money data that change every product's full cost; fits one cycle after #13",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mode": "hands-off",
+  "mockupApproval": "5381a601dfbaf0e5a066285298fa288da9f1dd739cae8bafef85791891f2a85d",
+  "intake": {
+    "ticket": "14",
+    "accepted": true
+  },
+  "ticket": "14",
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Fixed cost maths runs on the phone; API stores only items and cups",
+      "why": "Same as #13 Decision 1: an item or cups change needs no backfill"
+    },
+    {
+      "id": 2,
+      "decision": "Reuse the extraCosts route/overlay/sync pattern and targetMargin for cups",
+      "why": "Prior Art in the project already solves project-scoped LWW lists"
+    },
+    {
+      "id": 3,
+      "decision": "Monthly amounts round half up per item; share rounds total/cups to smallest unit",
+      "why": "Spec R3, R5; matches mockup numbers"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#14: should a one-time fixed cost stop after its N months? Built as never-stops (mockup assumption 2)",
+      "answer": "User: keep spreading until deleted (no end date)"
+    }
+  ],
+  "testHandoff": [
+    {
+      "what": "#14 screens on a real iPhone (AC 9-12)",
+      "steps": "Ticket #47 section H with mockup .ourkit/mockups/claude-ourkit-spec-14-fixed-costs.html, once #14 is built"
+    },
+    {
+      "what": "#14 migration on DB with #13 data (AC 15)",
+      "steps": "From apps/api run npm run db:deploy on the dev DB. Expected: succeeds; projects have no cups set"
+    }
+  ],
+  "planApproval": "eb90a0b6920466ca09e5b8467a656e930c1d561ec0a142f304ccbff430e2ad88",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "money/data: apps/api/src/products/fixedCosts.ts PATCH synthetic months=null reuses kind editedAt; a stale kind change that loses LWW can still clear months (stored oneTime, kindEditedAt T5, monthsEditedAt T1, stale kind monthly at T3 -> oneTime with months null, monthly amount 0); reverse also possible. Reconcile kind/months invariant after LWW, with a test (raised from reviewer's non-blocking: it corrupts cost data)",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "schema.prisma ~L557: ExtraCost doc comment now sits above enum FixedCostKind; move it back",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "projects/routes.test.ts PATCH body assertion is one long line (style)",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "schema: migration gives existing projects expectedCupsEditedAt=now while new ones use epoch; a slow phone clock right after deploy loses a cups edit. Same pattern as #13 targetMarginEditedAt",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "blocking",
+        "text": "data/money: fixedCosts.ts L176-182, L200-204: a stale kind/months edit 400s the whole PATCH, rolling back newer-winning name/amount edits in the same queued change (breaks R8 per-field LWW). Resolve kind/months inside LWW: months-null only if kind write won; drop incoming months when resulting kind != oneTime; 400 only for self-inconsistent requests; test stale months/kind + winning amount -> 200 with amount applied",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "fixedCosts.ts L201: forcing months null doesn't bump monthsEditedAt",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "deploy order: syncCycle.ts:137/148 treats any 404 as project gone; new app vs old API (no /fixed-costs) empties cached products until API deploys. Deploy API before releasing the app",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "fixedCosts.ts:183: stale rename to a now-taken name 400s the whole PATCH; check name only when its edit wins",
+        "resolved": false
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "fixedCosts.ts:117-123: retried create after another member deleted recreates the item (same as extra costs/products)",
+        "resolved": false
+      }
+    ],
+    "reviewed": "4de4181b03a6e99117e49c71e4b006073602b4f0f063d03871e98a136e531485"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: create, rename, change kind/amount/months, delete an item; empty or duplicate name, amount 0, N outside 1–120, N on a non-oneTime item refused with `400`."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: the 51st item is refused with `fixed_cost_limit_reached`."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: monthly amount per kind with rounding (600.000 weekly → 2.600.000; 18.000.000 over 24 → 750.000) and total."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: cups set, changed, cleared; 0 and 1.000.001 refused."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: share 8.600.000 ÷ 1.500 = 5.733; no share when cups unset or total 0; USD rounds to cents."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: full cost, profit, margin and hint use the share (Trà sữa M: 16.768, 18.232, 52%, hint 48.000); without a share they equal #13's results."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: two sizes of different products get the same share."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: per-field LWW on item fields and cups; same id twice idempotent; non-member `404`; signed out `401`."
+      },
+      "9": {
+        "result": "manual",
+        "evidence": "Merge unit tests pass; offline Chờ lưu by hand on phone (#47 H)",
+        "criterion": "Unit test: queued item and cups changes merge per field. By hand: offline \"Chờ lưu\" then sync."
+      },
+      "10": {
+        "result": "manual",
+        "evidence": "App not run; compare on real iPhone with mockup (#47 section H)",
+        "criterion": "By hand, mockup 1a."
+      },
+      "11": {
+        "result": "manual",
+        "evidence": "App not run; compare on real iPhone with mockup (#47 section H)",
+        "criterion": "By hand, mockups 1b–1k."
+      },
+      "12": {
+        "result": "manual",
+        "evidence": "App not run; compare on real iPhone with mockup (#47 section H)",
+        "criterion": "By hand, mockups 2a–2d."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "API test: currency change refused with a fixed cost item present."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "API fixedCosts+projects 43 passed; mobile products+i18n 350 passed; full gate 723/1388 earlier; QA subagent read the named tests",
+        "criterion": "Unit test: every new i18n key exists in both languages."
+      },
+      "15": {
+        "result": "manual",
+        "evidence": "Migration applied on test DB; empty DB and #13-data deploy not run",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty database and on one with #13's data."
+      }
+    },
+    "checked": "4de4181b03a6e99117e49c71e4b006073602b4f0f063d03871e98a136e531485"
+  },
+  "shipApproval": "4de4181b03a6e99117e49c71e4b006073602b4f0f063d03871e98a136e531485",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/54"
+}

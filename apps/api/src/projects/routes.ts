@@ -38,6 +38,7 @@ const patchSchema = z
         description: change(descriptionSchema).optional(),
         currency: change(currencySchema).optional(),
         targetMargin: change(z.number().int().min(1).max(95)).optional(),
+        expectedCupsPerMonth: change(z.number().int().min(1).max(1_000_000).nullable()).optional(),
       })
       .strict()
       .refine((f) => Object.keys(f).length > 0, "At least one field is required."),
@@ -54,6 +55,7 @@ interface ProjectRow {
   description: string;
   currency: "VND" | "USD";
   targetMargin: number;
+  expectedCupsPerMonth: number | null;
 }
 
 /** The exact shape the mobile app expects. */
@@ -64,6 +66,7 @@ export function toResponse(project: ProjectRow, role: Role) {
     description: project.description,
     currency: project.currency,
     targetMargin: project.targetMargin,
+    expectedCupsPerMonth: project.expectedCupsPerMonth,
     role,
   };
 }
@@ -126,6 +129,7 @@ export function createProjectsRouter(deps: {
               currencyEditedAt: editedAt,
               // Epoch, so a margin edit queued right after the create always wins.
               targetMarginEditedAt: new Date(0),
+              expectedCupsEditedAt: new Date(0),
               members: { create: { userId, role: "owner" } },
             },
           });
@@ -154,8 +158,8 @@ export function createProjectsRouter(deps: {
       // Check the id first so a bad id is a 404 even when the body is also wrong.
       if (!parsedId.success) throw notFound();
       const { fields } = patchSchema.parse(req.body);
-      // Any member may change the target margin; everything else is the owner's.
-      const memberMayEdit = Object.keys(fields).every((k) => k === "targetMargin");
+      // Any member may change the target margin and the expected cups; everything else is the owner's.
+      const memberMayEdit = Object.keys(fields).every((k) => k === "targetMargin" || k === "expectedCupsPerMonth");
       const check = async (db: Parameters<typeof requireOwner>[0]) => {
         if (!memberMayEdit) return requireOwner(db, parsedId.data, userId);
         if (!(await findForMember(db as PrismaClient, parsedId.data, userId))) throw notFound();
@@ -176,9 +180,10 @@ export function createProjectsRouter(deps: {
           const stored = await tx.project.findUniqueOrThrow({ where: { id } });
           const at = Math.min(fields.currency.editedAt.getTime(), now().getTime());
           if (fields.currency.value !== stored.currency && at > stored.currencyEditedAt.getTime()) {
-            const [ingredients, extraCosts, sizeExtras, pricedSizes, pricedDrafts] = await Promise.all([
+            const [ingredients, extraCosts, fixedCosts, sizeExtras, pricedSizes, pricedDrafts] = await Promise.all([
               tx.ingredient.count({ where: { projectId: id } }),
               tx.extraCost.count({ where: { projectId: id } }),
+              tx.fixedCost.count({ where: { projectId: id } }),
               tx.sizeExtra.count({ where: { sizeRow: { product: { projectId: id } } } }),
               tx.productSizeRow.count({ where: { sellingPrice: { not: null }, product: { projectId: id } } }),
               // Draft expected prices and the purchase prices of its new ingredients are money too.
@@ -189,7 +194,7 @@ export function createProjectsRouter(deps: {
                 },
               }),
             ]);
-            if (ingredients + extraCosts + sizeExtras + pricedSizes + pricedDrafts > 0) {
+            if (ingredients + extraCosts + fixedCosts + sizeExtras + pricedSizes + pricedDrafts > 0) {
               throw new AppError(
                 409,
                 "currency_locked",
@@ -198,9 +203,20 @@ export function createProjectsRouter(deps: {
             }
           }
         }
-        await applyLastWriteWins(fields, now(), (where, data) =>
-          tx.project.updateMany({ where: { id, ...where }, data } as Prisma.ProjectUpdateManyArgs),
-        );
+        // The cups column is `expectedCupsPerMonth`, but its time is `expectedCupsEditedAt`.
+        const { expectedCupsPerMonth, ...rest } = fields;
+        await applyLastWriteWins({ ...rest, expectedCups: expectedCupsPerMonth }, now(), (where, data) => {
+          if ("expectedCups" in data) {
+            return tx.project.updateMany({
+              where: { id, ...where },
+              data: {
+                expectedCupsPerMonth: data["expectedCups"] as number | null,
+                expectedCupsEditedAt: data["expectedCupsEditedAt"] as Date,
+              },
+            });
+          }
+          return tx.project.updateMany({ where: { id, ...where }, data } as Prisma.ProjectUpdateManyArgs);
+        });
       });
 
       // Always answer with the current state, even when every change lost.

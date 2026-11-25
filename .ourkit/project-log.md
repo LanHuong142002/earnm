@@ -14,4 +14,5 @@
 | 2026-11-18 | Ideas board (#11) | feature | Ideas with votes, comments, photos and statuses; an accepted idea becomes a task with assignees and due date | https://github.com/LanHuong142002/earnm/pull/45 |
 | 2026-11-19 | #12 ingredients | feature | Ingredients with unit cost per 1/10, total, default flag, 5-price history; currency locked once money exists | https://github.com/LanHuong142002/earnm/pull/48 |
 | 2026-11-19 | #13 products | feature | Products with S/M/L recipes, extra costs, selling price, profit, margin and price hint; ingredient-in-use block | https://github.com/LanHuong142002/earnm/pull/49 |
+| 2026-11-25 | #14 Fixed costs | feature | Fixed costs and expected cups give a per-cup share; products show profit and price hint on the full cost | https://github.com/LanHuong142002/earnm/pull/54 |
 | 2026-11-25 | #15 Drink drafts | feature | Drink drafts with a base recipe convert in one tap into a product and its missing ingredients | https://github.com/LanHuong142002/earnm/pull/55 |

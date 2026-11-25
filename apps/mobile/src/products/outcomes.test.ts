@@ -36,6 +36,21 @@ describe("productNoticeKeys", () => {
     });
   });
 
+  it("has fixed cost wording", () => {
+    expect(productNoticeKeys({ entity: "fixedCost", kind: "update", name: "Thuê", reason: "not_found" })).toEqual({
+      headline: "products.rejectedFixed",
+      reason: "products.reasons.notFoundFixed",
+    });
+    expect(productNoticeKeys({ entity: "fixedCost", kind: "create", name: "Thuê", reason: "limit" })).toEqual({
+      headline: "products.rejectedFixedCreate",
+      reason: "products.reasons.limitFixed",
+    });
+    expect(productNoticeKeys({ entity: "fixedCost", kind: "delete", name: null, reason: "invalid" })).toEqual({
+      headline: "products.rejectedFixedNoName",
+      reason: "products.reasons.invalid",
+    });
+  });
+
   it("reads reasons that only other areas have as generic", () => {
     expect(productNoticeKeys({ entity: "product", kind: "update", name: "Trà", reason: "labelLimit" }).reason).toBe("products.reasons.generic");
   });

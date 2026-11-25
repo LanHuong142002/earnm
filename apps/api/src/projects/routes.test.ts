@@ -112,6 +112,7 @@ describe("/projects", () => {
         description: "",
         currency: "VND",
         targetMargin: 65,
+        expectedCupsPerMonth: null,
         role: "owner",
       });
       const m = await prisma.projectMember.findUnique({
@@ -189,6 +190,7 @@ describe("/projects", () => {
       expect(Object.keys(forB.body[0]).sort()).toEqual([
         "currency",
         "description",
+        "expectedCupsPerMonth",
         "id",
         "name",
         "role",
@@ -204,7 +206,7 @@ describe("/projects", () => {
       clock.advanceMs(1000);
       let res = await patch(o, id, { name: { value: "N", editedAt: iso() } });
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ id, name: "N", description: "", currency: "VND", targetMargin: 65, role: "owner" });
+      expect(res.body).toEqual({ id, name: "N", description: "", currency: "VND", targetMargin: 65, expectedCupsPerMonth: null, role: "owner" });
       clock.advanceMs(1000);
       res = await patch(o, id, { description: { value: "D", editedAt: iso() } });
       expect(res.body.description).toBe("D");
@@ -269,6 +271,16 @@ describe("/projects", () => {
         const o = await user();
         const id = await seed(o);
         await prisma.extraCost.create({ data: { id: randomUUID(), projectId: id, name: "Ly", amount: 500 } });
+        expectError(await tryUsd(o, id), 409, "currency_locked");
+        expect((await prisma.project.findUniqueOrThrow({ where: { id } })).currency).toBe("VND");
+      });
+
+      it("refuses with 409 when the project only has a fixed cost", async () => {
+        const o = await user();
+        const id = await seed(o);
+        await prisma.fixedCost.create({
+          data: { id: randomUUID(), projectId: id, name: "Thuê", nameKey: "thue", kind: "monthly", amount: 5_000_000 },
+        });
         expectError(await tryUsd(o, id), 409, "currency_locked");
         expect((await prisma.project.findUniqueOrThrow({ where: { id } })).currency).toBe("VND");
       });

@@ -46,6 +46,7 @@ export type ProjectInputErrors = {
   description?: "too_long";
   currency?: "invalid";
   targetMargin?: "invalid";
+  expectedCupsPerMonth?: "invalid";
 };
 export type ProjectValidation =
   | { ok: true; value: { name: string; description: string; currency: Currency } }

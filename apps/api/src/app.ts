@@ -28,6 +28,7 @@ import { createIngredientsRouter } from "./ingredients/routes.js";
 import { createExtraCostsRouter } from "./products/extraCosts.js";
 import { createDraftConvertRouter } from "./drafts/convert.js";
 import { createDraftsRouter } from "./drafts/routes.js";
+import { createFixedCostsRouter } from "./products/fixedCosts.js";
 import { createProductsRouter } from "./products/routes.js";
 
 export interface AppDeps {
@@ -77,6 +78,7 @@ export function createApp(deps: AppDeps): Express {
   app.use("/projects/:projectId/drafts", createDraftConvertRouter(deps));
   app.use("/projects/:projectId/drafts", createDraftsRouter(deps));
   app.use("/projects/:projectId/extra-costs", createExtraCostsRouter(deps));
+  app.use("/projects/:projectId/fixed-costs", createFixedCostsRouter(deps));
   app.use("/projects/:projectId/labels", createLabelsRouter(deps));
   app.use("/projects", createProjectsRouter(deps));
   // Without INVITE_CODE_KEY or INTERNAL_SECRET the key is random per process: invites work but don't survive a restart.

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../lib/api";
 import type { Change } from "../sync/queue";
-import { extraCost, product } from "./fixtures";
+import { extraCost, fixedCost, product } from "./fixtures";
 import { createProductSyncCycle, productReasonFor, type ProductRejectedNotice } from "./syncCycle";
 import type { ProjectProducts } from "./store";
 
@@ -17,7 +17,7 @@ const change = (over: Partial<Change> = {}): Change => ({
   ...over,
 });
 
-function setup(initial: Record<string, ProjectProducts> = { p1: { products: [product({ id: "pr1", name: "Cũ" })], extraCosts: [extraCost({ id: "x1", name: "Đá" })] } }) {
+function setup(initial: Record<string, ProjectProducts> = { p1: { products: [product({ id: "pr1", name: "Cũ" })], extraCosts: [extraCost({ id: "x1", name: "Đá" })], fixedCosts: [fixedCost({ id: "f1", name: "Thuê" })] } }) {
   let entries = initial;
   let generation = 0;
   const notices: ProductRejectedNotice[] = [];
@@ -25,6 +25,7 @@ function setup(initial: Record<string, ProjectProducts> = { p1: { products: [pro
     getToken: vi.fn(async () => "tok" as string | null),
     listProducts: vi.fn(async () => [product({ id: "pr1", name: "Từ máy chủ" })]),
     listExtraCosts: vi.fn(async () => [extraCost({ id: "x1", name: "Từ máy chủ" })]),
+    listFixedCosts: vi.fn(async () => [fixedCost({ id: "f1", name: "Từ máy chủ" })]),
     getEntry: (projectId: string) => entries[projectId] ?? null,
     commit: async (projectId: string, entry: ProjectProducts) => {
       entries = { ...entries, [projectId]: entry };
@@ -94,10 +95,29 @@ describe("product sync cycle", () => {
     ]);
   });
 
+  it("applies fixed cost replies and deletes, and fetches them again on refresh", async () => {
+    const s = setup();
+    s.cycle.handlers.onApplied(change({ entity: "fixedCost", entityId: "f2", kind: "create" }), fixedCost({ id: "f2" }));
+    s.cycle.handlers.onApplied(change({ entity: "fixedCost", entityId: "f1", kind: "delete" }), undefined);
+    await s.cycle.idle();
+    expect(s.get().p1.fixedCosts.map((x) => x.id)).toEqual(["f2"]);
+    s.cycle.handlers.onApplied(change({ entity: "fixedCost", entityId: "f2" }), { nonsense: true });
+    await s.cycle.refreshPending();
+    expect(s.get().p1.fixedCosts[0].name).toBe("Từ máy chủ");
+  });
+
+  it("names a refused fixed cost", async () => {
+    const s = setup();
+    s.cycle.handlers.onRejected(change({ entity: "fixedCost", entityId: "f1", kind: "update" }), new ApiError("validation_failed", 400));
+    await s.cycle.idle();
+    expect(s.notices).toEqual([{ entity: "fixedCost", kind: "update", name: "Thuê", reason: "invalid" }]);
+  });
+
   it("maps the server's codes to reasons", () => {
     expect(productReasonFor(new ApiError("product_name_taken", 409))).toBe("nameTaken");
     expect(productReasonFor(new ApiError("product_limit_reached", 409))).toBe("limit");
     expect(productReasonFor(new ApiError("extra_cost_limit_reached", 409))).toBe("limit");
+    expect(productReasonFor(new ApiError("fixed_cost_limit_reached", 409))).toBe("limit");
     expect(productReasonFor(new ApiError("id_conflict", 409))).toBe("conflict");
     expect(productReasonFor(new ApiError("validation_failed", 400))).toBe("invalid");
     expect(productReasonFor(new ApiError("oops", 500))).toBe("generic");
@@ -113,7 +133,7 @@ describe("product sync cycle", () => {
     expect(await s.cycle.refresh("p1")).toBe("error");
     s.deps.listExtraCosts.mockRejectedValueOnce(new ApiError("not_found", 404));
     expect(await s.cycle.refresh("p1")).toBe("gone");
-    expect(s.get().p1).toEqual({ products: [], extraCosts: [] });
+    expect(s.get().p1).toEqual({ products: [], extraCosts: [], fixedCosts: [] });
   });
 
   it("drops a result that arrives after the session changed, and reports not signed in", async () => {

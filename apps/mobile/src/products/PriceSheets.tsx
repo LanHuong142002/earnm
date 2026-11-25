@@ -8,6 +8,7 @@ import { useTheme } from "../theme/useTheme";
 import { Card } from "../ui/Card";
 import { TextField } from "../ui/TextField";
 import { hintPrice, marginPct } from "./cost";
+import { fullCost } from "./fixedCost";
 import { Hint, SummaryRow } from "./ProductBits";
 import { validMoney } from "./recipeEdit";
 import { SheetModal } from "./SheetModal";
@@ -81,6 +82,7 @@ export function PriceSheet({
   currency,
   initial,
   cost,
+  share,
   target,
   onSave,
   onSaveTarget,
@@ -89,7 +91,10 @@ export function PriceSheet({
   sizeLabel: string;
   currency: Currency;
   initial: number | null;
+  /** The size's own cost (recipe and extras). */
   cost: number;
+  /** The fixed cost each cup carries; null when there is none to share. */
+  share: number | null;
   target: number;
   onSave: (price: number | null) => Promise<boolean>;
   onSaveTarget: (value: number) => Promise<boolean>;
@@ -104,7 +109,8 @@ export function PriceSheet({
   const empty = text.trim() === "";
   const parsed = empty ? null : parsePriceText(text, currency);
   const valid = empty || validMoney(parsed);
-  const gain = parsed !== null && validMoney(parsed) ? parsed - cost : null;
+  const full = fullCost(cost, share);
+  const gain = parsed !== null && validMoney(parsed) ? parsed - full : null;
   const margin = gain === null ? null : marginPct(gain, parsed);
   const error = submitted && !valid ? t("products.errors.moneyInvalid") : null;
 
@@ -132,11 +138,12 @@ export function PriceSheet({
           onSubmitEditing={save}
         />
         <Hint>{t("products.priceEmptyHint")}</Hint>
-        <PriceHint cost={cost} target={target} currency={currency} onPress={() => setTargetOpen(true)} />
+        <PriceHint cost={full} target={target} currency={currency} onPress={() => setTargetOpen(true)} />
       </View>
       <Card flush>
         <View style={{ paddingHorizontal: spacing[2] }} accessibilityLiveRegion="polite">
-          <SummaryRow label={t("products.priceCost")} value={moneyOf(cost, currency)} />
+          <SummaryRow label={t(share === null ? "products.priceCost" : "products.priceItemCost")} value={moneyOf(cost, currency)} />
+          {share === null ? null : <SummaryRow divider label={t("products.priceShare")} value={moneyOf(share, currency)} />}
           <SummaryRow
             divider
             label={t("products.priceProfit")}

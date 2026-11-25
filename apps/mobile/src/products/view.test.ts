@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ingredient } from "../ingredients/fixtures";
 import { extraCost, product, productSize } from "./fixtures";
-import { defaultNames, ingredientLookup, joinNames, matchesQuery, parseTarget, pickSize, productRows, productsUsing, sizeFigures, toggleSize, validateName, withPriceChanges } from "./view";
+import { defaultNames, ingredientLookup, joinNames, matchesQuery, parseTarget, pickSize, productRows, productsUsing, fixedCostState, sizeFigures, toggleSize, validateName, withPriceChanges } from "./view";
 
 const tra = ingredient({ id: "tra", name: "Trà đen", purchase: { quantity: 1000, unit: "g", price: 180000 } });
 const ly = ingredient({ id: "ly", name: "Ly", mode: "portion", purchase: { quantity: 1, unit: "portion", price: 1500 } });
@@ -159,5 +159,61 @@ describe("withPriceChanges", () => {
       c: undefined,
     };
     expect(Object.keys(withPriceChanges(lookup))).toEqual(["b"]);
+  });
+});
+
+// Mockup group 2 numbers: Trà sữa M sells 35.000, its recipe and extras cost 11.035, each cup carries 5.733.
+const milkTeaM = productSize({
+  size: "M",
+  sellingPrice: 35000,
+  extras: [{ id: "x", name: "Nguyên liệu", amount: 11035, included: true, isDefault: false, extraCostId: null }],
+});
+
+describe("sizeFigures with a fixed cost share", () => {
+  it("takes the share off the profit and margin and bases the hint on the full cost (mockup 2b)", () => {
+    const f = sizeFigures(milkTeaM, {}, 65, "VND", 5733);
+    expect(f.cost).toBe(11035);
+    expect(f.share).toBe(5733);
+    expect(f.fullCost).toBe(16768);
+    expect(f.profit).toBe(18232);
+    expect(f.margin).toBe(52);
+    expect(f.hint).toBe(48000);
+    expect(f.belowTarget).toBe(true);
+  });
+
+  it("keeps the #13 numbers without a share (mockup 2d)", () => {
+    const f = sizeFigures(milkTeaM, {}, 65, "VND", null);
+    expect(f.share).toBeNull();
+    expect(f.fullCost).toBe(11035);
+    expect(f.profit).toBe(23965);
+    expect(f.margin).toBe(68);
+    expect(f.hint).toBe(32000);
+    expect(f.belowTarget).toBe(false);
+  });
+
+  it("defaults to no share", () => {
+    expect(sizeFigures(milkTeaM, {}, 65, "VND").fullCost).toBe(11035);
+  });
+});
+
+describe("productRows with a fixed cost share", () => {
+  it("shows the list profit and margin after the share (mockup 2a)", () => {
+    const coffee = productSize({
+      size: "M",
+      sellingPrice: 25000,
+      extras: [{ id: "x", name: "Nguyên liệu", amount: 9800, included: true, isDefault: false, extraCostId: null }],
+    });
+    const [row] = productRows([product({ id: "c", name: "Cà phê sữa đá", sizes: [coffee] })], {}, 65, "VND", 5733);
+    expect(row?.summary?.figures.profit).toBe(9467);
+    expect(row?.summary?.figures.margin).toBe(38);
+    expect(row?.summary?.figures.belowTarget).toBe(true);
+  });
+});
+
+describe("fixedCostState", () => {
+  it("is none without fixed costs, unset with costs but no share, and share otherwise", () => {
+    expect(fixedCostState(0, null)).toBe("none");
+    expect(fixedCostState(8600000, null)).toBe("unset");
+    expect(fixedCostState(8600000, 5733)).toBe("share");
   });
 });
