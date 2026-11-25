@@ -10,6 +10,7 @@ import { createInvitePageRouter } from "./invites/page-routes.js";
 import { createInvitesRouter } from "./invites/routes.js";
 import { createMembersRouter } from "./members/routes.js";
 import { createMeRouter } from "./me/routes.js";
+import { createActivityRouter } from "./activity/routes.js";
 import { createProjectsRouter } from "./projects/routes.js";
 import { createChecklistsRouter } from "./checklists/routes.js";
 import { createCommentsRouter } from "./comments/routes.js";
@@ -61,6 +62,8 @@ export function createApp(deps: AppDeps): Express {
   });
 
   app.use("/auth", createAuthRouter(deps));
+  // Checks sign-in per route, so it can sit before /me and before the /projects routers.
+  app.use(createActivityRouter(deps));
   app.use("/me", createMeRouter(deps));
   // Before /projects: that router requires sign-in for everything under it, which would run twice.
   // Before the tasks router, which also requires sign-in and would otherwise run first.
