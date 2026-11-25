@@ -40,7 +40,7 @@
     {
       "id": 1,
       "question": "#14: should a one-time fixed cost stop after its N months? Built as never-stops (mockup assumption 2)",
-      "answer": null
+      "answer": "User: keep spreading until deleted (no end date)"
     }
   ],
   "testHandoff": [
