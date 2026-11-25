@@ -126,7 +126,7 @@
         "id": 7,
         "severity": "non-blocking",
         "text": "converted drafts can't be deleted and GET /drafts is unbounded",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 8,
@@ -138,7 +138,7 @@
         "id": 9,
         "severity": "non-blocking",
         "text": "convert.ts:68-84 reused same-name ingredient keeps its own price; draft purchase price dropped silently; check A8 shows 'dùng lại' clearly (by hand)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 10,
@@ -156,7 +156,7 @@
         "id": 12,
         "severity": "non-blocking",
         "text": "routes.ts L216-237: a refused done rolls back other fields sent in the same request (phone sends status separately)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 13,
@@ -168,7 +168,7 @@
         "id": 14,
         "severity": "non-blocking",
         "text": "Deleting an ingredient leaves draft lines without an ingredient (line_ingredient_missing); no warning on delete",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 15,
@@ -180,13 +180,13 @@
         "id": 16,
         "severity": "non-blocking",
         "text": "routes.ts L281-285: line-create retry returns 200 without comparing the body (harmless for UUID offline queue)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 17,
         "severity": "non-blocking",
         "text": "Deleting an ingredient doesn't reopen done drafts; caught by draftMissing at view/convert",
-        "resolved": false
+        "resolved": true
       }
     ],
     "reviewed": "b1aa12c33a82ee86f6026a23b6ef319983125b3b2458aacfe996a9331e5e4f92"
