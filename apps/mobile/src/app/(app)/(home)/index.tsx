@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { useActivity } from "../../../activity/ActivityProvider";
 import { OfflineNote } from "../../../projects/OfflineNote";
 import { ProjectCard } from "../../../projects/ProjectCard";
 import { RejectedNoticeBanner } from "../../../projects/RejectedNotice";
@@ -24,6 +26,13 @@ export default function HomeScreen() {
   const once = useTapOnce();
   const open = useOpenProject();
   const { status, projects, currentProject, waitingCount } = useProjects();
+  const { refreshUnread } = useActivity();
+  // The bell's dot is re-read each time Home comes to the front (R32).
+  useFocusEffect(
+    useCallback(() => {
+      void refreshUnread();
+    }, [refreshUnread]),
+  );
   const { colors, typography, radius, spacing, layout, iconSize, onFixed } = useTheme();
 
   const card = homeCard(currentProject, status, projects.length);
