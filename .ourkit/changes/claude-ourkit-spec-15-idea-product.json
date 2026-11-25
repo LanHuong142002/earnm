@@ -144,13 +144,13 @@
         "id": 10,
         "severity": "non-blocking",
         "text": "routes.ts L343-406: a done draft can become incomplete after edits and stays done; convert still refuses with draft_incomplete",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 11,
         "severity": "non-blocking",
         "text": "projects/routes.ts pricedDrafts counts converted drafts, so one converted priced draft locks the currency for good (converted drafts can't be deleted)",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 12,
@@ -162,7 +162,7 @@
         "id": 13,
         "severity": "non-blocking",
         "text": "draft_ingredient_mode_mismatch is not in spec R7; add it to the spec",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 14,
