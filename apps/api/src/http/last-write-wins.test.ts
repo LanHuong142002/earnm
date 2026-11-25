@@ -50,4 +50,32 @@ describe("applyLastWriteWins", () => {
       { currency: "USD", currencyEditedAt: t2 },
     ]);
   });
+
+  describe("applied fields", () => {
+    const older = new Date("2026-11-11T08:00:00Z");
+    const newer = new Date("2026-11-11T09:00:00Z");
+    // A write that behaves like the database: only fields in `stale` match nothing.
+    const writeWhere = (stale: string[]) => async (_where: Record<string, unknown>, data: Record<string, unknown>) => ({
+      count: Object.keys(data).some((k) => stale.includes(k)) ? 0 : 1,
+    });
+
+    it("leaves out a field whose stored time is newer", async () => {
+      const applied = await applyLastWriteWins({ name: { value: "N", editedAt: older } }, now, writeWhere(["name"]));
+      expect(applied).toEqual([]);
+    });
+
+    it("lists a field that was written", async () => {
+      const applied = await applyLastWriteWins({ name: { value: "N", editedAt: newer } }, now, writeWhere([]));
+      expect(applied).toEqual(["name"]);
+    });
+
+    it("returns only the written fields of a mix", async () => {
+      const applied = await applyLastWriteWins(
+        { name: { value: "N", editedAt: older }, currency: { value: "USD", editedAt: newer }, description: undefined },
+        now,
+        writeWhere(["name"]),
+      );
+      expect(applied).toEqual(["currency"]);
+    });
+  });
 });
