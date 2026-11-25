@@ -1066,6 +1066,7 @@
     "save": "Lưu",
     "deleteTitle": "Xoá nháp {{name}}?",
     "deleteMessage": "Công thức của nháp sẽ mất và không khôi phục được.",
+    "deleteConvertedMessage": "Món đã tạo vẫn giữ nguyên.",
     "deleteConfirm": "Xoá",
     "sizesSheetTitle": "Size và giá dự kiến",
     "expectedPriceLabel": "Giá bán dự kiến (size {{size}})",

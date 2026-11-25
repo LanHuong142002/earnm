@@ -303,13 +303,29 @@ describe("/projects/:projectId/drafts", () => {
       await prisma.draft.update({ where: { id: idOf(d) }, data: { convertedAt: clock.now(), status: "done" } });
       const t = later();
       expectError(await patch(a, p, idOf(d), { note: { value: "x", editedAt: t } }), 409, "draft_converted");
-      expectError(await del(a, p, idOf(d)), 409, "draft_converted");
       expectError(await addLine(a, p, idOf(d), newLine({ newName: "Khác" })), 409, "draft_converted");
       expectError(await patchLine(a, p, idOf(d), l.id, { amount: { value: 2, editedAt: t } }), 409, "draft_converted");
       expectError(await delLine(a, p, idOf(d), l.id), 409, "draft_converted");
       const got = (await list(a, p)).body.drafts[0];
       expect(got.convertedAt).not.toBeNull();
       expect(got.lines).toHaveLength(1);
+    });
+  });
+
+  describe("deleting a converted draft (AC9)", () => {
+    it("deletes the draft and its lines, and the product stays", async () => {
+      const { a, p } = await world();
+      const d = body();
+      await create(a, p, d);
+      await addLine(a, p, idOf(d), newLine({ purchaseQty: 1, purchasePrice: 1 }));
+      const product = await prisma.product.create({
+        data: { id: randomUUID(), projectId: p, name: "Trà vải", nameKey: "trà vải" },
+      });
+      await prisma.draft.update({ where: { id: idOf(d) }, data: { convertedAt: clock.now(), status: "done", productId: product.id } });
+      expect((await del(a, p, idOf(d))).status).toBe(204);
+      expect(await prisma.draft.count({ where: { id: idOf(d) } })).toBe(0);
+      expect(await prisma.draftLine.count({ where: { draftId: idOf(d) } })).toBe(0);
+      expect(await prisma.product.count({ where: { id: product.id } })).toBe(1);
     });
   });
 
@@ -351,6 +367,39 @@ describe("/projects/:projectId/drafts", () => {
     });
   });
 
+  describe("done becoming incomplete (AC5)", () => {
+    async function doneDraft() {
+      const { a, p } = await world();
+      const d = body();
+      await create(a, p, d);
+      const l = newLine({ purchaseQty: 100, purchasePrice: 5000 });
+      await addLine(a, p, idOf(d), l);
+      const keep = existingLine(await ingredient(p, "Sữa"));
+      await addLine(a, p, idOf(d), keep);
+      const res = await patch(a, p, idOf(d), { status: { value: "done", editedAt: later() } });
+      expect(res.body.status).toBe("done");
+      return { a, p, d, l, keep };
+    }
+
+    it("goes back to working when a line delete leaves it with no lines", async () => {
+      const { a, p, d, l, keep } = await doneDraft();
+      expect((await delLine(a, p, idOf(d), keep.id)).status).toBe(204);
+      expect((await list(a, p)).body.drafts[0].status).toBe("done");
+      expect((await delLine(a, p, idOf(d), l.id)).status).toBe(204);
+      const got = (await list(a, p)).body.drafts[0];
+      expect(got.status).toBe("working");
+      const row = await prisma.draft.findUniqueOrThrow({ where: { id: idOf(d) } });
+      expect(row.statusEditedAt.getTime()).toBe(clock.now().getTime());
+    });
+
+    it("goes back to working when a price is cleared", async () => {
+      const { a, p, d, l } = await doneDraft();
+      const res = await patchLine(a, p, idOf(d), l.id, { purchasePrice: { value: null, editedAt: later() } });
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe("working");
+    });
+  });
+
   describe("currency lock (AC12)", () => {
     const changeCurrency = (u: User, p: string, to: "VND" | "USD") =>
       request(app).patch(`/projects/${p}`).set(...bearer(u.token)).send({ fields: { currency: { value: to, editedAt: later() } } });
@@ -370,6 +419,17 @@ describe("/projects/:projectId/drafts", () => {
       await create(a, p, d);
       await addLine(a, p, idOf(d), newLine({ purchasePrice: 5000 }));
       expectError(await changeCurrency(a, p, "USD"), 409, "currency_locked");
+    });
+
+    it("ignores a converted draft: its money lives on the product", async () => {
+      const { a, p } = await world();
+      const d = body();
+      await create(a, p, d);
+      await patch(a, p, idOf(d), { expectedPrice: { value: 4000, editedAt: later() } });
+      await addLine(a, p, idOf(d), newLine({ purchaseQty: 100, purchasePrice: 5000 }));
+      expectError(await changeCurrency(a, p, "USD"), 409, "currency_locked");
+      await prisma.draft.update({ where: { id: idOf(d) }, data: { convertedAt: clock.now(), status: "done" } });
+      expect((await changeCurrency(a, p, "USD")).status).toBe(200);
     });
 
     it("allows it when drafts carry no money", async () => {

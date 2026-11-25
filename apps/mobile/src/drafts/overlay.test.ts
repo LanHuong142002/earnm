@@ -45,6 +45,18 @@ describe("draft overlay", () => {
     expect(shown[0].status).toBe("done");
   });
 
+  it("shows a done draft as working once a waiting edit leaves it incomplete", () => {
+    const priced = draftLine({ id: "l2", kind: "new", ingredientId: null, newName: "Vải", newKind: "weight", purchaseQty: 100, purchasePrice: 5000 });
+    const done = draft({ id: "d1", status: "done", lines: [draftLine({ id: "l1" }), priced] });
+    const lineChange = (kind: "update" | "delete", entityId: string, data: Record<string, unknown> = {}) =>
+      change({ entity: "draftLine", entityId, kind, data: { projectId: "p1", draftId: "d1", ...data } });
+    expect(applyDraftOverlay("p1", [done], [lineChange("update", "l1", { amount: 9 })])[0].status).toBe("done");
+    expect(applyDraftOverlay("p1", [done], [lineChange("update", "l2", { purchasePrice: null })])[0].status).toBe("working");
+    expect(applyDraftOverlay("p1", [done], [lineChange("delete", "l1"), lineChange("delete", "l2")])[0].status).toBe("working");
+    // A converted draft is read-only, so it stays as it is.
+    expect(applyDraftOverlay("p1", [draft({ id: "d1", status: "done", convertedAt: "2026-11-11T00:00:00.000Z" })], [lineChange("delete", "l1")])[0].status).toBe("done");
+  });
+
   it("adds, edits and removes lines, in the order they were made", () => {
     const server = [draft({ id: "d1", lines: [draftLine({ id: "l1", amount: 5 }), draftLine({ id: "l2", ingredientId: "g2", amount: 7 })] })];
     const shown = applyDraftOverlay("p1", server, [

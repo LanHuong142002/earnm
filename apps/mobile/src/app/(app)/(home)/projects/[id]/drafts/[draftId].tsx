@@ -140,7 +140,7 @@ export default function DraftScreen() {
 
   const confirmDelete = () => {
     close();
-    Alert.alert(t("drafts.deleteTitle", { name: draft.name }), t("drafts.deleteMessage"), [
+    Alert.alert(t("drafts.deleteTitle", { name: draft.name }), t(converted ? "drafts.deleteConvertedMessage" : "drafts.deleteMessage"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("drafts.deleteConfirm"),
@@ -223,18 +223,18 @@ export default function DraftScreen() {
       <Stack.Screen
         options={{
           title: t("drafts.detailTitle"),
-          headerRight: converted
-            ? undefined
-            : () => (
-                <PressableScale
-                  accessibilityRole="button"
-                  accessibilityLabel={t("drafts.editLink")}
-                  onPress={() => setSheet({ kind: "menu" })}
-                  style={{ minHeight: layout.controlHeight, justifyContent: "center", paddingHorizontal: spacing[1] }}
-                >
-                  <Text style={[typography.bodyStrong, { color: colors.accentStrong }]}>{t("drafts.editLink")}</Text>
-                </PressableScale>
-              ),
+          headerRight: () => (
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={converted ? t("drafts.menuDelete") : t("drafts.editLink")}
+              onPress={converted ? confirmDelete : () => setSheet({ kind: "menu" })}
+              style={{ minHeight: layout.controlHeight, justifyContent: "center", paddingHorizontal: spacing[1] }}
+            >
+              <Text style={[typography.bodyStrong, { color: converted ? colors.danger : colors.accentStrong }]}>
+                {converted ? t("drafts.menuDelete") : t("drafts.editLink")}
+              </Text>
+            </PressableScale>
+          ),
         }}
       />
       <OfflineNote />

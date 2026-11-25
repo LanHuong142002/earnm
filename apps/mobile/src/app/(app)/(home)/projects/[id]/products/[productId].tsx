@@ -180,7 +180,7 @@ export default function ProductScreen() {
       <ProductRejectedNotice />
       <Enter index={1}>
         <View style={{ gap: spacing[2] }}>
-          {product.fromDraftId ? (
+          {product.fromDraftId && (fromDraft || !draftsReady) ? (
             <LinkCard
               caption={t("drafts.fromDraft")}
               title={fromDraft?.name}

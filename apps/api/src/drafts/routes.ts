@@ -136,6 +136,13 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
     return draft;
   }
 
+  /** A done draft that an edit left incomplete goes back to working, stamped with the edit's time. */
+  async function reopenIfIncomplete(tx: Tx, draftId: string) {
+    const row = await load(tx, draftId);
+    if (!row || row.status !== "done" || draftMissing(row).length === 0) return;
+    await tx.draft.updateMany({ where: { id: draftId, status: "done" }, data: { status: "working", statusEditedAt: now() } });
+  }
+
   async function assertPriceInRange(tx: Tx, projectId: string, price: number | null | undefined, field: string) {
     if (price === null || price === undefined) return;
     const project = await tx.project.findUnique({ where: { id: projectId }, select: { currency: true } });
@@ -236,6 +243,7 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
             }
           }
         });
+        await reopenIfIncomplete(tx, draftId);
       });
 
       const row = await load(prisma, draftId);
@@ -252,7 +260,7 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
       const { projectId, draftId } = await requireDraft(req, userId);
       await prisma.$transaction(async (tx) => {
         await lockedMember(tx, projectId, userId);
-        await lockedOpenDraft(tx, projectId, draftId);
+        // A converted draft can be deleted too: the product it made stays.
         await tx.draft.deleteMany({ where: { id: draftId, projectId } });
       });
       res.status(204).end();
@@ -379,6 +387,7 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
             throw ingredientNameTaken();
           }
         });
+        await reopenIfIncomplete(tx, draftId);
       });
 
       const row = await load(prisma, draftId);
@@ -398,6 +407,7 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
         await lockedOpenDraft(tx, projectId, draftId);
         const { count } = await tx.draftLine.deleteMany({ where: { id: lineId, draftId } });
         if (count === 0) throw notFound();
+        await reopenIfIncomplete(tx, draftId);
       });
       res.status(204).end();
     } catch (err) {

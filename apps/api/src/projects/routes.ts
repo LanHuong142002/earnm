@@ -190,6 +190,8 @@ export function createProjectsRouter(deps: {
               tx.draft.count({
                 where: {
                   projectId: id,
+                  // A converted draft's money now lives on the product and its ingredients.
+                  convertedAt: null,
                   OR: [{ expectedPrice: { not: null } }, { lines: { some: { purchasePrice: { not: null } } } }],
                 },
               }),

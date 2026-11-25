@@ -18,7 +18,7 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
 ## Requirements
 
 1. A project has drafts. Each draft has:
-   - a name (1–80 characters);
+   - a name (1–60 characters, as for products and ingredients);
    - sizes, a non-empty subset of S/M/L, where the base size is the smallest chosen;
    - an optional expected price for the base size;
    - an optional note (up to 2.000 characters);
@@ -38,7 +38,7 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
    - at least one size;
    - at least one line;
    - a purchase quantity and price on every new line.
-   `done` can go back to `working`.
+   `done` can go back to `working`. An edit that makes a done draft incomplete (for example deleting its last line or clearing a purchase price) returns it to `working`.
 6. **Convert** is allowed only on a `done`, unconverted draft, and needs the network. It runs in one transaction:
    - each new line creates an ingredient with its purchase data, unless an ingredient with the same name now exists, in which case that one is used;
    - a product is created with the draft's name and sizes;
@@ -48,9 +48,11 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
 7. Convert is refused with a clear reason, leaving the draft unchanged, when:
    - a product with the same name exists;
    - the product limit (200) or the ingredient limit (300) is reached;
-   - the draft is not done or already converted.
+   - the draft is not done or already converted;
+   - a new line's name now matches an existing ingredient that is counted a different way (`draft_ingredient_mode_mismatch`);
+   - lines for the same ingredient add up to more than one line can hold (`draft_line_amount_too_large`).
 8. Before converting, the phone shows a confirm dialog listing the ingredients to add, the existing ingredients it will reuse, and the product with its sizes and price (A8).
-9. A converted draft shows a link to its product; the product shows "Từ nháp …" linking back. If the product is deleted, the draft keeps its read-only content with "Món đã bị xoá" and no link.
+9. A converted draft shows a link to its product; the product shows "Từ nháp …" linking back. If the product is deleted, the draft keeps its read-only content with "Món đã bị xoá" and no link. A converted draft can be deleted (draft and lines); the product stays and its "Từ nháp" link disappears.
 10. Offline, edits to unconverted drafts are queued and synced ("Chờ lưu"); convert shows the network notice.
 11. The screens match mockup bản 2 group A:
     - project tile, A1;
@@ -66,7 +68,7 @@ When the draft is Done, one tap turns it into a real product with its recipe, ad
     - empty state and convert errors, A11;
     - dark mode, A12.
     The like row, comments and photos in A3 and A9 are not built here (ticket E).
-12. Changing the project currency is refused once a draft has an expected price or new-line purchase price.
+12. Changing the project currency is refused once an unconverted draft has an expected price or new-line purchase price.
 13. All text exists in Vietnamese and English.
 
 ## Acceptance Criteria

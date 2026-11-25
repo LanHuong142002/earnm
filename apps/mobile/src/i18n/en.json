@@ -1073,6 +1073,7 @@
     "save": "Save",
     "deleteTitle": "Delete the draft {{name}}?",
     "deleteMessage": "Its recipe will be lost and can't be restored.",
+    "deleteConvertedMessage": "The product it made stays as it is.",
     "deleteConfirm": "Delete",
     "sizesSheetTitle": "Sizes and expected price",
     "expectedPriceLabel": "Expected price (size {{size}})",

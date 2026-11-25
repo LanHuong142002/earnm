@@ -1,7 +1,9 @@
 import { SIZE_NAMES, type SizeName } from "../products/types";
 import type { Change } from "../sync/queue";
 import { DRAFT_ENTITY, DRAFT_LINE_ENTITY, DRAFT_STATUS_ENTITY } from "./entities";
+import { missingForDone } from "./estimate";
 import type { Draft, DraftLineRow } from "./types";
+import { estimateLines } from "./view";
 
 const DRAFT_ENTITIES = [DRAFT_ENTITY, DRAFT_STATUS_ENTITY, DRAFT_LINE_ENTITY];
 
@@ -33,7 +35,20 @@ function withFields(draft: Draft, data: Record<string, unknown>): Draft {
   return next;
 }
 
+/** Mirrors the server: an edit that leaves a done draft incomplete returns it to working. */
+function reopenedIfIncomplete(draft: Draft): Draft {
+  if (draft.status !== "done" || draft.convertedAt !== null) return draft;
+  const lines = estimateLines(draft.lines);
+  const broken = lines.length < draft.lines.length || missingForDone({ name: draft.name, sizes: draft.sizes, lines }).length > 0;
+  return broken ? { ...draft, status: "working" } : draft;
+}
+
 function applyToDraft(draft: Draft, change: Change): Draft {
+  const next = applyChange(draft, change);
+  return change.entity === DRAFT_STATUS_ENTITY ? next : reopenedIfIncomplete(next);
+}
+
+function applyChange(draft: Draft, change: Change): Draft {
   const { data } = change;
   if (change.entity === DRAFT_STATUS_ENTITY) {
     return data.value === "working" || data.value === "done" ? { ...draft, status: data.value } : draft;
