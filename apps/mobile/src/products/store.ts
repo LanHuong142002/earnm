@@ -45,7 +45,8 @@ export function isProduct(value: unknown): value is Product {
     typeof value.name === "string" &&
     typeof value.createdAt === "string" &&
     Array.isArray(value.sizes) &&
-    value.sizes.every(isSize)
+    value.sizes.every(isSize) &&
+    (value.fromDraftId === undefined || value.fromDraftId === null || typeof value.fromDraftId === "string")
   );
 }
 

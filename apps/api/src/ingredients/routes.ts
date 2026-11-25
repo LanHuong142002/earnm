@@ -5,20 +5,25 @@ import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../http/errors.js";
 import { applyLastWriteWins } from "../http/last-write-wins.js";
 import { isUniqueViolation } from "../http/prisma-errors.js";
-import { singleLineText } from "../http/text.js";
+import { NAME_MAX, singleLineText } from "../http/text.js";
 import { nameKey } from "../labels/nameKey.js";
 import { findForMember } from "../projects/access.js";
 import { change, idSchema, lockedMember, notFound, param, withRetry } from "../ideas/common.js";
 import type { Tx } from "../ideas/common.js";
-import { ingredientInclude, ingredientResponse, PRICE_HISTORY_SIZE } from "./response.js";
+import {
+  assertPriceInRange,
+  createIngredientRow,
+  ingredientNameTaken,
+  MAX_INGREDIENTS_PER_PROJECT,
+  MAX_PRICE,
+  MAX_QUANTITY,
+  recordPurchase as recordPurchaseRow,
+} from "./create.js";
+import type { Purchase } from "./create.js";
+import { reopenIfIncomplete } from "../drafts/response.js";
+import { ingredientInclude, ingredientResponse } from "./response.js";
 
-/** A project holds at most this many ingredients. */
-export const MAX_INGREDIENTS_PER_PROJECT = 300;
-
-/** Largest price in the currency's smallest unit: 1.000.000.000 ₫, or 100.000 $ in cents. */
-export const MAX_PRICE: Record<"VND" | "USD", number> = { VND: 1_000_000_000, USD: 10_000_000 };
-/** Largest quantity, in base units (g, ml, portion). */
-export const MAX_QUANTITY = 1_000_000;
+export { MAX_INGREDIENTS_PER_PROJECT, MAX_PRICE, MAX_QUANTITY };
 
 const MODES = ["weight", "volume", "portion"] as const;
 type Mode = (typeof MODES)[number];
@@ -28,7 +33,7 @@ const UNITS_OF_MODE: Record<Mode, readonly string[]> = {
   portion: ["portion"],
 };
 
-const nameSchema = singleLineText(60);
+const nameSchema = singleLineText(NAME_MAX);
 const modeSchema = z.enum(MODES);
 
 // Quantity is in base units with at most 3 decimals.
@@ -46,7 +51,6 @@ const purchaseSchema = z
     price: z.number().int().min(0).max(MAX_PRICE.VND),
   })
   .strict();
-type Purchase = z.infer<typeof purchaseSchema>;
 
 const unitFits = (mode: Mode, unit: string) => UNITS_OF_MODE[mode].includes(unit);
 
@@ -78,8 +82,7 @@ const patchSchema = z
     path: ["purchase"],
   });
 
-const nameTaken = () =>
-  new AppError(409, "ingredient_name_taken", "An ingredient in this project already has that name.");
+const nameTaken = ingredientNameTaken;
 
 const invalid = (field: string) => new AppError(400, "validation_failed", `Invalid fields: ${field}.`);
 
@@ -109,35 +112,8 @@ export function createIngredientsRouter(deps: { prisma: PrismaClient; now: () =>
     return { projectId, ingredientId: found.id };
   }
 
-  /** Throws 400 when the price is above the maximum for the project's currency. Run inside the write's transaction. */
-  async function assertPriceInRange(tx: Tx, projectId: string, price: number): Promise<void> {
-    const project = await tx.project.findUnique({ where: { id: projectId }, select: { currency: true } });
-    if (!project) throw notFound();
-    if (price > MAX_PRICE[project.currency]) throw invalid("purchase");
-  }
-
-  /** Records a purchase in the history and keeps only the latest few. */
-  async function recordPurchase(tx: Tx, ingredientId: string, userId: string, p: Purchase) {
-    await tx.ingredientPrice.create({
-      data: {
-        ingredientId,
-        quantity: p.quantity,
-        unit: p.unit,
-        price: p.price,
-        authorId: userId,
-        recordedAt: now(),
-      },
-    });
-    const keep = await tx.ingredientPrice.findMany({
-      where: { ingredientId },
-      orderBy: { id: "desc" },
-      take: PRICE_HISTORY_SIZE,
-      select: { id: true },
-    });
-    await tx.ingredientPrice.deleteMany({
-      where: { ingredientId, id: { notIn: keep.map((k) => k.id) } },
-    });
-  }
+  const recordPurchase = (tx: Tx, ingredientId: string, userId: string, p: Purchase) =>
+    recordPurchaseRow(tx, ingredientId, userId, p, now());
 
   router.get("/", async (req, res, next) => {
     try {
@@ -190,45 +166,16 @@ export function createIngredientsRouter(deps: { prisma: PrismaClient; now: () =>
             // and ignore a body that differs, since the ingredient may have been edited since.
             return { status: 200, row: existing };
           }
-          // Counted under the project lock, so concurrent creates can't pass the limit together.
-          if ((await tx.ingredient.count({ where: { projectId } })) >= MAX_INGREDIENTS_PER_PROJECT) {
-            throw new AppError(
-              409,
-              "ingredient_limit_reached",
-              `A project can hold at most ${MAX_INGREDIENTS_PER_PROJECT} ingredients.`,
-            );
-          }
-          const key = nameKey(body.name);
-          if (await tx.ingredient.findUnique({ where: { projectId_nameKey: { projectId, nameKey: key } } })) {
-            throw nameTaken();
-          }
-          await assertPriceInRange(tx, projectId, body.purchase.price);
-          // Field times start at the epoch so a queued edit made after the create always wins.
-          const epoch = new Date(0);
-          try {
-            await tx.ingredient.create({
-              data: {
-                id: body.id,
-                projectId,
-                name: body.name,
-                nameKey: key,
-                mode: body.mode,
-                quantity: body.purchase.quantity,
-                unit: body.purchase.unit,
-                price: body.purchase.price,
-                isDefault: body.isDefault,
-                nameEditedAt: epoch,
-                modeEditedAt: epoch,
-                purchaseEditedAt: epoch,
-                defaultEditedAt: epoch,
-                createdAt: now(),
-              },
-            });
-          } catch (err) {
-            if (isUniqueViolation(err)) throw nameTaken();
-            throw err;
-          }
-          await recordPurchase(tx, body.id, userId, body.purchase);
+          await createIngredientRow(tx, {
+            id: body.id,
+            projectId,
+            userId,
+            name: body.name,
+            mode: body.mode,
+            purchase: body.purchase,
+            isDefault: body.isDefault,
+            now: now(),
+          });
           const row = await tx.ingredient.findUniqueOrThrow({
             where: { id: body.id },
             include: ingredientInclude,
@@ -343,9 +290,15 @@ export function createIngredientsRouter(deps: { prisma: PrismaClient; now: () =>
           const products = [...new Set(used.map((l) => l.sizeRow.product.name))].sort((a, b) => a.localeCompare(b));
           throw new AppError(409, "ingredient_in_use", "That ingredient is used in a product recipe.", { products });
         }
+        // Done drafts with a line on it: the line loses its ingredient, so they need another look.
+        const drafts = await tx.draft.findMany({
+          where: { projectId, convertedAt: null, status: "done", lines: { some: { ingredientId } } },
+          select: { id: true },
+        });
         // The price history goes with it by the database cascade.
         const { count } = await tx.ingredient.deleteMany({ where: { id: ingredientId, projectId } });
         if (count === 0) throw notFound(); // someone else deleted it first
+        for (const d of drafts) await reopenIfIncomplete(tx, d.id, now());
       });
       res.status(204).end();
     } catch (err) {

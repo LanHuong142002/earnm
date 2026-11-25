@@ -23,7 +23,8 @@ export type ProductSize = {
 };
 
 /** A product exactly as the API returns it (spec R13). */
-export type Product = { id: string; projectId: string; name: string; createdAt: string; sizes: ProductSize[] };
+/** `fromDraftId` is the draft it was converted from; absent in copies saved before drafts existed. */
+export type Product = { id: string; projectId: string; name: string; createdAt: string; sizes: ProductSize[]; fromDraftId?: string | null };
 
 /** The recipe part the person edits: replaces a size's lines and extras as a whole. */
 export type SizeRecipe = {

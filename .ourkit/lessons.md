@@ -26,3 +26,4 @@
 - [quality] When money columns are added, check every path that can change their meaning (project currency) in the plan; both #12 and #13 reviews caught an incomplete currency lock
 - [quality] Per-field LWW on linked fields (kind+months): never reject a whole PATCH for a stale field; resolve linked fields together and keep invariants after LWW
 - [cost] Two reviewers running the API suite on one shared test DB give flaky failures; run DB tests once, alone
+- [quality] Reusing records by name (convert, import) must check the reused record is compatible (unit/mode, name length) or the cost is silently wrong

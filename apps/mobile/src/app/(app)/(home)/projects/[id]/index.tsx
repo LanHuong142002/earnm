@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { useDrafts } from "../../../../../drafts/DraftsProvider";
+import { unconvertedCount } from "../../../../../drafts/view";
 import { MembersAvatarRow } from "../../../../../members/MembersAvatarRow";
 import { useMembers } from "../../../../../members/useMembers";
 import { ProjectCover, roleKey } from "../../../../../projects/ProjectCard";
@@ -97,6 +99,21 @@ export default function ProjectScreen() {
     }, [productsReady, refreshProducts, id]),
   );
 
+  // The Nháp món tile counts the drafts not yet converted, once this project's have been loaded at least once.
+  const drafts = useDrafts();
+  const [draftsLoaded, setDraftsLoaded] = useState(false);
+  const { ready: draftsReady, refresh: refreshDrafts } = drafts;
+  useFocusEffect(
+    useCallback(() => {
+      if (!draftsReady || !id) return;
+      void refreshDrafts(id)
+        .then((result) => {
+          if (result === "ok") setDraftsLoaded(true);
+        })
+        .catch(() => undefined);
+    }, [draftsReady, refreshDrafts, id]),
+  );
+
   // Unknown or vanished project: back to the list (which shows the notice). Only while this
   // screen is the one in front, so a delete started on Edit isn't raced from underneath.
   useEffect(() => {
@@ -125,6 +142,7 @@ export default function ProjectScreen() {
   const tasks = tasksFor(project.id);
   const projectIdeas = ideasReady ? ideas.ideasFor(project.id) : [];
   const projectProducts = productsReady ? products.productsFor(project.id) : [];
+  const projectDrafts = draftsReady ? drafts.draftsFor(project.id) : [];
   const fixedTotal = productsReady ? products.fixedTotalFor(project.id) : 0;
   const projectIngredients = ingredientsReady ? ingredients.ingredientsFor(project.id) : [];
 
@@ -197,6 +215,13 @@ export default function ProjectScreen() {
           <View style={{ flexDirection: "row", gap: spacing[2] }}>
             <AreaTile
               shape="wide"
+              icon="create-outline"
+              label={t("drafts.title")}
+              caption={projectDrafts.length > 0 || draftsLoaded ? t("drafts.areaCount", { count: unconvertedCount(projectDrafts) }) : undefined}
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/drafts", params: { id: project.id } }))}
+            />
+            <AreaTile
+              shape="wide"
               icon="receipt-outline"
               label={t("projects.areaFixedCosts")}
               caption={
@@ -208,8 +233,6 @@ export default function ProjectScreen() {
               }
               onPress={() => once(() => router.push({ pathname: "/projects/[id]/fixed-costs", params: { id: project.id } }))}
             />
-            {/* Keeps this tile the width of the ones above. */}
-            <View style={{ flex: 1 }} />
           </View>
         </View>
       </Enter>

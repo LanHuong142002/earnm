@@ -1,0 +1,283 @@
+{
+  "tier": "feature",
+  "tierReason": "Revised #15: drink drafts with recipe lines and a convert action that creates ingredients and a product with prices in one transaction; one cycle once discussion moves to ticket E",
+  "sensitiveAreas": [
+    "data",
+    "schema",
+    "money",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mode": "hands-off",
+  "mockupApproval": "2bcce32c1e5ad143adabe7936d2b7132f9ff740e0428862849023b0465b28aba",
+  "ticket": "15",
+  "intake": {
+    "ticket": "15",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Revised #15 to drink drafts (part A of mockup v2); B, C, D become their own tickets",
+      "why": "User chose to split A-D when reviewing mockup v2"
+    },
+    {
+      "id": 2,
+      "decision": "Comments, photos and likes on drafts go to new ticket E blocked by #15",
+      "why": "Keeps #15 within one cycle; idea discussion tables are per-entity so drafts need their own"
+    },
+    {
+      "id": 3,
+      "decision": "Convert reuses an ingredient that now has the same name instead of failing",
+      "why": "Mockup v2 assumption 4; avoids duplicates when someone added it meanwhile"
+    },
+    {
+      "id": 4,
+      "decision": "Draft and new-ingredient names capped at 60, not spec R1's 80",
+      "why": "Products and ingredients cap names at 60; a converted name must stay valid in those APIs"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "#15: OK to move comments, photos and likes on drafts to ticket E (Decision 2)?",
+      "answer": "User: ok, keep comments/photos/likes on drafts in #53"
+    },
+    {
+      "id": 2,
+      "question": "Test DB: during #15 build a subagent, after Prisma refused migrate reset without your consent, edited _prisma_migrations in the local earnm_test database (renamed the drafts migration row to its new name). No data dropped. OK, or do you want to reset the test DB yourself?",
+      "answer": "User: ok; user will reset earnm_test themselves following the guide"
+    }
+  ],
+  "testHandoff": [
+    {
+      "what": "#15 drafts on a real iPhone (AC 8-11)",
+      "steps": "Ticket #47 section I with mockup .ourkit/mockups/claude-ourkit-spec-15-idea-product.html group A, once #15 is built"
+    },
+    {
+      "what": "#15 migration on DB with #13 data (AC 14)",
+      "steps": "From apps/api run npm run db:deploy on the dev DB. Expected: succeeds"
+    }
+  ],
+  "planApproval": "91bbfc4440164e4124a3e64a42088aeb88232a8e249ff172bf6f2aaf35057eb2",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "drafts/routes.ts:273-277: retried line create returns 200 before the converted check, so a retry after conversion gets 200 (no data harm)",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "convert.ts:60-70: fallbacks '' and 'weight' for newName/newKind are unreachable today but would create an empty-named ingredient; check in draftMissing or throw",
+        "resolved": true
+      },
+      {
+        "id": 3,
+        "severity": "blocking",
+        "text": "data: draft name and newName allow 80 chars but products/ingredients cap at 60 (products/routes.ts:26, ingredients/routes.ts:35); convert creates rows the APIs would refuse. Cap at 60 and add the length check to createProductRow/createIngredientRow, with tests",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 4,
+        "severity": "blocking",
+        "text": "money: convert.ts:61-68 reuses a same-name ingredient with a different mode (new line volume ml vs existing weight g), silently wrong cost. Refuse with a clear code (e.g. draft_ingredient_mode_mismatch) naming the line; phone shows it",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 5,
+        "severity": "blocking",
+        "text": "money: mobile estimate.ts:39,52-57 counts a draft line that is also a default ingredient twice (convert uses the draft amount once), and a deleted existing ingredient costs 0 instead of no estimate; align with convert",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "convert.ts:86 merged amount of existing+reused line can exceed MAX_LINE_AMOUNT",
+        "resolved": true
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "converted drafts can't be deleted and GET /drafts is unbounded",
+        "resolved": true
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "mobile convert: a lost reply then 409 draft_converted shows an error instead of refreshing and linking the product",
+        "resolved": true
+      },
+      {
+        "id": 9,
+        "severity": "non-blocking",
+        "text": "convert.ts:68-84 reused same-name ingredient keeps its own price; draft purchase price dropped silently; check A8 shows 'dùng lại' clearly (by hand)",
+        "resolved": true
+      },
+      {
+        "id": 10,
+        "severity": "non-blocking",
+        "text": "routes.ts L343-406: a done draft can become incomplete after edits and stays done; convert still refuses with draft_incomplete",
+        "resolved": true
+      },
+      {
+        "id": 11,
+        "severity": "non-blocking",
+        "text": "projects/routes.ts pricedDrafts counts converted drafts, so one converted priced draft locks the currency for good (converted drafts can't be deleted)",
+        "resolved": true
+      },
+      {
+        "id": 12,
+        "severity": "non-blocking",
+        "text": "routes.ts L216-237: a refused done rolls back other fields sent in the same request (phone sends status separately)",
+        "resolved": true
+      },
+      {
+        "id": 13,
+        "severity": "non-blocking",
+        "text": "draft_ingredient_mode_mismatch is not in spec R7; add it to the spec",
+        "resolved": true
+      },
+      {
+        "id": 14,
+        "severity": "non-blocking",
+        "text": "Deleting an ingredient leaves draft lines without an ingredient (line_ingredient_missing); no warning on delete",
+        "resolved": true
+      },
+      {
+        "id": 15,
+        "severity": "non-blocking",
+        "text": "routes.ts L272-349: line create didn't reopen a done draft (fixed in the same pass, test added)",
+        "resolved": true
+      },
+      {
+        "id": 16,
+        "severity": "non-blocking",
+        "text": "routes.ts L281-285: line-create retry returns 200 without comparing the body (harmless for UUID offline queue)",
+        "resolved": true
+      },
+      {
+        "id": 17,
+        "severity": "non-blocking",
+        "text": "Deleting an ingredient doesn't reopen done drafts; caught by draftMissing at view/convert",
+        "resolved": true
+      },
+      {
+        "id": 18,
+        "severity": "non-blocking",
+        "text": "routes.ts L407-409: a line PATCH whose newName collides with an ingredient rolls back the whole PATCH incl. amount/price (edge case)",
+        "resolved": false
+      },
+      {
+        "id": 19,
+        "severity": "non-blocking",
+        "text": "routes.ts L293-306: line-create retry on a converted draft returns 200 (echo only, harmless)",
+        "resolved": false
+      }
+    ],
+    "reviewed": "a0da27a7b025d4af95ffacc3ea74f2e998e1886859d302ea81086232945eeeab"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "API test: create, edit and delete a draft; an empty name, no sizes, or the 201st draft is refused."
+      },
+      "2": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "API test: add, edit and remove both line kinds. These are refused: a duplicate ingredient, amount 0, a new-line name already used by an ingredient, and line 101."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "API test: per-field LWW; the same id twice is idempotent; a non-member gets `404`; a signed-out request gets `401`; editing a converted draft gets `409 draft_converted`."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "Unit test: the estimate with defaults; no estimate and the missing names while a new line lacks a price; expected profit and margin. It uses the mockup numbers: 9.579 and 12.679."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "API test: `done` is refused with `missing` reasons for each rule; `done` back to `working` works."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "API test: convert creates the ingredients and the product with its sizes, lines, defaults and the base price, in one transaction, and reuses a same-name ingredient. A failure part-way leaves nothing created."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "API test: each refusal reason in R7 returns its own code, and the draft is unchanged."
+      },
+      "8": {
+        "result": "manual",
+        "evidence": "By hand on iPhone, mockup A8 (#47 section I); reused lines say they keep the existing price",
+        "criterion": "By hand, mockup A8."
+      },
+      "9": {
+        "result": "manual",
+        "evidence": "API part passed; A9/A10 by hand (#47 I)",
+        "criterion": "API test: the draft↔product link; deleting the product clears the link and keeps the draft read-only. By hand, A9 and A10."
+      },
+      "10": {
+        "result": "manual",
+        "evidence": "Merge unit tests pass; offline by hand (#47 I)",
+        "criterion": "Unit test: queued draft changes merge per field. By hand: offline \"Chờ lưu\"; convert offline shows the notice."
+      },
+      "11": {
+        "result": "manual",
+        "evidence": "Screens vs mockup by hand (#47 I)",
+        "criterion": "By hand, mockups A1–A7 and A11–A12 (without the like, comments and photos parts)."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "API test: a currency change is refused with a priced draft."
+      },
+      "13": {
+        "result": "pass",
+        "evidence": "Run by me after final fixes: API full suite alone 45 files/763 passed; mobile 107 files/1476 passed; tsc, lint, build clean",
+        "criterion": "Unit test: every new i18n key exists in both languages."
+      },
+      "14": {
+        "result": "manual",
+        "evidence": "Test DB applied both migrations; dev DB deploy not run",
+        "criterion": "Check: `prisma migrate deploy` succeeds on an empty database and on one with #13's data."
+      }
+    },
+    "checked": "a0da27a7b025d4af95ffacc3ea74f2e998e1886859d302ea81086232945eeeab"
+  },
+  "shipApproval": "a0da27a7b025d4af95ffacc3ea74f2e998e1886859d302ea81086232945eeeab",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/55"
+}

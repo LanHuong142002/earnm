@@ -5,6 +5,9 @@ const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 // Same, except tab, line feed and carriage return, which a description may hold.
 const CONTROL_EXCEPT_WHITESPACE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 
+/** The longest name a draft, product or ingredient can have. */
+export const NAME_MAX = 60;
+
 /** A single-line text field: trimmed, 1 to `max` characters, no control characters. */
 export const singleLineText = (max: number) =>
   z.string().trim().min(1).max(max).refine((s) => !CONTROL.test(s), "No control characters.");
