@@ -1,13 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useRef, useState, type ComponentRef } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { initialOf } from "../members/avatarRow";
 import { useTheme } from "../theme/useTheme";
+import { Avatar } from "../ui/Avatar";
 import { Card } from "../ui/Card";
 import { ChoiceRow } from "../ui/ChoiceRow";
 import { ErrorText } from "../ui/ErrorText";
 import { PressableScale } from "../ui/PressableScale";
+import { useScrollIntoView } from "../ui/Screen";
 import { assigneeSummary, type AssigneeOption } from "./assignees";
 
 /**
@@ -30,6 +33,14 @@ export function AssigneeField({
   const { t } = useTranslation();
   const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
   const [open, setOpen] = useState(false);
+  const listRef = useRef<ComponentRef<typeof View>>(null);
+  const scrollIntoView = useScrollIntoView();
+  // Once the list has rendered (next frame), bring it into view; nothing on close.
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => scrollIntoView(listRef));
+    return () => cancelAnimationFrame(frame);
+  }, [open, scrollIntoView]);
   const summary = assigneeSummary(selectedIds, people);
   // Chosen people missing from the list (never fetched) still count.
   const unknown = selectedIds.length - people.filter((p) => selectedIds.includes(p.id)).length;
@@ -64,12 +75,25 @@ export function AssigneeField({
         <Ionicons name={open ? "chevron-up" : "chevron-down"} size={iconSize.sm} color={colors.textSecondary} />
       </PressableScale>
       {open ? (
-        <Card>
-          <View>
+        <View ref={listRef} collapsable={false}>
+          <Card>
             {people.map((person, i) => (
               <ChoiceRow
                 key={person.id}
                 label={person.displayName}
+                content={
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing[1] }}>
+                    <Avatar letter={initialOf(person.displayName)} muted={person.former} />
+                    <Text
+                      style={[
+                        selectedIds.includes(person.id) ? typography.bodyStrong : typography.body,
+                        { flexShrink: 1, color: colors.text },
+                      ]}
+                    >
+                      {person.displayName}
+                    </Text>
+                  </View>
+                }
                 selected={selectedIds.includes(person.id)}
                 caption={person.former ? t("tasks.formerMember") : undefined}
                 disabled={person.former && !selectedIds.includes(person.id)}
@@ -78,8 +102,8 @@ export function AssigneeField({
                 onPress={() => onToggle(person.id)}
               />
             ))}
-          </View>
-        </Card>
+          </Card>
+        </View>
       ) : null}
       {error ? <ErrorText message={error} /> : null}
     </View>
