@@ -80,7 +80,6 @@ export function CommentsSection({ parent }: { parent: Parent }) {
         ) : null}
       </View>
 
-      <CommentComposer involved={c.involved} onSend={(text, remind) => c.add(text, remind)} />
       {problem ? <ErrorText message={problem} /> : null}
 
       {c.loading ? (
@@ -127,6 +126,8 @@ export function CommentsSection({ parent }: { parent: Parent }) {
           </Text>
         </PressableScale>
       ) : null}
+
+      <CommentComposer involved={c.involved} onSend={(text, remind) => c.add(text, remind)} />
     </View>
   );
 }

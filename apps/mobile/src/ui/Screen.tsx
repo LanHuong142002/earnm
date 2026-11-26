@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useRef, type ComponentRef, type ReactNode, type RefObject } from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -83,7 +82,9 @@ export function Screen({
       <KeyboardAvoidingView
         style={styles.flex}
         keyboardVerticalOffset={keyboardOffset}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        // Expo SDK 58 / RN 0.88 are edge-to-edge on Android: the window no longer resizes for the
+        // keyboard, so "padding" is needed there too (otherwise inputs stay hidden behind it).
+        behavior="padding"
       >
         <ScrollView
           ref={scrollRef}
