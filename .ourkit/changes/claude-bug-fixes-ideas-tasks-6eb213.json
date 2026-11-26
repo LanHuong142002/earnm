@@ -30,5 +30,39 @@
     "6": {
       "status": "done"
     }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/ui/Screen.tsx KeyboardAvoidingView: behavior is now 'padding' on Android too, for every Screen. If the Android window still resizes for the keyboard (no edge-to-edge), padding double-applies and leaves a gap above the keyboard. Needs an Android device check (Test Handoff).",
+        "resolved": false
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/ideas/voteCounts.ts: fallback for ideas without counts uses max(score,0)/max(-score,0), so an old cached idea with 3 likes and 2 dislikes shows 1 and 0 until the next fetch replaces it.",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/comments/CommentComposer.tsx onFocus: reveal waits for keyboardDidShow, so with a hardware keyboard (soft keyboard hidden) no scroll happens; the input isn't covered then, and on-device behaviour for acceptance 7 is unverified.",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/response.ts:26-27: separate like/dislike counts reveal more about how members voted than score did; in a tiny project members may infer who voted which way. Spec asks for it; note in change report.",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/ideas/voteCounts.ts: against a server without this change the fallback guesses counts from score (2 likes + 1 dislike shows 1 and 0). Display only; deploy the API before or with the app build.",
+        "resolved": false
+      }
+    ]
   }
 }
