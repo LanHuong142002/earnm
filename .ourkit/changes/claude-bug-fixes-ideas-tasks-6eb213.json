@@ -37,7 +37,7 @@
         "id": 1,
         "severity": "non-blocking",
         "text": "apps/mobile/src/ui/Screen.tsx KeyboardAvoidingView: behavior is now 'padding' on Android too, for every Screen. If the Android window still resizes for the keyboard (no edge-to-edge), padding double-applies and leaves a gap above the keyboard. Needs an Android device check (Test Handoff).",
-        "resolved": false
+        "resolved": true
       },
       {
         "id": 2,
@@ -64,6 +64,6 @@
         "resolved": false
       }
     ],
-    "reviewed": "0c8ac1a9e97d1a97b4f10c51034583812e4f10407dc9bf1fcc66115b12064190"
+    "reviewed": "3393e80fb05e1c27548cca02537874f67fda63853a2eaeb668f021d361da8b53"
   }
 }
