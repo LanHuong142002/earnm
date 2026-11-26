@@ -14,6 +14,23 @@ function waitingOf(change: ReturnType<typeof ideaVoteChange>): Change {
 }
 
 describe("votes", () => {
+  it.each([
+    [0, 1, 6, 2],
+    [1, 0, 4, 2],
+    [1, -1, 4, 3],
+    [-1, 1, 6, 1],
+    [-1, 0, 5, 1],
+    [0, -1, 5, 3],
+  ] as const)("withVote from %i to %i moves the counts (likes %i, dislikes %i)", (from, to, likes, dislikes) => {
+    const base = idea({ id: "i1", score: 3, myVote: from, likeCount: 5, dislikeCount: 2 });
+    expect(withVote(base, to)).toMatchObject({ likeCount: likes, dislikeCount: dislikes, myVote: to });
+  });
+
+  it("withVote never takes a count below 0", () => {
+    const base = idea({ id: "i1", score: 0, myVote: 1, likeCount: 0, dislikeCount: 0 });
+    expect(withVote(base, 0)).toMatchObject({ likeCount: 0, dislikeCount: 0 });
+  });
+
   it("withVote moves the score by the difference", () => {
     const base = idea({ id: "i1", score: 3, myVote: 0 });
     expect(withVote(base, 1)).toMatchObject({ score: 4, myVote: 1 });

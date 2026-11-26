@@ -1,5 +1,6 @@
 import type { KeyValueStore } from "../sync/storage";
 import { IDEA_STATUSES, type Idea } from "./types";
+import { withVoteCounts } from "./voteCounts";
 
 const CACHE_KEY = "ideas.cache.v1";
 
@@ -35,6 +36,8 @@ export function isIdea(value: unknown): value is Idea {
     Array.isArray(value.labelIds) &&
     value.labelIds.every((id) => typeof id === "string") &&
     typeof value.score === "number" &&
+    (value.likeCount === undefined || typeof value.likeCount === "number") &&
+    (value.dislikeCount === undefined || typeof value.dislikeCount === "number") &&
     (value.myVote === -1 || value.myVote === 0 || value.myVote === 1) &&
     typeof value.commentCount === "number" &&
     typeof value.photoCount === "number" &&
@@ -49,7 +52,7 @@ function read(raw: unknown, ownerId: string): IdeaCache | null {
   const byProject: Record<string, Idea[]> = {};
   for (const [projectId, list] of Object.entries(raw.byProject)) {
     // One bad project makes only its own copy untrusted; it is fetched again.
-    if (Array.isArray(list) && list.every(isIdea)) byProject[projectId] = list;
+    if (Array.isArray(list) && list.every(isIdea)) byProject[projectId] = list.map(withVoteCounts);
   }
   return { ownerId, byProject };
 }

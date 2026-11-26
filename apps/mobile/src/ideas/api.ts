@@ -3,6 +3,7 @@ import type { ServerComment } from "../tasks/comments/types";
 import type { CommentsApi, PhotosApi } from "../tasks/parent";
 import type { Task } from "../tasks/types";
 import type { ServerPhoto, UploadSignature } from "../tasks/photos/types";
+import { withVoteCounts } from "./voteCounts";
 import type { Idea, IdeaStatus, Vote } from "./types";
 
 type Stamped<T> = { value: T; editedAt: string };
@@ -21,13 +22,13 @@ const base = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/
 const one = (projectId: string, ideaId: string) => `${base(projectId)}/${encodeURIComponent(ideaId)}`;
 
 export const listIdeas = (token: string, projectId: string) =>
-  request<{ ideas: Idea[] }>(base(projectId), { token }).then((r) => r.ideas);
+  request<{ ideas: Idea[] }>(base(projectId), { token }).then((r) => r.ideas.map(withVoteCounts));
 
 export const createIdea = (token: string, projectId: string, body: CreateIdeaBody) =>
-  request<Idea>(base(projectId), { method: "POST", body, token });
+  request<Idea>(base(projectId), { method: "POST", body, token }).then(withVoteCounts);
 
 export const patchIdea = (token: string, projectId: string, ideaId: string, fields: IdeaFieldPatch) =>
-  request<Idea>(one(projectId, ideaId), { method: "PATCH", body: fields, token });
+  request<Idea>(one(projectId, ideaId), { method: "PATCH", body: fields, token }).then(withVoteCounts);
 
 export const deleteIdea = (token: string, projectId: string, ideaId: string) =>
   request<void>(one(projectId, ideaId), { method: "DELETE", token });
@@ -50,11 +51,11 @@ export const createTaskFromIdea = (
     method: "POST",
     body: { taskId, ...fields },
     token,
-  });
+  }).then((r) => ({ ...r, idea: withVoteCounts(r.idea) }));
 
 /** Sets the caller's vote; 0 takes it back. */
 export const putVote = (token: string, projectId: string, ideaId: string, value: Vote) =>
-  request<Idea>(`${one(projectId, ideaId)}/vote`, { method: "PUT", body: { value }, token });
+  request<Idea>(`${one(projectId, ideaId)}/vote`, { method: "PUT", body: { value }, token }).then(withVoteCounts);
 
 // Comments and photos of an idea use the task's components, which know their parent as `taskId` and a comment
 // as having a reminder flag. The API says `ideaId` and has no flag, so each answer is mapped on the way in.

@@ -10,6 +10,8 @@ export function idea(overrides: Partial<Idea> & { id: string }): Idea {
     status: "new",
     labelIds: [],
     score: 0,
+    likeCount: 0,
+    dislikeCount: 0,
     myVote: 0,
     commentCount: 0,
     photoCount: 0,

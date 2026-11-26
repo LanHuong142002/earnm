@@ -8,8 +8,17 @@ const isVote = (v: unknown): v is Vote => v === -1 || v === 0 || v === 1;
 /** The vote a press on the up arrow (`1`) or the down arrow (`-1`) makes: pressing your own vote again takes it back. */
 export const toggleVote = (current: Vote, pressed: 1 | -1): Vote => (current === pressed ? 0 : pressed);
 
-/** The idea with the viewer's vote changed to `value`: the score moves by the difference, so a switch from up to down moves it by 2. */
-export const withVote = (idea: Idea, value: Vote): Idea => ({ ...idea, score: idea.score - idea.myVote + value, myVote: value });
+/**
+ * The idea with the viewer's vote changed to `value`: the score moves by the difference, so a switch from up to
+ * down moves it by 2. The old vote leaves its count and the new one joins its own; no count goes below 0.
+ */
+export const withVote = (idea: Idea, value: Vote): Idea => ({
+  ...idea,
+  score: idea.score - idea.myVote + value,
+  likeCount: Math.max(0, idea.likeCount - (idea.myVote === 1 ? 1 : 0) + (value === 1 ? 1 : 0)),
+  dislikeCount: Math.max(0, idea.dislikeCount - (idea.myVote === -1 ? 1 : 0) + (value === -1 ? 1 : 0)),
+  myVote: value,
+});
 
 const isIdeaChange = (change: Change, projectId: string) =>
   (change.entity === IDEA_ENTITY || change.entity === IDEA_LABELS_ENTITY || change.entity === IDEA_VOTE_ENTITY) &&
@@ -36,6 +45,8 @@ function created(change: Change, projectId: string): Idea {
       status: "new",
       labelIds: [],
       score: 0,
+      likeCount: 0,
+      dislikeCount: 0,
       myVote: 0,
       commentCount: 0,
       photoCount: 0,

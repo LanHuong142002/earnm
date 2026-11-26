@@ -66,6 +66,16 @@ describe("idea cache", () => {
     expect(await store.getJSON("ideas.cache.v1")).toBeNull();
   });
 
+  it("keeps an idea cached by the old app, with the counts filled from its score", async () => {
+    const store = createMemoryStore();
+    const { likeCount: _l, dislikeCount: _d, ...old } = idea({ id: "a", score: -2 });
+    await store.setJSON("ideas.cache.v1", { ownerId: "u1", byProject: { p1: [old] } });
+    const cache = await loadIdeaCache(store, "u1");
+    expect(ideasOf(cache, "p1")[0]).toMatchObject({ likeCount: 0, dislikeCount: 2 });
+    expect(isIdea(old)).toBe(true);
+    expect(isIdea({ ...old, likeCount: "x" })).toBe(false);
+  });
+
   it("isIdea checks the shape", () => {
     expect(isIdea(idea({ id: "a" }))).toBe(true);
     expect(isIdea(idea({ id: "a", author: null, task: { id: "t", title: "T", status: "todo" }, taskId: "t" }))).toBe(true);

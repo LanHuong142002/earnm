@@ -23,6 +23,10 @@ export type Idea = {
   labelIds: string[];
   /** Up votes minus down votes, from everyone. */
   score: number;
+  /** How many members voted up. */
+  likeCount: number;
+  /** How many members voted down. */
+  dislikeCount: number;
   /** Only the viewer's own vote. */
   myVote: Vote;
   commentCount: number;
