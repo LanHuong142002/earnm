@@ -17,3 +17,4 @@
 | 2026-11-25 | #14 Fixed costs | feature | Fixed costs and expected cups give a per-cup share; products show profit and price hint on the full cost | https://github.com/LanHuong142002/earnm/pull/54 |
 | 2026-11-25 | #15 Drink drafts | feature | Drink drafts with a base recipe convert in one tap into a product and its missing ingredients | https://github.com/LanHuong142002/earnm/pull/55 |
 | 2026-11-25 | Activity push and feed (#16) | feature | Pushes for assigned, comment, done, idea and join events batched per project in 1 minute, mutes by type and project, and an Activity screen with a Home bell. | https://github.com/LanHuong142002/earnm/pull/56 |
+| 2026-11-26 | Ideas like/dislike, comment input, assignee picker | feature | Ideas get thumbs like/dislike with separate counts (API likeCount/dislikeCount), comments sit above a keyboard-safe input, and the assignee list scrolls into view with letter avatars. | https://github.com/LanHuong142002/earnm/pull/57 |

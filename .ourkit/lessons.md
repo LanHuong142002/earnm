@@ -29,3 +29,4 @@
 - [quality] Reusing records by name (convert, import) must check the reused record is compatible (unit/mode, name length) or the cost is silently wrong
 - [quality] Push payloads must be bounded (Expo rejects >4 KB): cap ids carried in push data in the plan, or a large batch fails every retry and is dropped.
 - [cost] A fresh worktree has no node_modules or .env: run npm ci in both apps and copy .env (docs/test-on-phone.md) before starting implementers, or the first tasks can't run tests.
+- [quality] Expo apps are edge-to-edge on Android, so Screen's KeyboardAvoidingView needs behavior=padding there too; an iOS-only behavior left inputs under the keyboard on Android.
