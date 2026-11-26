@@ -82,8 +82,9 @@ export function Screen({
       <KeyboardAvoidingView
         style={styles.flex}
         keyboardVerticalOffset={keyboardOffset}
-        // Expo SDK 58 / RN 0.88 are edge-to-edge on Android: the window no longer resizes for the
-        // keyboard, so "padding" is needed there too (otherwise inputs stay hidden behind it).
+        // Expo apps are edge-to-edge on Android, so the window no longer resizes for the keyboard and a view
+        // without a behavior stays under it (docs.expo.dev/guides/keyboard-handling). "padding" only adds the
+        // part of the keyboard that overlaps this view, so a device that still resizes gets no extra padding.
         behavior="padding"
       >
         <ScrollView

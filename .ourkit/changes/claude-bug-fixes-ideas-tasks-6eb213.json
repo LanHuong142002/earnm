@@ -63,6 +63,7 @@
         "text": "apps/mobile/src/ideas/voteCounts.ts: against a server without this change the fallback guesses counts from score (2 likes + 1 dislike shows 1 and 0). Display only; deploy the API before or with the app build.",
         "resolved": false
       }
-    ]
+    ],
+    "reviewed": "0c8ac1a9e97d1a97b4f10c51034583812e4f10407dc9bf1fcc66115b12064190"
   }
 }
