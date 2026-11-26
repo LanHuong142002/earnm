@@ -51,10 +51,10 @@ export function IdeaRow({
         opacity: dropped ? 0.6 : 1,
       }}
     >
-      <VoteColumn score={idea.score} myVote={idea.myVote} onVote={onVote} />
+      <VoteColumn likeCount={idea.likeCount} dislikeCount={idea.dislikeCount} myVote={idea.myVote} onVote={onVote} />
       <PressableScale
         accessibilityRole="button"
-        accessibilityLabel={t("ideas.rowA11y", { title: idea.title, status: t(`ideas.status.${idea.status}`), score: idea.score })}
+        accessibilityLabel={t("ideas.rowA11y", { title: idea.title, status: t(`ideas.status.${idea.status}`) })}
         onPress={onOpen}
         style={{ flex: 1, gap: spacing[0] + 2, justifyContent: "center", minHeight: iconSize.xl * 2 }}
       >
