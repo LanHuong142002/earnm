@@ -39,6 +39,18 @@ export const votePressedState = (myVote: Vote): { up: boolean; down: boolean } =
 /** The viewer's vote as a word, for the screen reader's label. */
 export const voteChoice = (myVote: Vote): "up" | "down" | "none" => (myVote === 1 ? "up" : myVote === -1 ? "down" : "none");
 
+/**
+ * The accessible name of each vote button as an i18n key plus params: that button's own count, and the viewer's
+ * vote as the key of the phrase to translate into `mine` (the caller translates it).
+ */
+export function voteLabels(likeCount: number, dislikeCount: number, myVote: Vote) {
+  const mine = `ideas.voteMine.${voteChoice(myVote)}`;
+  return {
+    like: { key: "ideas.likeA11y", params: { count: likeCount, mine } },
+    dislike: { key: "ideas.dislikeA11y", params: { count: dislikeCount, mine } },
+  };
+}
+
 /** How a status pill is coloured: the accent tint, the blue and green label pairs, or the quiet field grey. */
 export type IdeaStatusTone = "accent" | "blue" | "green" | "muted";
 export const ideaStatusTone = (status: IdeaStatus): IdeaStatusTone =>

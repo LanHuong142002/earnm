@@ -4,25 +4,29 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../theme/useTheme";
 import { PressableScale } from "../ui/PressableScale";
-import { voteChoice, votePressedState } from "./screenView";
+import { votePressedState, voteLabels } from "./screenView";
 import type { Vote } from "./types";
 
-/** "Ủng hộ. Điểm 3, bạn đã ủng hộ" and the like: the score and the viewer's own vote, for the screen reader. */
-function useVoteLabels(score: number, myVote: Vote) {
+type VoteProps = { likeCount: number; dislikeCount: number; myVote: Vote; onVote: (pressed: 1 | -1) => void };
+
+/** "Thích, 3 người. bạn đã thích" and the like: each button's own count and the viewer's vote, for the screen reader. */
+function useVoteLabels(likeCount: number, dislikeCount: number, myVote: Vote) {
   const { t } = useTranslation();
-  const mine = t(`ideas.voteMine.${voteChoice(myVote)}`);
-  return {
-    up: t("ideas.voteUpA11y", { score, mine }),
-    down: t("ideas.voteDownA11y", { score, mine }),
-  };
+  const labels = voteLabels(likeCount, dislikeCount, myVote);
+  const say = ({ key, params }: { key: string; params: { count: number; mine: string } }) =>
+    t(key, { count: params.count, mine: t(params.mine) });
+  return { up: say(labels.like), down: say(labels.dislike) };
 }
 
-/** ▲ score ▼ at the left of an idea row (mockup 1b). The viewer's own vote is highlighted and announced as selected. */
-export function VoteColumn({ score, myVote, onVote }: { score: number; myVote: Vote; onVote: (pressed: 1 | -1) => void }) {
-  const { colors, typography, layout, iconSize } = useTheme();
+const iconName = (direction: "up" | "down", on: boolean) =>
+  direction === "up" ? (on ? "thumbs-up" : "thumbs-up-outline") : on ? "thumbs-down" : "thumbs-down-outline";
+
+/** Thumbs-up over thumbs-down at the left of an idea row, each with its own count beside the icon (mockup 1). */
+export function VoteColumn({ likeCount, dislikeCount, myVote, onVote }: VoteProps) {
+  const { colors, typography, layout, iconSize, spacing } = useTheme();
   const pressed = votePressedState(myVote);
-  const labels = useVoteLabels(score, myVote);
-  const arrow = (direction: "up" | "down") => {
+  const labels = useVoteLabels(likeCount, dislikeCount, myVote);
+  const button = (direction: "up" | "down") => {
     const on = pressed[direction];
     return (
       <PressableScale
@@ -31,37 +35,38 @@ export function VoteColumn({ score, myVote, onVote }: { score: number; myVote: V
         accessibilityState={{ selected: on }}
         hitSlop={{ top: 4, bottom: 4 }}
         onPress={() => onVote(direction === "up" ? 1 : -1)}
-        style={{ width: layout.controlHeight, height: layout.controlHeight - 10, alignItems: "center", justifyContent: "center" }}
+        style={{
+          minHeight: layout.controlHeight - 10,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: spacing[0] + 2,
+        }}
       >
-        <Ionicons
-          name={direction === "up" ? "arrow-up" : "arrow-down"}
-          size={iconSize.lg}
-          color={on ? colors.accentStrong : colors.textSecondary}
-        />
+        <Ionicons name={iconName(direction, on)} size={iconSize.md} color={on ? colors.accentStrong : colors.textSecondary} />
+        <Text
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          style={[typography.bodyStrong, { color: on ? colors.accentStrong : colors.textSecondary }]}
+        >
+          {direction === "up" ? likeCount : dislikeCount}
+        </Text>
       </PressableScale>
     );
   };
   return (
-    <View style={{ width: layout.controlHeight, alignItems: "center" }}>
-      {arrow("up")}
-      <Text
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        style={[typography.bodyStrong, { color: myVote !== 0 ? colors.accentStrong : colors.text }]}
-      >
-        {score < 0 ? `−${Math.abs(score)}` : String(score)}
-      </Text>
-      {arrow("down")}
+    <View style={{ minWidth: layout.controlHeight + spacing[2], justifyContent: "center" }}>
+      {button("up")}
+      {button("down")}
     </View>
   );
 }
 
-/** The big "Ủng hộ" / score / "Không" row of the idea screen (mockup 2a). Pressed one has the accent border and tint. */
-export function BigVote({ score, myVote, onVote }: { score: number; myVote: Vote; onVote: (pressed: 1 | -1) => void }) {
-  const { t } = useTranslation();
+/** The two equal-width like / dislike buttons of the idea screen, icon and count side by side (mockup 2). Pressed one has the accent border and tint. */
+export function BigVote({ likeCount, dislikeCount, myVote, onVote }: VoteProps) {
   const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
   const pressed = votePressedState(myVote);
-  const labels = useVoteLabels(score, myVote);
+  const labels = useVoteLabels(likeCount, dislikeCount, myVote);
   const button = (direction: "up" | "down") => {
     const on = pressed[direction];
     return (
@@ -71,9 +76,11 @@ export function BigVote({ score, myVote, onVote }: { score: number; myVote: Vote
         accessibilityState={{ selected: on }}
         onPress={() => onVote(direction === "up" ? 1 : -1)}
         style={{
+          flex: 1,
           minHeight: layout.controlHeight,
           flexDirection: "row",
           alignItems: "center",
+          justifyContent: "center",
           gap: spacing[0] + 2,
           paddingHorizontal: spacing[2],
           borderRadius: radius.button,
@@ -82,13 +89,13 @@ export function BigVote({ score, myVote, onVote }: { score: number; myVote: Vote
           backgroundColor: on ? colors.tile : colors.field,
         }}
       >
-        <Ionicons
-          name={direction === "up" ? "arrow-up" : "arrow-down"}
-          size={iconSize.lg}
-          color={on ? colors.accentStrong : colors.text}
-        />
-        <Text style={[typography.bodyStrong, { color: on ? colors.accentStrong : colors.text }]}>
-          {t(direction === "up" ? "ideas.voteUp" : "ideas.voteDown")}
+        <Ionicons name={iconName(direction, on)} size={iconSize.lg} color={on ? colors.accentStrong : colors.text} />
+        <Text
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          style={[typography.bodyStrong, { color: on ? colors.accentStrong : colors.text }]}
+        >
+          {direction === "up" ? likeCount : dislikeCount}
         </Text>
       </PressableScale>
     );
@@ -96,13 +103,6 @@ export function BigVote({ score, myVote, onVote }: { score: number; myVote: Vote
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: spacing[1] }}>
       {button("up")}
-      <Text
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        style={[typography.sectionTitle, { color: colors.text, minWidth: layout.controlHeight - spacing[1], textAlign: "center" }]}
-      >
-        {score < 0 ? `−${Math.abs(score)}` : String(score)}
-      </Text>
       {button("down")}
     </View>
   );

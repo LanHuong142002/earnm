@@ -147,6 +147,8 @@ describe("/projects/:projectId/ideas", () => {
         status: "new",
         labelIds: [label],
         score: 0,
+        likeCount: 0,
+        dislikeCount: 0,
         myVote: 0,
         commentCount: 0,
         photoCount: 0,
@@ -275,6 +277,22 @@ describe("/projects/:projectId/ideas", () => {
       const asOwner = await get(w.owner, w.p, i);
       expect(asOwner.body).toMatchObject({ id: i, score: 1, myVote: -1 });
       expect(JSON.stringify(asOwner.body)).not.toContain(w.other.id);
+    });
+
+    it("returns likeCount and dislikeCount from the list, detail and vote routes", async () => {
+      const w = await world();
+      const i = await seedIdea(w.p, w.author.id);
+      await vote(w.author, w.p, i, 1);
+      await vote(w.other, w.p, i, 1);
+      const last = await vote(w.owner, w.p, i, -1);
+      expect(last.body).toMatchObject({ likeCount: 2, dislikeCount: 1, score: 1 });
+
+      const listed = (await list(w.author, w.p)).body.ideas.find((x: { id: string }) => x.id === i);
+      expect(listed).toMatchObject({ likeCount: 2, dislikeCount: 1, score: 1 });
+      expect((await get(w.other, w.p, i)).body).toMatchObject({ likeCount: 2, dislikeCount: 1, score: 1 });
+
+      const fresh = await seedIdea(w.p, w.author.id);
+      expect((await get(w.author, w.p, fresh)).body).toMatchObject({ likeCount: 0, dislikeCount: 0, score: 0 });
     });
 
     it("lists only this project's ideas", async () => {

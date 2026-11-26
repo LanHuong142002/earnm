@@ -23,6 +23,8 @@ export function ideaResponse(idea: IdeaRow, userId: string) {
     status: idea.status,
     labelIds: idea.labels.map((l) => l.labelId),
     score: idea.votes.reduce((sum, v) => sum + v.value, 0),
+    likeCount: idea.votes.filter((v) => v.value === 1).length,
+    dislikeCount: idea.votes.filter((v) => v.value === -1).length,
     myVote: idea.votes.find((v) => v.userId === userId)?.value ?? 0,
     commentCount: idea._count.comments,
     photoCount: idea._count.photos,

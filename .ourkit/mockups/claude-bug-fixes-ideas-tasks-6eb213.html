@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: like/dislike, comment, assign</title>
+<style>
+:root{--bg:#fff;--surface:#fff;--field:#F3F4F6;--tile:#FFF1EB;--tileBorder:#FADCCB;--border:#EEE;--text:#141414;--text2:#5F5F5F;--ph:#6B6B6B;--accent:#F4511E;--accentStrong:#C2410C;--page:#F6F1EE}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);font-family:"Plus Jakarta Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);padding:24px}
+h1{font-size:20px;margin:0 0 4px}
+.lead{color:var(--text2);font-size:14px;margin:0 0 20px;max-width:900px}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:8px}
+.cap{font-size:13px;font-weight:600;color:var(--text2);max-width:375px}
+.req{display:inline-block;background:#1E4A8A;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:1px 5px;margin-right:4px;vertical-align:1px}
+.phone{width:375px;height:740px;background:var(--bg);border-radius:40px;border:10px solid #1b1b1b;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.nav{height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:15px;flex:none}
+.nav .back{color:var(--accentStrong);font-size:22px}
+.scr{flex:1;overflow:hidden;padding:12px 20px 20px;display:flex;flex-direction:column;gap:20px}
+.h1{font-size:24px;font-weight:800;line-height:30px;margin:0}
+.h2{font-size:17px;font-weight:800;margin:0;display:flex;align-items:center;gap:8px}
+.muted{color:var(--text2);font-size:13px}
+.card{border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--surface)}
+svg{display:block}
+/* list row */
+.idea{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.idea:last-child{border-bottom:0}
+.vcol{width:56px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;flex:none;color:var(--text2)}
+.vbtn{min-width:56px;height:40px;display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 4px;border-radius:10px}
+.vbtn .n{font-size:13px;font-weight:600;color:var(--text);line-height:18px}
+.vbtn.on{color:var(--accentStrong)}
+.vbtn.on .n{color:var(--accentStrong)}
+.ibody{flex:1;min-width:0}
+.ititle{font-size:15px;font-weight:600;line-height:21px}
+.chips{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:#EEE;color:#3F3F3F}
+.chip.o{background:#FDE8D7;color:#8A3A0B}.chip.g{background:#DFF1E6;color:#1B5E3A}
+/* big vote */
+.bigvote{display:flex;gap:8px}
+.bv{flex:1;height:44px;border-radius:12px;border:1px solid var(--field);background:var(--field);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:15px;color:var(--text)}
+.bv.on{border-color:var(--accent);background:var(--tile);color:var(--accentStrong)}
+/* comments */
+.cm{display:flex;gap:10px}
+.av{width:34px;height:34px;border-radius:50%;background:var(--field);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none}
+.bub{background:var(--field);border-radius:14px;padding:8px 12px;font-size:15px;line-height:21px}
+.bub b{font-size:13px;display:block}
+.when{font-size:12px;color:var(--text2);margin:2px 0 0 4px}
+.composer{display:flex;gap:8px;align-items:flex-end}
+.input{flex:1;min-height:44px;background:var(--field);border-radius:12px;padding:11px 14px;font-size:15px;line-height:21px;color:var(--text)}
+.input.focus{outline:2px solid var(--accent)}
+.input .ph{color:var(--ph)}
+.send{width:44px;height:44px;border-radius:12px;background:var(--accentStrong);color:#fff;display:flex;align-items:center;justify-content:center}
+.kb{flex:none;height:250px;background:#D1D4DA;display:grid;grid-template-columns:repeat(10,1fr);gap:6px;padding:10px 4px}
+.kb span{background:#fff;border-radius:5px;height:38px}
+.faded{opacity:.35}
+/* assignee */
+.label{font-size:13px;font-weight:600;margin-bottom:6px}
+.field{height:44px;border-radius:12px;background:var(--field);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:15px}
+.choice{display:flex;align-items:center;gap:12px;min-height:48px;border-bottom:1px solid var(--border)}
+.choice:last-child{border-bottom:0}
+.choice .nm{flex:1;font-size:15px}
+.choice .sub{display:block;font-size:12px;color:var(--text2)}
+.check{width:22px;height:22px;border-radius:6px;border:2px solid #C9C9C9;display:flex;align-items:center;justify-content:center}
+.check.on{background:var(--accentStrong);border-color:var(--accentStrong);color:#fff}
+.av.muted{color:var(--text2)}
+.note{background:#FFF8E1;border:1px dashed #E0B400;border-radius:10px;padding:6px 10px;font-size:12px;color:#5A4500}
+</style>
+</head>
+<body>
+<h1>Like / dislike, thứ tự comment, assign có avatar</h1>
+<p class="lead">Mockup tĩnh cho spec <code>claude-bug-fixes-ideas-tasks-6eb213</code>. Nhãn xanh như <span class="req">R1</span> là số requirement trong spec. Màu, chữ và kích thước theo DESIGN.md; icon dùng bộ Ionicons đang có trong app (thumbs-up-outline / thumbs-down-outline, bản đặc khi đã chọn).</p>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="tu" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M7 10v10H4V10h3Zm0 0 4.2-7a2 2 0 0 1 3.6 1.5L14 9h5.2a2 2 0 0 1 2 2.3l-1.3 7A2 2 0 0 1 18 20H7"/></symbol>
+    <symbol id="tuf" viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M7 10v10H4V10h3Zm0 0 4.2-7a2 2 0 0 1 3.6 1.5L14 9h5.2a2 2 0 0 1 2 2.3l-1.3 7A2 2 0 0 1 18 20H7"/></symbol>
+    <symbol id="td" viewBox="0 0 24 24"><g transform="rotate(180 12 12)"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M7 10v10H4V10h3Zm0 0 4.2-7a2 2 0 0 1 3.6 1.5L14 9h5.2a2 2 0 0 1 2 2.3l-1.3 7A2 2 0 0 1 18 20H7"/></g></symbol>
+    <symbol id="tdf" viewBox="0 0 24 24"><g transform="rotate(180 12 12)"><path fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M7 10v10H4V10h3Zm0 0 4.2-7a2 2 0 0 1 3.6 1.5L14 9h5.2a2 2 0 0 1 2 2.3l-1.3 7A2 2 0 0 1 18 20H7"/></g></symbol>
+    <symbol id="send" viewBox="0 0 24 24"><path fill="currentColor" d="M3 20.5 21 12 3 3.5 3 10l12 2-12 2z"/></symbol>
+    <symbol id="chk" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" d="m5 12 5 5 9-10"/></symbol>
+  </defs>
+</svg>
+
+<div class="row">
+
+<!-- 1. Ideas list -->
+<div class="col">
+  <div class="cap">1. Danh sách ý tưởng <span class="req">R1</span><span class="req">R5</span><br>Cột bên trái: like ở trên, dislike ở dưới, số nằm ngay bên phải icon. Thứ tự danh sách giữ như cũ.</div>
+  <div class="phone">
+    <div class="nav"><span class="back">‹</span> Ý tưởng</div>
+    <div class="scr" style="gap:0">
+      <div class="idea">
+        <div class="vcol">
+          <div class="vbtn on"><svg width="20" height="20"><use href="#tuf"/></svg><span class="n">5</span></div>
+          <div class="vbtn"><svg width="20" height="20"><use href="#td"/></svg><span class="n">1</span></div>
+        </div>
+        <div class="ibody"><div class="ititle">Trà sữa nướng size L giá 35k</div><div class="chips"><span class="chip o">Menu</span><span class="chip">Đang mở</span></div><div class="muted" style="margin-top:4px">Lan · 4 bình luận</div></div>
+      </div>
+      <div class="idea">
+        <div class="vcol">
+          <div class="vbtn"><svg width="20" height="20"><use href="#tu"/></svg><span class="n">3</span></div>
+          <div class="vbtn"><svg width="20" height="20"><use href="#td"/></svg><span class="n">0</span></div>
+        </div>
+        <div class="ibody"><div class="ititle">Mở thêm khung giờ 6h sáng cho dân văn phòng</div><div class="chips"><span class="chip g">Vận hành</span><span class="chip">Đang mở</span></div><div class="muted" style="margin-top:4px">Minh · 2 bình luận</div></div>
+      </div>
+      <div class="idea">
+        <div class="vcol">
+          <div class="vbtn"><svg width="20" height="20"><use href="#tu"/></svg><span class="n">2</span></div>
+          <div class="vbtn on"><svg width="20" height="20"><use href="#tdf"/></svg><span class="n">3</span></div>
+        </div>
+        <div class="ibody"><div class="ititle">Bỏ ống hút nhựa, chỉ dùng ống giấy</div><div class="chips"><span class="chip">Đang mở</span></div><div class="muted" style="margin-top:4px">Huy · 7 bình luận</div></div>
+      </div>
+      <div class="idea">
+        <div class="vcol">
+          <div class="vbtn"><svg width="20" height="20"><use href="#tu"/></svg><span class="n">0</span></div>
+          <div class="vbtn"><svg width="20" height="20"><use href="#td"/></svg><span class="n">0</span></div>
+        </div>
+        <div class="ibody"><div class="ititle">Thẻ tích điểm giấy, 10 ly tặng 1</div><div class="chips"><span class="chip">Đang mở</span></div><div class="muted" style="margin-top:4px">Thảo · chưa có bình luận</div></div>
+      </div>
+      <div class="note" style="margin-top:12px">Ô like đang chọn: icon đặc, màu cam (accentStrong). Screen reader: “Thích, 5 người. Bạn đã thích” <span class="req">R10</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Idea detail: comments before input -->
+<div class="col">
+  <div class="cap">2. Chi tiết ý tưởng <span class="req">R2</span><span class="req">R3</span><span class="req">R6</span><br>Nút like/dislike chỉ có icon + số, không còn chữ “Ủng hộ / Không”. Danh sách bình luận nằm trên, ô nhập ở cuối.</div>
+  <div class="phone">
+    <div class="nav"><span class="back">‹</span> Ý tưởng</div>
+    <div class="scr">
+      <div><p class="h1">Trà sữa nướng size L giá 35k</p><div class="chips"><span class="chip o">Menu</span><span class="chip">Đang mở</span></div></div>
+      <div class="bigvote">
+        <div class="bv on"><svg width="22" height="22"><use href="#tuf"/></svg>5</div>
+        <div class="bv"><svg width="22" height="22"><use href="#td"/></svg>1</div>
+      </div>
+      <div class="col" style="gap:12px">
+        <div class="h2">Bình luận <span class="muted">3</span></div>
+        <div class="cm"><div class="av">M</div><div><div class="bub"><b>Minh</b>35k hơi cao so với quán bên cạnh, 32k?</div><div class="when">2 giờ trước</div></div></div>
+        <div class="cm"><div class="av">H</div><div><div class="bub"><b>Huy</b>Size L dùng ly 700ml thì 35k ổn.</div><div class="when">1 giờ trước</div></div></div>
+        <div class="cm"><div class="av">T</div><div><div class="bub"><b>Thảo</b>Thử bán tuần đầu 32k rồi tính tiếp.</div><div class="when">10 phút trước</div></div></div>
+        <div class="composer"><div class="input"><span class="ph">Viết bình luận…</span></div><div class="send"><svg width="20" height="20"><use href="#send"/></svg></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Idea detail: typing -->
+<div class="col">
+  <div class="cap">3. Đang gõ bình luận <span class="req">R7</span><br>Bấm vào ô nhập: màn hình tự cuộn để ô nhập nằm ngay trên bàn phím, gõ nhiều dòng vẫn thấy chữ. Task detail giống hệt.</div>
+  <div class="phone">
+    <div class="nav"><span class="back">‹</span> Ý tưởng</div>
+    <div class="scr" style="justify-content:flex-end">
+      <div class="col" style="gap:12px">
+        <div class="cm faded"><div class="av">H</div><div><div class="bub"><b>Huy</b>Size L dùng ly 700ml thì 35k ổn.</div></div></div>
+        <div class="cm"><div class="av">T</div><div><div class="bub"><b>Thảo</b>Thử bán tuần đầu 32k rồi tính tiếp.</div><div class="when">10 phút trước</div></div></div>
+        <div class="composer"><div class="input focus">Đồng ý với Thảo, tuần đầu 32k, sau đó xem doanh số rồi chốt giá|</div><div class="send"><svg width="20" height="20"><use href="#send"/></svg></div></div>
+      </div>
+    </div>
+    <div class="kb"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- 4. Task form: assignee -->
+<div class="col">
+  <div class="cap">4. Tạo / sửa task: chọn người làm <span class="req">R8</span><span class="req">R9</span><br>Bấm “Người làm”: danh sách mở ra và màn hình tự cuộn để thấy hết. Mỗi người có avatar chữ cái đầu (giống màn Thành viên).</div>
+  <div class="phone">
+    <div class="nav"><span class="back">‹</span> Sửa task</div>
+    <div class="scr" style="justify-content:flex-end">
+      <div class="faded"><div class="label">Hạn chót</div><div class="field">Thứ 6, 28/11</div></div>
+      <div>
+        <div class="label">Người làm</div>
+        <div class="field" style="outline:2px solid var(--accent)">Lan, Minh <span>⌃</span></div>
+        <div class="card" style="margin-top:8px;padding:4px 14px">
+          <div class="choice"><div class="av">L</div><span class="nm">Lan</span><span class="check on"><svg width="14" height="14"><use href="#chk"/></svg></span></div>
+          <div class="choice"><div class="av">M</div><span class="nm">Minh</span><span class="check on"><svg width="14" height="14"><use href="#chk"/></svg></span></div>
+          <div class="choice"><div class="av">H</div><span class="nm">Huy</span><span class="check"></span></div>
+          <div class="choice"><div class="av">T</div><span class="nm">Thảo</span><span class="check"></span></div>
+          <div class="choice" style="opacity:.55"><div class="av muted">Q</div><span class="nm">Quân<span class="sub">Không còn trong dự án</span></span><span class="check"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

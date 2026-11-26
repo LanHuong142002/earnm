@@ -1,0 +1,125 @@
+{
+  "tier": "feature",
+  "tierReason": "Idea responses gain separate like/dislike counts (API change) plus mobile UI fixes for idea detail, ideas list and task assign",
+  "sensitiveAreas": [
+    "public API"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "cd25e9f2a53c50b8b6fe3bbeb0d9146db4c0ae73e83f0e53c5db4da3f8851fdf",
+  "planApproval": "5e38131ab005ca73d966e2730cc16c1b8ebe464a3d775af164e9bed63ba67f9f",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/ui/Screen.tsx KeyboardAvoidingView: behavior is now 'padding' on Android too, for every Screen. If the Android window still resizes for the keyboard (no edge-to-edge), padding double-applies and leaves a gap above the keyboard. Needs an Android device check (Test Handoff).",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/ideas/voteCounts.ts: fallback for ideas without counts uses max(score,0)/max(-score,0), so an old cached idea with 3 likes and 2 dislikes shows 1 and 0 until the next fetch replaces it.",
+        "resolved": false
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/tasks/comments/CommentComposer.tsx onFocus: reveal waits for keyboardDidShow, so with a hardware keyboard (soft keyboard hidden) no scroll happens; the input isn't covered then, and on-device behaviour for acceptance 7 is unverified.",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/response.ts:26-27: separate like/dislike counts reveal more about how members voted than score did; in a tiny project members may infer who voted which way. Spec asks for it; note in change report.",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "apps/mobile/src/ideas/voteCounts.ts: against a server without this change the fallback guesses counts from score (2 likes + 1 dislike shows 1 and 0). Display only; deploy the API before or with the app build.",
+        "resolved": false
+      }
+    ],
+    "reviewed": "3393e80fb05e1c27548cca02537874f67fda63853a2eaeb668f021d361da8b53"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "manual",
+        "evidence": "Code reading: IdeaRow VoteColumn shows thumbs-up/down each with own count, no arrows. Not seen on a device. Test Handoff in issue #47 section K; user will check on a phone later.",
+        "criterion": "Open a project's Ideas list: each row shows a thumbs-up with a number and a thumbs-down with a number, no arrows, no shared number. With 3 likes and 1 dislike from different members, the row shows 3 and 1."
+      },
+      "2": {
+        "result": "manual",
+        "evidence": "Code reading: BigVote is icon+count only; no Support/Against/Ủng hộ/Không vote labels in en/vi. Not seen on a device. Test Handoff in issue #47 section K; user will check on a phone later.",
+        "criterion": "Open an idea: the vote area shows thumbs-up and thumbs-down icons with their counts, and no \"Support\"/\"Against\" text in either language."
+      },
+      "3": {
+        "result": "manual",
+        "evidence": "Count arithmetic covered by overlay/voteCounts/store tests (pass); pressed state and airplane-mode sync not checked on a device. Test Handoff in issue #47 section K; user will check on a phone later.",
+        "criterion": "Tap like: like count +1 and the like icon shows pressed. Tap like again: back to before. Tap dislike while liked: like -1, dislike +1. Same in airplane mode, and it syncs after reconnecting. Automated tests cover the count arithmetic for set, clear and switch."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "routes.test.ts 'returns likeCount and dislikeCount from the list, detail and vote routes' asserts likeCount 2, dislikeCount 1, score 1 on all three routes; API suite 867/867 passed.",
+        "criterion": "API test: an idea with two +1 votes and one -1 vote returns `likeCount: 2`, `dislikeCount: 1`, `score: 1`, from list, detail and vote routes."
+      },
+      "5": {
+        "result": "pass",
+        "evidence": "Diff inspection: sort logic (order.ts) unchanged; counts are display-only; existing listRules ordering tests pass.",
+        "criterion": "With ideas of differing votes, the list shows them in the same order as before this change."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "Code reading: CommentComposer now renders after the list and load-more in shared CommentsSection used by idea and task detail; not seen rendered.",
+        "criterion": "On idea detail and task detail, existing comments appear above the comment input."
+      },
+      "7": {
+        "result": "manual",
+        "evidence": "Screen KeyboardAvoidingView padding on both platforms + scroll-into-view on focus/typing (helper unit-tested); needs a real phone, iOS and Android. Test Handoff in issue #47 section K; user will check on a phone later.",
+        "criterion": "On a phone, tap the comment input on an idea with many comments and photos: the screen scrolls so the input is visible above the keyboard; typing several lines keeps the text visible. Same on task detail."
+      },
+      "8": {
+        "result": "manual",
+        "evidence": "AssigneeField scrolls the opened list into view next frame; needs a phone. Test Handoff in issue #47 section K; user will check on a phone later.",
+        "criterion": "On task new/edit, with the assignee field near the bottom of the screen, tap it: the list opens and is scrolled into view."
+      },
+      "9": {
+        "result": "manual",
+        "evidence": "Code reading: each assignee row has Avatar with initialOf(displayName), muted for former members; not seen on a device. Test Handoff in issue #47 section K; user will check on a phone later.",
+        "criterion": "Each person in the assignee list has a letter avatar matching their name's initial."
+      },
+      "10": {
+        "result": "manual",
+        "evidence": "parity.test.ts passes; likeA11y/dislikeA11y with count and viewer's vote, rowA11y without Score; screen reader not tried. Test Handoff in issue #47 section K; user will check on a phone later.",
+        "criterion": "Screen reader reads like/dislike with counts and the viewer's vote; `src/i18n/parity.test.ts` passes."
+      }
+    },
+    "checked": "3393e80fb05e1c27548cca02537874f67fda63853a2eaeb668f021d361da8b53"
+  },
+  "pr": "https://github.com/LanHuong142002/earnm/pull/57"
+}

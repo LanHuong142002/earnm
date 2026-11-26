@@ -211,7 +211,7 @@ export default function IdeaDetailsScreen() {
               ) : null}
             </View>
           ) : null}
-          <BigVote score={idea.score} myVote={idea.myVote} onVote={(pressed) => void vote(project.id, idea.id, pressed)} />
+          <BigVote likeCount={idea.likeCount} dislikeCount={idea.dislikeCount} myVote={idea.myVote} onVote={(pressed) => void vote(project.id, idea.id, pressed)} />
         </View>
       </Enter>
       <Enter index={2}>

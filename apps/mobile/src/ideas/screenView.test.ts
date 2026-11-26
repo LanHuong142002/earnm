@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { idea } from "./fixtures";
-import { canEditAs, ideaDayOf, ideaStatusTone, ideaView, isOnline, voteChoice, votePressedState } from "./screenView";
+import { canEditAs, ideaDayOf, ideaStatusTone, ideaView, isOnline, voteChoice, voteLabels, votePressedState } from "./screenView";
 
 describe("ideaView", () => {
   const base = { projectFound: true, projectsStatus: "ready" as const, ideasReady: true, ideaFound: true };
@@ -69,4 +69,17 @@ describe("ideaDayOf", () => {
     expect(ideaDayOf(at.toISOString())).toBe("2026-11-12");
   });
   it("is null for something that is not a time", () => expect(ideaDayOf("nope")).toBeNull());
+});
+
+describe("voteLabels", () => {
+  it("gives each button its own count and the viewer's vote", () => {
+    expect(voteLabels(3, 1, 1)).toEqual({
+      like: { key: "ideas.likeA11y", params: { count: 3, mine: "ideas.voteMine.up" } },
+      dislike: { key: "ideas.dislikeA11y", params: { count: 1, mine: "ideas.voteMine.up" } },
+    });
+  });
+  it("names the dislike and the no-vote cases", () => {
+    expect(voteLabels(0, 2, -1).like.params.mine).toBe("ideas.voteMine.down");
+    expect(voteLabels(0, 0, 0).dislike.params).toEqual({ count: 0, mine: "ideas.voteMine.none" });
+  });
 });

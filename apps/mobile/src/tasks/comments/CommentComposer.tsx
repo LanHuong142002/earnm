@@ -1,15 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRef, useState } from "react";
-import { Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState, type ComponentRef } from "react";
+import { Keyboard, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../../theme/useTheme";
 import { ErrorText } from "../../ui/ErrorText";
 import { PressableScale } from "../../ui/PressableScale";
+import { useScrollIntoView } from "../../ui/Screen";
 import type { CommentResult } from "./useParentComments";
 import { COMMENT_MAX, lengthCheck } from "./view";
 
-/** The write field at the top of the section: multi-line, a send button, and "Nhắc kèm" for involved people. */
+/** The write field at the bottom of the section: multi-line, a send button, and "Nhắc kèm" for involved people. */
 export function CommentComposer({
   involved,
   onSend,
@@ -24,6 +25,20 @@ export function CommentComposer({
   const [focused, setFocused] = useState(false);
   const [failed, setFailed] = useState(false);
   const busy = useRef(false);
+  const rootRef = useRef<ComponentRef<typeof View>>(null);
+  const scrollIntoView = useScrollIntoView();
+  const shownListener = useRef<{ remove: () => void } | null>(null);
+  const focusedRef = useRef(false);
+
+  // Next frame, so the KeyboardAvoidingView has resized before we measure.
+  const reveal = () => {
+    requestAnimationFrame(() => scrollIntoView(rootRef));
+  };
+  const stopWaiting = () => {
+    shownListener.current?.remove();
+    shownListener.current = null;
+  };
+  useEffect(() => stopWaiting, []);
   const check = lengthCheck(text);
   const tooLong = check.over > 0;
 
@@ -45,7 +60,7 @@ export function CommentComposer({
   };
 
   return (
-    <View style={{ gap: spacing[0] }}>
+    <View ref={rootRef} collapsable={false} style={{ gap: spacing[0] }}>
       {involved ? (
         <PressableScale
           accessibilityRole="switch"
@@ -84,8 +99,27 @@ export function CommentComposer({
               setText(v);
               setFailed(false);
             }}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onFocus={() => {
+              setFocused(true);
+              focusedRef.current = true;
+              stopWaiting();
+              if (Keyboard.isVisible()) {
+                reveal();
+              } else {
+                shownListener.current = Keyboard.addListener("keyboardDidShow", () => {
+                  stopWaiting();
+                  if (focusedRef.current) reveal();
+                });
+              }
+            }}
+            onBlur={() => {
+              setFocused(false);
+              focusedRef.current = false;
+              stopWaiting();
+            }}
+            onContentSizeChange={() => {
+              if (focusedRef.current) reveal();
+            }}
             multiline
             accessibilityLabel={t("tasks.comments.composerA11y")}
             placeholder={t("tasks.comments.placeholder")}
