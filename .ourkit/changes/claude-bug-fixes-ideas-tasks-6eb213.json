@@ -1,0 +1,14 @@
+{
+  "tier": "feature",
+  "tierReason": "Idea responses gain separate like/dislike counts (API change) plus mobile UI fixes for idea detail, ideas list and task assign",
+  "sensitiveAreas": [
+    "public API"
+  ],
+  "notSensitiveReason": null,
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "cd25e9f2a53c50b8b6fe3bbeb0d9146db4c0ae73e83f0e53c5db4da3f8851fdf",
+  "planApproval": "5e38131ab005ca73d966e2730cc16c1b8ebe464a3d775af164e9bed63ba67f9f"
+}
