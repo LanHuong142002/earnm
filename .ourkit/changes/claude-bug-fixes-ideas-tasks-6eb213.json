@@ -10,5 +10,25 @@
     "reason": null
   },
   "mockupApproval": "cd25e9f2a53c50b8b6fe3bbeb0d9146db4c0ae73e83f0e53c5db4da3f8851fdf",
-  "planApproval": "5e38131ab005ca73d966e2730cc16c1b8ebe464a3d775af164e9bed63ba67f9f"
+  "planApproval": "5e38131ab005ca73d966e2730cc16c1b8ebe464a3d775af164e9bed63ba67f9f",
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    }
+  }
 }
