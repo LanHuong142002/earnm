@@ -266,6 +266,20 @@
     "deleteConfirm": "Xoá",
     "fromIdeaLink": "Từ ý tưởng {{title}}",
     "fromIdeaA11y": "Từ ý tưởng {{title}}. Mở ý tưởng",
+    "createDraft": {
+      "button": "Tạo nháp",
+      "fromLine": "Từ ý tưởng “{{title}}”",
+      "fromLinePhotos": "Từ ý tưởng “{{title}}” · kèm {{count}} ảnh",
+      "needsNetwork": "Cần có mạng để tạo nháp từ ý tưởng. Kết nối lại rồi bấm Tạo nháp lần nữa.",
+      "notAccepted": "Ý tưởng không còn ở Đã chọn nên chưa tạo nháp được.",
+      "alreadyHasDraft": "Ý tưởng này đã có nháp món rồi.",
+      "alreadyHasDraftNamed": "Ý tưởng này vừa có nháp món “{{name}}”.",
+      "openDraft": "Mở nháp đó ›",
+      "limit": "Dự án này đã có 200 nháp.",
+      "conflict": "Không tạo được nháp này. Hãy thử lại.",
+      "gone": "Ý tưởng này không còn tồn tại.",
+      "disabledReason": "Nút mờ vì ý tưởng đã có nháp hoặc không còn Đã chọn."
+    },
     "createTask": {
       "button": "Tạo công việc",
       "fromLine": "Từ ý tưởng “{{title}}”",

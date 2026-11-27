@@ -17,6 +17,7 @@ import { applyDraftOverlay, pendingDraftIds } from "./overlay";
 import {
   clearDraftCache,
   draftsOf,
+  withDraft,
   emptyDraftCache,
   hasDrafts,
   openDraftCache,
@@ -67,6 +68,11 @@ type DraftsContextValue = {
   /** The drafts of the project with a change waiting ("Chờ lưu"). */
   draftPendingFor: (projectId: string) => ReadonlySet<string>;
   createDraft: (projectId: string, input: DraftInput) => Promise<DraftMutationResult<{ id: string }>>;
+  /**
+   * Puts a draft the server has already made (from an idea) into the list and the saved copy, with nothing queued.
+   * Left alone when the project's list is not known yet: the next refresh brings it.
+   */
+  addServerDraft: (projectId: string, draft: Draft) => Promise<void>;
   /** Only the fields that really changed are queued. */
   editDraft: (projectId: string, draftId: string, fields: DraftFieldChanges) => Promise<DraftMutationResult>;
   /** A server `draft_incomplete` comes back through `rejectedNotice` (with its `missing` list). */
@@ -305,6 +311,14 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
     [enqueueAll],
   );
 
+  const addServerDraft = useCallback<DraftsContextValue["addServerDraft"]>(
+    async (projectId, draft) => {
+      if (!usable() || cacheRef.current.byProject[projectId] === undefined) return;
+      await commit(projectId, withDraft(draftsOf(cacheRef.current, projectId), draft));
+    },
+    [commit],
+  );
+
   const editDraft = useCallback<DraftsContextValue["editDraft"]>(
     async (projectId, draftId, fields) => {
       if (!usable()) return { ok: false };
@@ -476,6 +490,7 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
       convertedTotalFor,
       draftPendingFor,
       createDraft,
+      addServerDraft,
       editDraft,
       setDraftStatus,
       deleteDraft,
@@ -487,7 +502,7 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
       rejectedNotice,
       dismissRejectedNotice,
     }),
-    [ready, loadedFor, draftsFor, convertedTotalFor, draftPendingFor, createDraft, editDraft, setDraftStatus, deleteDraft, addLine, editLine, removeLine, convertDraft, refresh, rejectedNotice, dismissRejectedNotice],
+    [ready, loadedFor, draftsFor, convertedTotalFor, draftPendingFor, createDraft, addServerDraft, editDraft, setDraftStatus, deleteDraft, addLine, editLine, removeLine, convertDraft, refresh, rejectedNotice, dismissRejectedNotice],
   );
 
   return <DraftsContext.Provider value={value}>{children}</DraftsContext.Provider>;
