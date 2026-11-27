@@ -247,5 +247,7 @@
       "what": "#50 F1: dark mode",
       "steps": "Switch the phone to dark mode and open B1, B2, B3, E1 and E2: colours follow the app's dark theme like other screens."
     }
-  ]
+  ],
+  "shipApproval": "8a8f33f45a60fdb7909f37eb2d34cb3511288aa25cf95785896012481ef11379",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/59"
 }
