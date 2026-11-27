@@ -162,5 +162,6 @@
       "what": "#51 R8/R9: save, offline, back",
       "steps": "Airplane mode: save a prefilled idea and a prefilled draft, both show as waiting; reconnect, both reach the server. Back/Huỷ from the form returns to the task or idea. The source comment is unchanged."
     }
-  ]
+  ],
+  "pr": "https://github.com/LanHuong142002/earnm/pull/58"
 }

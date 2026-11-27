@@ -1,7 +1,5 @@
 # Lessons
 
-- [cost] Each review round surfaces new non-blocking nits on the newest code; agree up front which severities get fixed so Review converges instead of looping.
-- [quality] Rate limiters must reserve in-flight attempts and must not trust X-Forwarded-For by default; both slipped past the first plan.
 - [quality] Two review rounds each produced opposite advice on the same test (real closed port is flaky vs injected fetch is weaker); decide test strategy for network failures in the plan so Review doesn't flip it.
 - [cost] Running two reviewers in parallel on one shared test database caused false test failures; run reviewers one after another, or give each its own test database.
 - [quality] A spec with more than one screen needs a navigation map (which move opens what, where back goes); listing screens alone produced replace-based navigation with no back or swipe-back.
@@ -30,3 +28,5 @@
 - [quality] Push payloads must be bounded (Expo rejects >4 KB): cap ids carried in push data in the plan, or a large batch fails every retry and is dropped.
 - [cost] A fresh worktree has no node_modules or .env: run npm ci in both apps and copy .env (docs/test-on-phone.md) before starting implementers, or the first tasks can't run tests.
 - [quality] Expo apps are edge-to-edge on Android, so Screen's KeyboardAvoidingView needs behavior=padding there too; an iOS-only behavior left inputs under the keyboard on Android.
+- [quality] Prefill cuts must count the same unit as the form and server (UTF-16 string.length, zod max), not code points; emoji-heavy text otherwise prefills values the form or server refuses.
+- [cost] This session's worktree can't write into a second worktree (hook), so stacked tickets must run one after the other in the same checkout; plan the order up front.
