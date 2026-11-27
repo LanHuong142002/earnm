@@ -17,6 +17,9 @@ export type DraftLineRow = {
   amount: number;
 };
 
+/** The idea a draft was made from, as the API sends it. */
+export type DraftIdea = { id: string; title: string };
+
 /** A drink draft exactly as the API returns it (spec R1). */
 export type Draft = {
   id: string;
@@ -33,6 +36,11 @@ export type Draft = {
   convertedAt: string | null;
   createdAt: string;
   lines: DraftLineRow[];
+  /** The idea this draft was made from; null when it was not, or the idea is gone. */
+  ideaId: string | null;
+  idea: DraftIdea | null;
+  /** How many photos the draft has. */
+  photoCount: number;
 };
 
 /** What the server says a draft still lacks (`draft_incomplete`). */

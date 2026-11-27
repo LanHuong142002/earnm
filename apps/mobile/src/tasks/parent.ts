@@ -27,9 +27,9 @@ export type CommentsScope = { api: CommentsApi; cacheKey: string; entity: string
 /** Where a parent kind keeps its photos: the server calls, the saved cache and the queue entities of its changes. */
 export type PhotosScope = { api: PhotosApi; cacheKey: string; uploadEntity: string; entity: string };
 
-/** What the comments and photos code needs to know about the thing they belong to (a task, an idea). */
+/** What the comments and photos code needs to know about the thing they belong to (a task, an idea, a drink draft). */
 export type Parent = {
-  kind: "task" | "idea";
+  kind: "task" | "idea" | "draft";
   projectId: string;
   /** The task or idea id. Queued changes and caches call it `taskId` whatever the kind: it is the parent id. */
   id: string;
@@ -40,8 +40,13 @@ export type Parent = {
    * and no "Nhắc kèm" at all); false when it has one but the viewer may only look at it.
    */
   canFlag?: boolean;
-  /** Whether the viewer may add, caption and delete photos. */
+  /** Whether the viewer may add photos, and caption and delete them unless `canManagePhoto` narrows that per photo. */
   canManagePhotos: boolean;
+  /**
+   * Per-photo narrowing of caption and delete, for parents where that depends on who added the photo (a draft:
+   * the adder or an Owner). Absent: `canManagePhotos` decides for every photo. It never widens `canManagePhotos`.
+   */
+  canManagePhoto?: (photo: { addedBy: { id: string } | null }) => boolean;
 };
 
 export const TASK_COMMENTS: CommentsScope = {

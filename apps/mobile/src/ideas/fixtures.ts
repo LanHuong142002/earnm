@@ -17,6 +17,8 @@ export function idea(overrides: Partial<Idea> & { id: string }): Idea {
     photoCount: 0,
     taskId: null,
     task: null,
+    draftId: null,
+    draft: null,
     createdAt: "2026-11-10T09:00:00.000Z",
     ...overrides,
   };

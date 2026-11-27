@@ -26,6 +26,9 @@ export function draft(overrides: Partial<Draft> & { id: string }): Draft {
     convertedAt: null,
     createdAt: "2026-11-10T09:00:00.000Z",
     lines: [],
+    ideaId: null,
+    idea: null,
+    photoCount: 0,
     ...overrides,
   };
 }
