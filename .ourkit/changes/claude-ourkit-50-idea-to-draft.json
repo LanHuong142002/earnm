@@ -39,6 +39,11 @@
       "id": 4,
       "decision": "Prefilled draft note is cut to 500 characters, the mobile draft form's existing note limit",
       "why": "The app's draft form already caps notes at 500 (drafts/view.ts), so a longer note could not be saved from it; the spec assumed 2000."
+    },
+    {
+      "id": 5,
+      "decision": "If recording copied photos fails after the draft was created, reply 201 with every photo counted as not copied and destroy the copies",
+      "why": "The draft and its link already exist and the app already shows the not-carried-over notice; an error would hide a draft that exists."
     }
   ],
   "taskStatus": {
@@ -52,6 +57,9 @@
       "status": "done"
     },
     "4": {
+      "status": "done"
+    },
+    "5": {
       "status": "done"
     },
     "6": {
@@ -70,5 +78,40 @@
       "question": "#50: an idea description longer than 500 characters is cut to 500 in the prefilled draft note, because the app's draft form caps notes at 500 (the API allows 2000). Keep 500, or raise the app's draft note limit to 2000?",
       "answer": null
     }
-  ]
+  ],
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/toDraft.ts step 3 (record copied photos) does not re-check membership with lockedMember; a member removed during the ~10s copy window still gets the copied photos attached to the draft they already created. Cosmetic: the draft was created under the lock.",
+        "resolved": false
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "apps/api/src/drafts/photos.ts:246-248 + ideas/toDraft.ts:140,169: photo_limit_reached branch destroys body.publicId without checking a recorded row owns it, and toDraft gives copied rows an id different from their publicId suffix. Any member can GET a 10-photo draft made from an idea, POST record {id: U, publicId: earnm/A/drafts/D/U} and the copied image is destroyed while its row survives (bypasses adder/Owner rule).",
+        "resolved": false,
+        "attempts": 1
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts:161-180 step 3 takes no project lock; a draft delete racing step 3 cascades the new rows without destroying their images (orphans on Cloudinary).",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts:158-180 step 3 doesn't re-count photos under the lock; photos added during the copy window can push a draft past 10 photos.",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts:102-105 a retry with the same draftId after step 1 committed gets 409 idea_already_has_draft instead of the created draft (the app recovers by refreshing).",
+        "resolved": false
+      }
+    ]
+  }
 }

@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { draftInclude, draftResponse } from "../drafts/response.js";
-import { draftPhotoPublicId } from "../drafts/photos.js";
+import { MAX_PHOTOS_PER_DRAFT, draftPhotoPublicId } from "../drafts/photos.js";
 import {
   MAX_DRAFTS_PER_PROJECT,
   assertPriceInRange,
@@ -134,10 +134,14 @@ export function createIdeaToDraftRouter(deps: {
       );
 
       // Step 2: copy the photos, outside any transaction (a copy is a network call).
-      type Copied = { publicId: string; caption: string; width: number; height: number };
+      type Copied = { id: string; publicId: string; caption: string; width: number; height: number };
       const copied: Copied[] = [];
       if (store && photos.length > 0) {
-        const queue = photos.map((p) => ({ ...p, target: draftPhotoPublicId(projectId, draftId, randomUUID()) }));
+        // One id per photo: it is both the row id and the last part of the image's public id.
+        const queue = photos.map((p) => {
+          const photoId = randomUUID();
+          return { ...p, photoId, target: draftPhotoPublicId(projectId, draftId, photoId) };
+        });
         const results: (Copied | null)[] = queue.map(() => null);
         let next = 0;
         const worker = async () => {
@@ -145,28 +149,53 @@ export function createIdeaToDraftRouter(deps: {
             const index = next++;
             const item = queue[index]!;
             const size = await copyOne(store, item.publicId, item.target);
-            if (size) results[index] = { publicId: item.target, caption: item.caption, ...size };
+            if (size) results[index] = { id: item.photoId, publicId: item.target, caption: item.caption, ...size };
           }
         };
         await Promise.all(Array.from({ length: Math.min(COPY_CONCURRENCY, queue.length) }, worker));
         for (const r of results) if (r) copied.push(r);
       }
 
-      // Step 3: record the copies. If that fails, or the draft is gone, the copies are removed: only the
-      // ids made above, and none that a recorded row owns.
+      // Step 3: record the copies, under the project lock with the state read again: the caller may have
+      // left, the draft may be gone or converted, and photos may have been added since step 1. Copies that
+      // can't be recorded are removed: only the ids made above, and none that a recorded row owns.
       let recorded = 0;
       if (copied.length > 0) {
         let draftGone = false;
+        // The copies this request still has to remove after the transaction.
+        let leftover: Copied[] = copied;
+        const removeUnowned = async (items: Copied[]) => {
+          let owned = new Set<string>();
+          try {
+            const rows = await prisma.draftPhoto.findMany({
+              where: { publicId: { in: items.map((c) => c.publicId) } },
+              select: { publicId: true },
+            });
+            owned = new Set(rows.map((r) => r.publicId));
+          } catch {
+            // Unsure what is recorded: leave the images rather than remove one a row may own.
+            owned = new Set(items.map((c) => c.publicId));
+          }
+          await destroyImagesWithin(
+            store,
+            items.map((c) => c.publicId).filter((id) => !owned.has(id)),
+          );
+        };
         try {
-          await prisma.$transaction(async (tx) => {
-            if (!(await tx.draft.findUnique({ where: { id: draftId }, select: { id: true } }))) {
+          const kept = await prisma.$transaction(async (tx) => {
+            await lockedMember(tx, projectId, userId);
+            const draft = await tx.draft.findUnique({ where: { id: draftId }, select: { id: true, convertedAt: true } });
+            if (!draft) {
               draftGone = true;
               throw notFound();
             }
+            if (draft.convertedAt !== null) return [];
+            const room = Math.max(0, MAX_PHOTOS_PER_DRAFT - (await tx.draftPhoto.count({ where: { draftId } })));
+            const fit = copied.slice(0, room);
             const at = now().getTime();
             await tx.draftPhoto.createMany({
-              data: copied.map((c, index) => ({
-                id: randomUUID(),
+              data: fit.map((c, index) => ({
+                id: c.id,
                 draftId,
                 addedById: userId,
                 publicId: c.publicId,
@@ -177,24 +206,13 @@ export function createIdeaToDraftRouter(deps: {
                 createdAt: new Date(at + index),
               })),
             });
+            return fit;
           });
-          recorded = copied.length;
+          recorded = kept.length;
+          leftover = copied.filter((c) => !kept.includes(c));
+          if (leftover.length > 0) await removeUnowned(leftover);
         } catch (err) {
-          let owned = new Set<string>();
-          try {
-            const rows = await prisma.draftPhoto.findMany({
-              where: { publicId: { in: copied.map((c) => c.publicId) } },
-              select: { publicId: true },
-            });
-            owned = new Set(rows.map((r) => r.publicId));
-          } catch {
-            // Unsure what is recorded: leave the images rather than remove one a row may own.
-            owned = new Set(copied.map((c) => c.publicId));
-          }
-          await destroyImagesWithin(
-            store,
-            copied.map((c) => c.publicId).filter((id) => !owned.has(id)),
-          );
+          await removeUnowned(leftover);
           if (draftGone) throw notFound();
           console.error(
             `Could not record the copied photos for draft ${draftId}: ${err instanceof Error ? err.name : "unknown error"}`,

@@ -244,7 +244,8 @@ export function createDraftPhotosRouter(deps: {
             }
             // Counted under the project lock, so concurrent records can't pass the limit together.
             if ((await tx.draftPhoto.count({ where: { draftId } })) >= MAX_PHOTOS_PER_DRAFT) {
-              orphaned = true;
+              // A copy made from an idea is already recorded under this id: keep its image.
+              orphaned = !(await tx.draftPhoto.findFirst({ where: { publicId: body.publicId }, select: { id: true } }));
               throw limitReached();
             }
             // The caption time starts at the epoch: an edit the phone queued after recording the

@@ -356,4 +356,126 @@ describe("POST /projects/:projectId/ideas/:ideaId/draft", () => {
     await prisma.idea.delete({ where: { id: w.i } });
     expect((await prisma.draft.findUniqueOrThrow({ where: { id: again.body.draft.id } })).ideaId).toBeNull();
   });
+
+  it("keeps a copied image when its own id is recorded against a full draft", async () => {
+    const w = await world("accepted", 10);
+    const { store, destroyed } = makeStore();
+    const app = appWith(store);
+    const res = await send(app, w.member, w.p, w.i);
+    expect(res.status).toBe(201);
+    expect(res.body.draft.photoCount).toBe(10);
+    const rows = await prisma.draftPhoto.findMany({ where: { draftId: res.body.draft.id } });
+    expect(rows).toHaveLength(10);
+    // The row id is the id inside the copied image's public id, so a member can compute it.
+    for (const row of rows) expect(row.publicId).toBe(`earnm/${w.p}/drafts/${res.body.draft.id}/${row.id}`);
+    const again = await request(app)
+      .post(`/projects/${w.p}/drafts/${res.body.draft.id}/photos`)
+      .set(...bearer(w.owner.token))
+      .send({ id: rows[0]!.id, publicId: rows[0]!.publicId, width: 1, height: 1 });
+    // The row already has this id, so the record is a retry of a recorded photo.
+    expect(again.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(destroyed).toEqual([]);
+    expect(await prisma.draftPhoto.count({ where: { draftId: res.body.draft.id } })).toBe(10);
+  });
+
+  it("does not destroy an image a row owns when the full-draft branch is reached for its public id", async () => {
+    const w = await world("accepted", 10);
+    const { store, destroyed } = makeStore();
+    const app = appWith(store);
+    const res = await send(app, w.member, w.p, w.i);
+    const draftId = res.body.draft.id as string;
+    // A row that owns a public id under a different row id (e.g. rows made before ids were shared).
+    const row = (await prisma.draftPhoto.findFirst({ where: { draftId } }))!;
+    const other = randomUUID();
+    const owned = `earnm/${w.p}/drafts/${draftId}/${other}`;
+    await prisma.draftPhoto.update({ where: { id: row.id }, data: { publicId: owned } });
+    const clash = await request(app)
+      .post(`/projects/${w.p}/drafts/${draftId}/photos`)
+      .set(...bearer(w.owner.token))
+      .send({ id: other, publicId: owned, width: 1, height: 1 });
+    expectError(clash, 409, "photo_limit_reached");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(destroyed).toEqual([]);
+    expect(await prisma.draftPhoto.count({ where: { publicId: owned } })).toBe(1);
+  });
+
+  /** A store whose copies wait for `release()`, so a test can act inside the copy window. */
+  function pausedStore() {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const made = makeStore(async () => {
+      await gate;
+      return { width: 3, height: 3 };
+    });
+    return { ...made, release };
+  }
+
+  it("records nothing and destroys the copies when the draft is converted during the copy window", async () => {
+    const w = await world();
+    const draftId = randomUUID();
+    const { store, copies, destroyed, release } = pausedStore();
+    const pending = send(appWith(store), w.member, w.p, w.i, body({ draftId })).then((r) => r);
+    await vi.waitFor(() => expect(copies.length).toBeGreaterThan(0));
+    await prisma.draft.update({ where: { id: draftId }, data: { convertedAt: clock.now() } });
+    release();
+    const res = await pending;
+    expect(res.status).toBe(201);
+    expect(res.body.photosNotCopied).toBe(2);
+    expect(await prisma.draftPhoto.count({ where: { draftId } })).toBe(0);
+    expect([...destroyed].sort()).toEqual(copies.map((c) => c.target).sort());
+  });
+
+  it("records only what fits under the cap when photos were added during the copy window", async () => {
+    const w = await world("accepted", 3);
+    const draftId = randomUUID();
+    const { store, copies, destroyed, release } = pausedStore();
+    const pending = send(appWith(store), w.member, w.p, w.i, body({ draftId })).then((r) => r);
+    await vi.waitFor(() => expect(copies.length).toBeGreaterThan(0));
+    for (let n = 0; n < 8; n++) {
+      const id = randomUUID();
+      await prisma.draftPhoto.create({
+        data: {
+          id,
+          draftId,
+          addedById: w.owner.id,
+          publicId: `earnm/${w.p}/drafts/${draftId}/${id}`,
+          width: 1,
+          height: 1,
+          caption: "",
+          captionEditedAt: new Date(0),
+          createdAt: clock.now(),
+        },
+      });
+    }
+    release();
+    const res = await pending;
+    expect(res.status).toBe(201);
+    expect(res.body.photosNotCopied).toBe(1);
+    expect(await prisma.draftPhoto.count({ where: { draftId } })).toBe(10);
+    expect(destroyed).toHaveLength(1);
+    const kept = await prisma.draftPhoto.findMany({ where: { publicId: { in: copies.map((c) => c.target) } } });
+    expect(kept).toHaveLength(2);
+    expect(copies.map((c) => c.target)).toContain(destroyed[0]);
+    expect(kept.map((k) => k.publicId)).not.toContain(destroyed[0]);
+  });
+
+  it("destroys the copies and keeps the draft when the caller is removed during the copy window", async () => {
+    const w = await world();
+    const draftId = randomUUID();
+    const { store, copies, destroyed, release } = pausedStore();
+    const pending = send(appWith(store), w.member, w.p, w.i, body({ draftId })).then((r) => r);
+    await vi.waitFor(() => expect(copies.length).toBeGreaterThan(0));
+    await prisma.projectMember.delete({ where: { projectId_userId: { projectId: w.p, userId: w.member.id } } });
+    release();
+    const res = await pending;
+    // Answered like any failing step 3: the draft stays, none of the copies are recorded or kept.
+    expect(res.status).toBe(201);
+    expect(res.body.photosNotCopied).toBe(2);
+    expect(await prisma.draft.count({ where: { id: draftId } })).toBe(1);
+    expect(await prisma.draftPhoto.count({ where: { draftId } })).toBe(0);
+    expect([...destroyed].sort()).toEqual(copies.map((c) => c.target).sort());
+  });
 });
