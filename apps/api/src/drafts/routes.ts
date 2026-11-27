@@ -26,15 +26,15 @@ export const MAX_CONVERTED_LISTED = 50;
 export const MAX_LINES_PER_DRAFT = 100;
 const MAX_NOTE_LENGTH = 2000;
 
-const nameSchema = singleLineText(NAME_MAX);
-const noteSchema = multiLineText(MAX_NOTE_LENGTH);
-const sizesSchema = z
+export const nameSchema = singleLineText(NAME_MAX);
+export const noteSchema = multiLineText(MAX_NOTE_LENGTH);
+export const sizesSchema = z
   .array(z.enum(SIZE_ORDER))
   .min(1)
   .max(3)
   .refine((a) => new Set(a).size === a.length, "Sizes must not repeat.");
 // The upper bound depends on the project's currency and is checked in the route.
-const priceSchema = z.number().int().min(0).max(MAX_PRICE.VND);
+export const priceSchema = z.number().int().min(0).max(MAX_PRICE.VND);
 const lineAmountSchema = amountSchema.refine((a) => a > 0, "Must be above 0.");
 const modeSchema = z.enum(["weight", "volume", "portion"]);
 // Purchase quantity is in base units (g, ml, portion) with at most 3 decimals.
@@ -98,6 +98,14 @@ const ingredientNameTaken = () =>
 const lineNameTaken = () =>
   new AppError(409, "draft_line_name_taken", "Another new ingredient in this draft has that name.");
 
+/** Refuses a price above the project's currency cap, as a 400 naming `field`. */
+export async function assertPriceInRange(tx: Tx, projectId: string, price: number | null | undefined, field: string) {
+  if (price === null || price === undefined) return;
+  const project = await tx.project.findUnique({ where: { id: projectId }, select: { currency: true } });
+  if (!project) throw notFound();
+  if (price > MAX_PRICE[project.currency]) throw invalid(field);
+}
+
 /**
  * Drink drafts: a drink worked out before it exists, with a recipe of existing and new ingredients.
  * Every edit runs under the project lock; a converted draft is read-only.
@@ -147,13 +155,6 @@ export function createDraftsRouter(deps: {
 
   /** A done draft that an edit left incomplete goes back to working, stamped with the edit's time. */
   const reopenIfIncomplete = (tx: Tx, draftId: string) => reopenDraft(tx, draftId, now());
-
-  async function assertPriceInRange(tx: Tx, projectId: string, price: number | null | undefined, field: string) {
-    if (price === null || price === undefined) return;
-    const project = await tx.project.findUnique({ where: { id: projectId }, select: { currency: true } });
-    if (!project) throw notFound();
-    if (price > MAX_PRICE[project.currency]) throw invalid(field);
-  }
 
   const load = (db: Tx | PrismaClient, draftId: string) =>
     db.draft.findUnique({ where: { id: draftId }, include: draftInclude });

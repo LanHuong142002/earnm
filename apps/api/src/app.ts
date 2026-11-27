@@ -26,6 +26,7 @@ import { createVotesRouter } from "./ideas/votes.js";
 import { createIdeaCommentsRouter } from "./ideas/comments.js";
 import { createIdeaPhotosRouter } from "./ideas/photos.js";
 import { createIdeaToTaskRouter } from "./ideas/toTask.js";
+import { createIdeaToDraftRouter } from "./ideas/toDraft.js";
 import { createIngredientsRouter } from "./ingredients/routes.js";
 import { createExtraCostsRouter } from "./products/extraCosts.js";
 import { createDraftConvertRouter } from "./drafts/convert.js";
@@ -79,6 +80,7 @@ export function createApp(deps: AppDeps): Express {
   app.use("/projects/:projectId/ideas/:ideaId/comments", createIdeaCommentsRouter(deps));
   app.use("/projects/:projectId/ideas/:ideaId/photos", createIdeaPhotosRouter(deps));
   app.use("/projects/:projectId/ideas/:ideaId/task", createIdeaToTaskRouter(deps));
+  app.use("/projects/:projectId/ideas/:ideaId/draft", createIdeaToDraftRouter(deps));
   app.use("/projects/:projectId/ideas", createIdeasRouter(deps));
   app.use("/projects/:projectId/ingredients", createIngredientsRouter(deps));
   app.use("/projects/:projectId/products", createProductsRouter(deps));
