@@ -30,8 +30,9 @@ describe("draftNameFromTitle", () => {
     expect(draftNameFromTitle("a".repeat(80))).toBe("a".repeat(60));
   });
 
-  it("counts a character, not a code unit", () => {
-    expect([...draftNameFromTitle("😀".repeat(70))]).toHaveLength(60);
+  it("stays within 60 UTF-16 code units, as the form and server count, without splitting an emoji", () => {
+    expect(draftNameFromTitle("😀".repeat(70))).toBe("😀".repeat(30));
+    expect(draftNameFromTitle(`a${"😀".repeat(70)}`)).toBe(`a${"😀".repeat(29)}`);
   });
 });
 

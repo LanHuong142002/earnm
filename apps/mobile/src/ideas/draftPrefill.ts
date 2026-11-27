@@ -15,15 +15,45 @@ export type PrefilledDraft = {
   photoCount: number;
 };
 
-/** The idea's title cut to the draft name limit, at a word boundary when there is one. Counts characters, not code units. */
-export function draftNameFromTitle(title: string): string {
-  const chars = [...title.trim()];
-  if (chars.length <= DRAFT_NAME_MAX) return chars.join("");
-  const head = chars.slice(0, DRAFT_NAME_MAX);
+/**
+ * How many whole characters of `chars` fit in `max` UTF-16 code units, the unit the forms and the server count in
+ * (`string.length`, zod `.max`). A character is never split, so an emoji (two units) either fits whole or is left out.
+ */
+function fitting(chars: readonly string[], max: number): number {
+  let units = 0;
+  let count = 0;
+  for (const c of chars) {
+    if (units + c.length > max) break;
+    units += c.length;
+    count++;
+  }
+  return count;
+}
+
+/** `text` cut to at most `max` UTF-16 code units without splitting a character. */
+export function capUnits(text: string, max: number): string {
+  const chars = [...text];
+  return chars.slice(0, fitting(chars, max)).join("");
+}
+
+/**
+ * `text` trimmed and cut to at most `max` UTF-16 code units (what the forms and the server check), at a word
+ * boundary when there is one, never splitting a character.
+ */
+export function cutAtWord(text: string, max: number): string {
+  const chars = [...text.trim()];
+  const keep = fitting(chars, max);
+  if (keep === chars.length) return chars.join("");
+  const head = chars.slice(0, keep);
   // A boundary exists when the cut falls on a space, or a space sits inside the kept part.
-  if (/\s/.test(chars[DRAFT_NAME_MAX] ?? "")) return head.join("").trimEnd();
+  if (/\s/.test(chars[keep] ?? "")) return head.join("").trimEnd();
   const lastSpace = head.findLastIndex((c) => /\s/.test(c));
   return lastSpace > 0 ? head.slice(0, lastSpace).join("").trimEnd() : head.join("");
+}
+
+/** The idea's title cut to the draft name limit, at a word boundary when there is one. */
+export function draftNameFromTitle(title: string): string {
+  return cutAtWord(title, DRAFT_NAME_MAX);
 }
 
 export function prefilledDraftForm(idea: Pick<Idea, "id" | "title" | "description" | "photoCount">): PrefilledDraft {
@@ -31,7 +61,7 @@ export function prefilledDraftForm(idea: Pick<Idea, "id" | "title" | "descriptio
     ideaId: idea.id,
     ideaTitle: idea.title,
     name: draftNameFromTitle(idea.title),
-    note: [...idea.description].slice(0, DRAFT_NOTE_MAX).join(""),
+    note: capUnits(idea.description, DRAFT_NOTE_MAX),
     photoCount: idea.photoCount,
   };
 }

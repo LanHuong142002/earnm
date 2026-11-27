@@ -128,6 +128,12 @@
         "severity": "non-blocking",
         "text": "ideas/toDraft.ts:185: step 3 transaction (now under the project lock) is not wrapped in withRetry; a lock timeout drops every copied photo (reported in photosNotCopied, per D2).",
         "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "Found in #51's review: ideas/draftPrefill.ts cut the draft name (60) and note (500) by code points while the draft form and server count UTF-16 units, so an emoji-heavy idea title could prefill a name the form refuses. Fixed on this branch by cutting in code units without splitting characters.",
+        "resolved": true
       }
     ],
     "reviewed": "29664c6b3553d07755d98c06e4ee7125d7ff095aa9757cdcb800a5a113794e89"
