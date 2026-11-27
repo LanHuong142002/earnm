@@ -11,6 +11,8 @@ import type { Tx } from "../ideas/common.js";
 import { MAX_PRICE, MAX_QUANTITY } from "../ingredients/routes.js";
 import { nameKey } from "../labels/nameKey.js";
 import { findForMember } from "../projects/access.js";
+import type { PhotoStore } from "../photos/cloudinary.js";
+import { destroyImagesWithin } from "../photos/destroy.js";
 import { amountSchema } from "../products/routes.js";
 import { SIZE_ORDER } from "../products/response.js";
 import { draftInclude, draftMissing, draftResponse, reopenIfIncomplete as reopenDraft } from "./response.js";
@@ -100,7 +102,11 @@ const lineNameTaken = () =>
  * Drink drafts: a drink worked out before it exists, with a recipe of existing and new ingredients.
  * Every edit runs under the project lock; a converted draft is read-only.
  */
-export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date }): Router {
+export function createDraftsRouter(deps: {
+  prisma: PrismaClient;
+  now: () => Date;
+  photoStore?: PhotoStore | null;
+}): Router {
   const { prisma, now } = deps;
   const router = Router({ mergeParams: true });
   router.use(requireAuth(deps));
@@ -273,11 +279,19 @@ export function createDraftsRouter(deps: { prisma: PrismaClient; now: () => Date
     try {
       const userId = getAuth(res.locals).userId;
       const { projectId, draftId } = await requireDraft(req, userId);
+      let publicIds: string[] = [];
       await prisma.$transaction(async (tx) => {
         await lockedMember(tx, projectId, userId);
+        // Collected before the delete: the photo rows go with the draft by the database cascade.
+        publicIds = (
+          await tx.draftPhoto.findMany({ where: { draftId, draft: { projectId } }, select: { publicId: true } })
+        ).map((p) => p.publicId);
         // A converted draft can be deleted too: the product it made stays.
         await tx.draft.deleteMany({ where: { id: draftId, projectId } });
       });
+      // After the commit, awaited before the answer so a crash can't silently orphan the images
+      // (destroyImages never throws).
+      await destroyImagesWithin(deps.photoStore, publicIds);
       res.status(204).end();
     } catch (err) {
       next(err);

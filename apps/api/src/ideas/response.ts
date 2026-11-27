@@ -7,6 +7,7 @@ export const ideaInclude = {
   task: { select: { id: true, title: true, status: true } },
   // Only the numbers leave the server: the response never says who voted what.
   votes: { select: { userId: true, value: true } },
+  draft: { select: { id: true, name: true, status: true, convertedAt: true } },
   _count: { select: { comments: true, photos: true } },
 } satisfies Prisma.IdeaInclude;
 
@@ -30,6 +31,15 @@ export function ideaResponse(idea: IdeaRow, userId: string) {
     photoCount: idea._count.photos,
     taskId: idea.taskId,
     task: idea.task ? { id: idea.task.id, title: idea.task.title, status: idea.task.status } : null,
+    draftId: idea.draft?.id ?? null,
+    draft: idea.draft
+      ? {
+          id: idea.draft.id,
+          name: idea.draft.name,
+          status: idea.draft.status,
+          convertedAt: idea.draft.convertedAt === null ? null : idea.draft.convertedAt.toISOString(),
+        }
+      : null,
     createdAt: idea.createdAt.toISOString(),
   };
 }

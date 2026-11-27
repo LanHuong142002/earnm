@@ -240,7 +240,7 @@ export function createProjectsRouter(deps: {
         // The caller may have been demoted or removed since the check above.
         await requireOwner(tx, id, userId);
         // Collected before the delete: the photo rows go with the project by the database cascade.
-        // Idea photos go the same way, so both kinds are collected.
+        // Idea and draft photos go the same way, so all three kinds are collected.
         const taskPhotos = await tx.taskPhoto.findMany({
           where: { task: { projectId: id } },
           select: { publicId: true },
@@ -249,7 +249,11 @@ export function createProjectsRouter(deps: {
           where: { idea: { projectId: id } },
           select: { publicId: true },
         });
-        publicIds = [...taskPhotos, ...ideaPhotos].map((p) => p.publicId);
+        const draftPhotos = await tx.draftPhoto.findMany({
+          where: { draft: { projectId: id } },
+          select: { publicId: true },
+        });
+        publicIds = [...taskPhotos, ...ideaPhotos, ...draftPhotos].map((p) => p.publicId);
         // Memberships are removed by the database cascade.
         await tx.project.deleteMany({ where: { id } });
       });

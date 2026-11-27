@@ -155,6 +155,8 @@ describe("/projects/:projectId/ideas", () => {
         photoCount: 0,
         taskId: null,
         task: null,
+        draftId: null,
+        draft: null,
         createdAt: clock.now().toISOString(),
       });
     });
@@ -615,4 +617,72 @@ describe("/projects/:projectId/ideas", () => {
       expectError(await vote(w.other, w.p, i, 1), 404, "not_found");
     });
   });
+
+  describe("draft link and draft photo cleanup (#50)", () => {
+    async function seedDraft(p: string, ideaId: string | null, extra: Record<string, unknown> = {}) {
+      const d = await prisma.draft.create({
+        data: { id: randomUUID(), projectId: p, name: "Trà đào", sizes: ["M"], ideaId, ...extra },
+      });
+      return d.id;
+    }
+
+    async function seedDraftPhoto(p: string, draftId: string, addedById: string) {
+      const id = randomUUID();
+      const publicId = `earnm/${p}/drafts/${draftId}/${id}`;
+      await prisma.draftPhoto.create({ data: { id, draftId, addedById, publicId, width: 10, height: 10 } });
+      return publicId;
+    }
+
+    it("carries draftId and draft on get and list, null without a draft", async () => {
+      const w = await world();
+      const i = await seedIdea(w.p, w.author.id);
+      const none = await seedIdea(w.p, w.author.id);
+      expect((await get(w.other, w.p, i)).body).toMatchObject({ draftId: null, draft: null });
+      const converted = clock.now();
+      const d = await seedDraft(w.p, i, { status: "done", convertedAt: converted });
+      const res = await get(w.other, w.p, i);
+      expect(res.body).toMatchObject({
+        draftId: d,
+        draft: { id: d, name: "Trà đào", status: "done", convertedAt: converted.toISOString() },
+      });
+      expect(Object.keys(res.body.draft).sort()).toEqual(["convertedAt", "id", "name", "status"]);
+      const listed = (await list(w.other, w.p)).body.ideas as { id: string; draftId: string | null; draft: unknown }[];
+      expect(listed.find((x) => x.id === i)).toMatchObject({ draftId: d });
+      expect(listed.find((x) => x.id === none)).toMatchObject({ draftId: null, draft: null });
+      const open = await seedIdea(w.p, w.author.id);
+      await seedDraft(w.p, open);
+      expect((await get(w.other, w.p, open)).body.draft).toMatchObject({ status: "working", convertedAt: null });
+    });
+
+    it("deleting the idea leaves the draft with ideaId null", async () => {
+      const w = await world();
+      const i = await seedIdea(w.p, w.author.id);
+      const d = await seedDraft(w.p, i);
+      expect((await del(w.author, w.p, i)).status).toBe(204);
+      expect(await prisma.draft.findUniqueOrThrow({ where: { id: d } })).toMatchObject({ ideaId: null });
+    });
+
+    it("deleting the draft makes the idea's draft null", async () => {
+      const w = await world();
+      const i = await seedIdea(w.p, w.author.id);
+      const d = await seedDraft(w.p, i);
+      expect((await request(app).delete(`/projects/${w.p}/drafts/${d}`).set(...bearer(w.owner.token))).status).toBe(204);
+      expect((await get(w.other, w.p, i)).body).toMatchObject({ draftId: null, draft: null });
+    });
+
+    it("destroys draft photo images too when the project is deleted", async () => {
+      const w = await world();
+      const i = await seedIdea(w.p, w.author.id);
+      const a = await seedPhoto(w.p, i, w.author.id);
+      const d = await seedDraft(w.p, null);
+      const x = await seedDraftPhoto(w.p, d, w.owner.id);
+      const y = await seedDraftPhoto(w.p, d, w.other.id);
+      const res = await request(app).delete(`/projects/${w.p}`).set(...bearer(w.owner.token));
+      expect(res.status).toBe(204);
+      await vi.waitFor(() => expect(destroyed.length).toBe(3));
+      expect(destroyed.sort()).toEqual([a, x, y].sort());
+      expect(await prisma.draftPhoto.count()).toBe(0);
+    });
+  });
+
 });

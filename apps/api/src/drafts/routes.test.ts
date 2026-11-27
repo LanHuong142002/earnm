@@ -1,9 +1,27 @@
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
+import type { PhotoStore } from "../photos/cloudinary.js";
 import { createApp } from "../app.js";
 import { addMember, createClock, createSignedInUser, expectError, prisma, useTestApp } from "../test/helpers.js";
 import { MAX_DRAFTS_PER_PROJECT, MAX_LINES_PER_DRAFT } from "./routes.js";
+
+/** An in-memory PhotoStore: no network. `destroyed` lists the public ids it was asked to remove. */
+function fakeStore() {
+  const destroyed: string[] = [];
+  const store: PhotoStore = {
+    cloudName: "demo",
+    apiKey: "key123",
+    sign: (publicId, timestamp) => `sig(${publicId},${timestamp})`,
+    thumbUrl: (publicId) => `https://img.test/thumb/${publicId}`,
+    url: (publicId) => `https://img.test/full/${publicId}`,
+    copy: async () => ({ width: 1200, height: 900 }),
+    async destroy(publicId) {
+      destroyed.push(publicId);
+    },
+  };
+  return { store, destroyed };
+}
 
 describe("/projects/:projectId/drafts", () => {
   useTestApp();
@@ -504,4 +522,78 @@ describe("/projects/:projectId/drafts", () => {
       expect((await changeCurrency(a, p, "USD")).status).toBe(200);
     });
   });
+
+  describe("idea link, photos and cleanup (#50)", () => {
+    const stored = fakeStore();
+    const appStore = createApp({ prisma, now: clock.now, photoStore: stored.store });
+    const delStore = (u: User, p: string, id: string) =>
+      request(appStore).delete(`${base(p)}/${id}`).set(...bearer(u.token));
+
+    async function seedPhoto(p: string, draftId: string, addedById: string) {
+      const id = randomUUID();
+      const publicId = `earnm/${p}/drafts/${draftId}/${id}`;
+      await prisma.draftPhoto.create({ data: { id, draftId, addedById, publicId, width: 10, height: 10 } });
+      return publicId;
+    }
+
+    it("carries ideaId, idea and photoCount on create, list and edit", async () => {
+      const { a, p } = await world();
+      const idea = await prisma.idea.create({ data: { id: randomUUID(), projectId: p, authorId: a.id, title: "Trà đào" } });
+      const d = body();
+      const res = await create(a, p, d);
+      expect(res.body).toMatchObject({ ideaId: null, idea: null, photoCount: 0 });
+      await prisma.draft.update({ where: { id: idOf(d) }, data: { ideaId: idea.id } });
+      await seedPhoto(p, idOf(d), a.id);
+      await seedPhoto(p, idOf(d), a.id);
+      const t = later();
+      const edited = await patch(a, p, idOf(d), { note: { value: "x", editedAt: t } });
+      expect(edited.body).toMatchObject({ ideaId: idea.id, idea: { id: idea.id, title: "Trà đào" }, photoCount: 2 });
+      expect(Object.keys(edited.body.idea).sort()).toEqual(["id", "title"]);
+      const got = await list(a, p);
+      expect(got.body.drafts[0]).toMatchObject({ ideaId: idea.id, idea: { id: idea.id, title: "Trà đào" }, photoCount: 2 });
+    });
+
+    it("destroys the draft's photo images after the delete, and only that draft's", async () => {
+      const { a, p } = await world();
+      const d = body();
+      const other = body();
+      await create(a, p, d);
+      await create(a, p, other);
+      const x = await seedPhoto(p, idOf(d), a.id);
+      const y = await seedPhoto(p, idOf(d), a.id);
+      const keep = await seedPhoto(p, idOf(other), a.id);
+      expect((await delStore(a, p, idOf(d))).status).toBe(204);
+      expect(stored.destroyed.sort()).toEqual([x, y].sort());
+      expect(stored.destroyed).not.toContain(keep);
+      expect(await prisma.draftPhoto.count({ where: { draftId: idOf(d) } })).toBe(0);
+      expect(await prisma.draftPhoto.count({ where: { draftId: idOf(other) } })).toBe(1);
+      stored.destroyed.length = 0;
+    });
+
+    it("destroys the images of a converted draft too, and none when the delete is refused", async () => {
+      const { a, stranger, p } = await world();
+      const d = body();
+      await create(a, p, d);
+      const x = await seedPhoto(p, idOf(d), a.id);
+      expectError(await delStore(stranger, p, idOf(d)), 404, "not_found");
+      expect(stored.destroyed).toEqual([]);
+      await prisma.draft.update({ where: { id: idOf(d) }, data: { convertedAt: clock.now() } });
+      expect((await delStore(a, p, idOf(d))).status).toBe(204);
+      expect(stored.destroyed).toEqual([x]);
+      stored.destroyed.length = 0;
+    });
+
+    it("deleting the idea leaves the draft with ideaId null", async () => {
+      const { a, p } = await world();
+      const idea = await prisma.idea.create({ data: { id: randomUUID(), projectId: p, authorId: a.id, title: "I" } });
+      const d = body();
+      await create(a, p, d);
+      await prisma.draft.update({ where: { id: idOf(d) }, data: { ideaId: idea.id } });
+      expect((await request(app).delete(`/projects/${p}/ideas/${idea.id}`).set(...bearer(a.token))).status).toBe(204);
+      const got = await list(a, p);
+      expect(got.body.drafts).toHaveLength(1);
+      expect(got.body.drafts[0]).toMatchObject({ id: idOf(d), ideaId: null, idea: null });
+    });
+  });
+
 });
