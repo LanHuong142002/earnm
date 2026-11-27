@@ -41,5 +41,52 @@
   "mockup": {
     "needed": true,
     "reason": null
+  },
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "commentSource.ts:18,47-49 cap/draftFromComment and draftPrefill.ts:19-27 cutAtWord cut by code points, but the draft form (drafts/new.tsx:65, products/view.ts:106) and the server (zod max) count UTF-16 code units: a 600-char comment with emoji gives a 500-code-point note >500 units, refused with noteTooLong on a field the user never typed; same for a 60-code-point name. Tests at commentSource.test.ts:108,112 pin the broken result.",
+        "resolved": false,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "commentSource.ts:43 ideaFromComment cuts the title to 120 code points; ideas/plan.ts:23 also counts code points so the form accepts it, but the server titleSchema singleLineText(120) counts code units: an emoji-rich first sentence queues an idea the server rejects with 400 (shows waiting then failed offline). Test commentSource.test.ts:84-85 pins it.",
+        "resolved": false,
+        "attempts": 1
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "CommentBubble.tsx:116-124 / CommentsSection.tsx:116-120: no test that the bubble wires onLongPress/accessibilityActions on waiting/failed comments or that onAddAs pushes the right route; AC1-3 rely on the phone check.",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "CommentsSection.tsx:118: whole comment text travels as an Expo Router search param; round-trip of %, #, &, ? and line breaks not verified (phone check).",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "#51 mockup is not approved by the user yet (hands-off); spec relies on group C reviewed 2026-11-20.",
+        "resolved": false
+      }
+    ]
   }
 }
