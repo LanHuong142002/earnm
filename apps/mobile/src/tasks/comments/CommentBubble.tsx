@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
-import { Alert, Text, TextInput, View } from "react-native";
+import { ActionSheetIOS, Alert, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { useTheme } from "../../theme/useTheme";
@@ -8,6 +8,7 @@ import { Avatar } from "../../ui/Avatar";
 import { ErrorText } from "../../ui/ErrorText";
 import { PressableScale } from "../../ui/PressableScale";
 import { CommentBell } from "./CommentBell";
+import { addAsKind, commentMenu, type AddAsKind, type CommentMenu } from "./commentMenu";
 import type { Comment } from "./types";
 import { COMMENT_MAX, authorInitial, authorName, lengthCheck, type BellState } from "./view";
 
@@ -23,7 +24,29 @@ type Props = {
   onToggleRemind: () => void;
   onRetry: () => void;
   onDiscard: () => void;
+  /** The person chose "Thêm thành ý tưởng" or "Thêm thành nháp món" for this comment. */
+  onAddAs: (kind: AddAsKind) => void;
 };
+
+/** The long-press menu: an action sheet on iOS, Alert buttons elsewhere (like the sort menu). */
+function showCommentMenu(menu: CommentMenu, onPick: (kind: AddAsKind) => void): void {
+  if (Platform.OS === "ios") {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: menu.title, options: [...menu.items.map((i) => i.label), menu.cancelLabel], cancelButtonIndex: menu.items.length },
+      (index) => {
+        const item = menu.items[index];
+        if (item) onPick(item.kind);
+      },
+    );
+    return;
+  }
+  Alert.alert(
+    menu.title,
+    undefined,
+    [...menu.items.map((i) => ({ text: i.label, onPress: () => onPick(i.kind) })), { text: menu.cancelLabel, style: "cancel" as const }],
+    { cancelable: true },
+  );
+}
 
 /** A text action on the meta line, with a 44pt target. */
 function Action({ label, a11y, onPress, color, disabled = false }: { label: string; a11y: string; onPress: () => void; color: string; disabled?: boolean }) {
@@ -49,7 +72,7 @@ function Action({ label, a11y, onPress, color, disabled = false }: { label: stri
 }
 
 /** One comment: avatar, bubble with name and text, a meta line, and the bell on the right. */
-export function CommentBubble({ comment, time, canEdit, bell, onSave, onDelete, onToggleRemind, onRetry, onDiscard }: Props) {
+export function CommentBubble({ comment, time, canEdit, bell, onSave, onDelete, onToggleRemind, onRetry, onDiscard, onAddAs }: Props) {
   const { t } = useTranslation();
   const { colors, typography, radius, spacing } = useTheme();
   const [editing, setEditing] = useState(false);
@@ -81,6 +104,8 @@ export function CommentBubble({ comment, time, canEdit, bell, onSave, onDelete, 
       { cancelable: true },
     );
 
+  const menu = commentMenu({ editing, name, t: (key, values) => t(key, values as Record<string, string>) });
+
   const dot = <Text style={[typography.label, { color: colors.textSecondary }]}>·</Text>;
   const metaRow = { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: spacing[0] } as const;
 
@@ -88,9 +113,15 @@ export function CommentBubble({ comment, time, canEdit, bell, onSave, onDelete, 
     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing[1] }}>
       <Avatar letter={authorInitial(comment, former)} muted={comment.author === null} />
       <View style={{ flex: 1 }}>
-        <View
+        <Pressable
           accessible={!editing}
           accessibilityLabel={editing ? undefined : t("tasks.comments.bubbleA11y", { name, time, text: comment.text })}
+          accessibilityActions={menu?.accessibilityActions}
+          onAccessibilityAction={(e) => {
+            const kind = addAsKind(e.nativeEvent.actionName);
+            if (kind) onAddAs(kind);
+          }}
+          onLongPress={menu ? () => showCommentMenu(menu, onAddAs) : undefined}
           style={{
             gap: spacing[0] / 2,
             paddingVertical: spacing[1],
@@ -115,7 +146,7 @@ export function CommentBubble({ comment, time, canEdit, bell, onSave, onDelete, 
           ) : (
             <Text style={[typography.body, { color: colors.text }]}>{comment.text}</Text>
           )}
-        </View>
+        </Pressable>
         {editing ? (
           <>
             {check.over > 0 ? (

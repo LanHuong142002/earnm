@@ -6,6 +6,11 @@ import { TASK_COMMENTS, TASK_PHOTOS } from "../tasks/parent";
 const author = { author: { id: "u1", displayName: "An" } };
 
 describe("ideaParent", () => {
+  it("carries the idea's title, for naming it as the source of a comment", () => {
+    expect(ideaParent("p1", "i1", { ...author, title: "Thêm trà đào" }, "u1", "member").title).toBe("Thêm trà đào");
+    expect(ideaParent("p1", "i1", null, "u1", "member").title).toBeUndefined();
+  });
+
   it("is an idea with its own caches and queue entities, apart from the task's", () => {
     const p = ideaParent("p1", "i1", author, "u1", "member");
     expect(p).toMatchObject({ kind: "idea", projectId: "p1", id: "i1" });

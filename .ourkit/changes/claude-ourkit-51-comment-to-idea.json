@@ -1,0 +1,167 @@
+{
+  "tier": "feature",
+  "tierReason": "Long-press a task or idea comment to start a new idea or drink draft prefilled from it (#51); several screens, mobile only",
+  "sensitiveAreas": [],
+  "notSensitiveReason": null,
+  "ticket": "51",
+  "intake": {
+    "ticket": "51",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature for #51, no Sensitive Area (mobile only, existing idea and draft create calls)",
+      "why": "Several screens change, but no schema, API, auth or money change is needed while the 'from comment' line stays on the form only."
+    },
+    {
+      "id": 2,
+      "decision": "#51 branches from #50's branch",
+      "why": "It reuses the prefilled New draft form #50 adds; its PR targets #50's branch until #50 merges."
+    },
+    {
+      "id": 3,
+      "decision": "Pass the comment source to the New idea / New draft screens as route params",
+      "why": "Text is at most 1000 characters, params survive a reload, and the fromIdea flows already work this way."
+    }
+  ],
+  "mode": "hands-off",
+  "questions": [
+    {
+      "id": 1,
+      "question": "#51: add 'Sao chép' (copy comment text) to the long-press menu, which needs the expo-clipboard module, or leave it out as built?",
+      "answer": null
+    },
+    {
+      "id": 2,
+      "question": "#51: the 'Từ bình luận của …' line shows on the new idea/draft form only and isn't stored. Should the new idea or draft also keep and show where it came from (needs a schema change)?",
+      "answer": null
+    }
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    }
+  },
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "blocking",
+        "text": "commentSource.ts:18,47-49 cap/draftFromComment and draftPrefill.ts:19-27 cutAtWord cut by code points, but the draft form (drafts/new.tsx:65, products/view.ts:106) and the server (zod max) count UTF-16 code units: a 600-char comment with emoji gives a 500-code-point note >500 units, refused with noteTooLong on a field the user never typed; same for a 60-code-point name. Tests at commentSource.test.ts:108,112 pin the broken result.",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "commentSource.ts:43 ideaFromComment cuts the title to 120 code points; ideas/plan.ts:23 also counts code points so the form accepts it, but the server titleSchema singleLineText(120) counts code units: an emoji-rich first sentence queues an idea the server rejects with 400 (shows waiting then failed offline). Test commentSource.test.ts:84-85 pins it.",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "CommentBubble.tsx:116-124 / CommentsSection.tsx:116-120: no test that the bubble wires onLongPress/accessibilityActions on waiting/failed comments or that onAddAs pushes the right route; AC1-3 rely on the phone check.",
+        "resolved": false
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "CommentsSection.tsx:118: whole comment text travels as an Expo Router search param; round-trip of %, #, &, ? and line breaks not verified (phone check).",
+        "resolved": false
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "#51 mockup is not approved by the user yet (hands-off); spec relies on group C reviewed 2026-11-20.",
+        "resolved": false
+      }
+    ],
+    "reviewed": "9f81c86a03cd229b075be06faef45efb28923ee0993f577aad853a67593e01ae"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "manual",
+        "evidence": "Code: CommentBubble Pressable onLongPress -> action sheet (iOS) / Alert (else) titled 'Bình luận của {{name}}' with the two items and Huỷ; commentMenu unit tests pass; task and idea parents pass titles. Real long-press needs a phone.",
+        "criterion": "R1: long-press a comment on a task: the menu shows its title and the three items. Same on an idea's comment."
+      },
+      "2": {
+        "result": "manual",
+        "evidence": "Code: commentMenu returns null only while editing, no ownership or send-state check; unit tests cover editing. Own, others' and waiting comments need a phone check.",
+        "criterion": "R2: the menu appears on your own comment, on another member's comment, and on a waiting comment; it does not appear while that comment is in edit mode."
+      },
+      "3": {
+        "result": "manual",
+        "evidence": "Code: accessibilityActions addAsIdea/addAsDraft mapped by addAsKind; unit tests pass. VoiceOver/TalkBack check needs a phone.",
+        "criterion": "R3: with a screen reader, the comment offers \"Thêm thành ý tưởng\" and \"Thêm thành nháp món\" as actions."
+      },
+      "4": {
+        "result": "manual",
+        "evidence": "ideaFromComment on the AC comment gives exactly 'Hay mình làm thêm cà phê muối đi, quán bên kia bán chạy lắm.' and the whole comment as description; the rendered form needs a phone.",
+        "criterion": "R4: from the comment \"Hay mình làm thêm cà phê muối đi, quán bên kia bán chạy lắm. Kem muối…\", the New idea form shows title \"Hay mình làm thêm cà phê muối đi, quán bên kia bán chạy lắm.\" and the whole comment as description."
+      },
+      "5": {
+        "result": "manual",
+        "evidence": "draftFromComment gives the first sentence as name (under 60) and the whole comment as note; 60-unit word cut unit-tested. Rendered form needs a phone.",
+        "criterion": "R5: from the same comment, the New draft form shows a name of at most 60 characters ending at a word boundary, and the comment (cut to 500) as note."
+      },
+      "6": {
+        "result": "pass",
+        "evidence": "commentSource.test.ts covers . ! ? … end, line break, line break before a mark, no punctuation, 3.5k, whitespace only, emoji never split under UTF-16 caps; all pass.",
+        "criterion": "R6: unit tests for the first-sentence rule: \".\", \"!\", \"?\", \"…\", line break, no punctuation, a dot inside a number (\"3.5k\" is not an end), only whitespace, and emoji counted as one character when cutting."
+      },
+      "7": {
+        "result": "manual",
+        "evidence": "sourceLine unit-tested (author and title, fallback for unknown author); CommentSourceLine on both forms not seen rendered.",
+        "criterion": "R7: the line names the author and the task or idea; an unknown author gives the fallback text."
+      },
+      "8": {
+        "result": "manual",
+        "evidence": "Code: both forms use the normal create/createDraft (queued); route is a push so back returns. Offline save and sync need a phone.",
+        "criterion": "R8: with the phone offline, saving the prefilled idea and the prefilled draft each shows them as waiting, and they reach the server after reconnecting. Cancel returns to the comment's screen."
+      },
+      "9": {
+        "result": "manual",
+        "evidence": "Code: the diff adds no comment write or edit call; confirm on a phone that the comment is unchanged after saving.",
+        "criterion": "R9: after saving, the source comment's text and position are unchanged."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "gate run test pass (mobile 120 files / 1607 tests, API suite pass), gate run build pass, gate run lint pass, all after the UTF-16 fix and rebase.",
+        "criterion": "Existing tests pass; `ourkit gate run test`, lint and build pass."
+      }
+    },
+    "checked": "9f81c86a03cd229b075be06faef45efb28923ee0993f577aad853a67593e01ae"
+  },
+  "testHandoff": [
+    {
+      "what": "#51 C1/C1b: long-press menu",
+      "steps": "Open a task, long-press another member's comment: menu 'Bình luận của <tên>' with Thêm thành ý tưởng, Thêm thành nháp món, Huỷ. Repeat on your own comment, on a comment waiting to send (airplane mode), and on an idea's comment. While editing a comment, long-press opens nothing. Android shows the same as a dialog."
+    },
+    {
+      "what": "#51 R3: screen reader actions",
+      "steps": "VoiceOver/TalkBack: focus a comment, open its actions: 'Thêm thành ý tưởng' and 'Thêm thành nháp món' open the forms."
+    },
+    {
+      "what": "#51 C2/C3/C4: prefilled forms",
+      "steps": "From the comment 'Hay mình làm thêm cà phê muối đi, quán bên kia bán chạy lắm. Kem muối…': New idea title = first sentence, description = whole comment, line 'Từ bình luận của <tên> ở “<task>”'. New draft: name = first sentence (<=60), note = comment. A comment by a removed account shows 'Từ một bình luận ở …'. Typing in the form is not reset. Try a comment with %, #, &, ? and several lines: text arrives unchanged."
+    },
+    {
+      "what": "#51 R8/R9: save, offline, back",
+      "steps": "Airplane mode: save a prefilled idea and a prefilled draft, both show as waiting; reconnect, both reach the server. Back/Huỷ from the form returns to the task or idea. The source comment is unchanged."
+    }
+  ],
+  "pr": "https://github.com/LanHuong142002/earnm/pull/58"
+}

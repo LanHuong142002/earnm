@@ -28,10 +28,10 @@ export const IDEA_PHOTOS: PhotosScope = {
 export function ideaParent(
   projectId: string,
   ideaId: string,
-  idea: Pick<Idea, "author"> | null,
+  idea: (Pick<Idea, "author"> & Partial<Pick<Idea, "title">>) | null,
   myId: string | null,
   myRole: ProjectRole | null,
 ): Parent {
   const canManagePhotos = idea !== null && myId !== null && myRole !== null && canEditIdea(idea, myId, myRole);
-  return { kind: "idea", projectId, id: ideaId, comments: IDEA_COMMENTS, photos: IDEA_PHOTOS, canManagePhotos };
+  return { kind: "idea", projectId, id: ideaId, title: idea?.title, comments: IDEA_COMMENTS, photos: IDEA_PHOTOS, canManagePhotos };
 }
