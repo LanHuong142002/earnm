@@ -34,6 +34,26 @@
       "id": 3,
       "decision": "D1-D3 in the #50 spec taken on the recommended defaults",
       "why": "User approved the spec containing them without changing them."
+    },
+    {
+      "id": 4,
+      "decision": "Prefilled draft note is cut to 500 characters, the mobile draft form's existing note limit",
+      "why": "The app's draft form already caps notes at 500 (drafts/view.ts), so a longer note could not be saved from it; the spec assumed 2000."
+    }
+  ],
+  "taskStatus": {
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "#50: an idea description longer than 500 characters is cut to 500 in the prefilled draft note, because the app's draft form caps notes at 500 (the API allows 2000). Keep 500, or raise the app's draft note limit to 2000?",
+      "answer": null
     }
   ]
 }
