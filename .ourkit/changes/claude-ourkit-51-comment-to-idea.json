@@ -1,0 +1,45 @@
+{
+  "tier": "feature",
+  "tierReason": "Long-press a task or idea comment to start a new idea or drink draft prefilled from it (#51); several screens, mobile only",
+  "sensitiveAreas": [],
+  "notSensitiveReason": null,
+  "ticket": "51",
+  "intake": {
+    "ticket": "51",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature for #51, no Sensitive Area (mobile only, existing idea and draft create calls)",
+      "why": "Several screens change, but no schema, API, auth or money change is needed while the 'from comment' line stays on the form only."
+    },
+    {
+      "id": 2,
+      "decision": "#51 branches from #50's branch",
+      "why": "It reuses the prefilled New draft form #50 adds; its PR targets #50's branch until #50 merges."
+    },
+    {
+      "id": 3,
+      "decision": "Pass the comment source to the New idea / New draft screens as route params",
+      "why": "Text is at most 1000 characters, params survive a reload, and the fromIdea flows already work this way."
+    }
+  ],
+  "mode": "hands-off",
+  "questions": [
+    {
+      "id": 1,
+      "question": "#51: add 'Sao chép' (copy comment text) to the long-press menu, which needs the expo-clipboard module, or leave it out as built?",
+      "answer": null
+    },
+    {
+      "id": 2,
+      "question": "#51: the 'Từ bình luận của …' line shows on the new idea/draft form only and isn't stored. Should the new idea or draft also keep and show where it came from (needs a schema change)?",
+      "answer": null
+    }
+  ],
+  "mockup": {
+    "needed": true,
+    "reason": null
+  }
+}
