@@ -76,6 +76,7 @@ model User {
   ideaVotes          IdeaVote[]
   ideaComments       IdeaComment[]
   ideaPhotos         IdeaPhoto[]
+  draftPhotos        DraftPhoto[]
   activityActed      ActivityEvent[]           @relation("ActivityActor")
   activityAbout      ActivityEvent[]           @relation("ActivityMember")
   activityReceived   ActivityRecipient[]
@@ -390,6 +391,7 @@ model Idea {
   votes               IdeaVote[]
   comments            IdeaComment[]
   photos              IdeaPhoto[]
+  draft               Draft?
   activityEvents      ActivityEvent[]
 
   @@index([projectId, createdAt])
@@ -635,6 +637,8 @@ model Draft {
   status                DraftStatus   @default(working)
   productId             String?       @unique
   product               Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  ideaId                String?       @unique
+  idea                  Idea?         @relation(fields: [ideaId], references: [id], onDelete: SetNull)
   convertedAt           DateTime?
   nameEditedAt          DateTime      @default(now())
   sizesEditedAt         DateTime      @default(now())
@@ -643,8 +647,26 @@ model Draft {
   statusEditedAt        DateTime      @default(now())
   createdAt             DateTime      @default(now())
   lines                 DraftLine[]
+  photos                DraftPhoto[]
 
   @@index([projectId, createdAt])
+}
+
+/// A photo on a draft: copied from an idea when the draft is made from it, or added directly.
+model DraftPhoto {
+  id              String   @id
+  draftId         String
+  draft           Draft    @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  addedById       String?
+  addedBy         User?    @relation(fields: [addedById], references: [id], onDelete: SetNull)
+  publicId        String   @unique
+  width           Int
+  height          Int
+  caption         String   @default("")
+  captionEditedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([draftId, createdAt, id])
 }
 
 /// One recipe line of a draft, for one cup of the base size: an existing ingredient, or a new one

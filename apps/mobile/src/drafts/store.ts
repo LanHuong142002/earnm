@@ -1,6 +1,7 @@
 import { INGREDIENT_MODES } from "../ingredients/types";
 import { SIZE_NAMES } from "../products/types";
 import type { KeyValueStore } from "../sync/storage";
+import { withDraftDefaults } from "./defaults";
 import type { Draft } from "./types";
 
 const CACHE_KEY = "drafts.cache.v1";
@@ -56,7 +57,7 @@ function read(raw: unknown, ownerId: string): DraftCache {
   const byProject: Record<string, Draft[]> = {};
   for (const [projectId, list] of Object.entries(raw.byProject)) {
     // A project whose copy is unreadable is dropped; the next fetch brings it back.
-    if (Array.isArray(list) && list.every(isDraft)) byProject[projectId] = list;
+    if (Array.isArray(list) && list.every(isDraft)) byProject[projectId] = list.map(withDraftDefaults);
   }
   const convertedTotals: Record<string, number> = {};
   if (isRecord(raw.convertedTotals)) {

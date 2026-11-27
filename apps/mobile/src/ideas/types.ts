@@ -11,6 +11,9 @@ export type IdeaAuthor = { id: string; displayName: string };
 /** The task made from an accepted idea, as the API sends it. */
 export type IdeaTask = { id: string; title: string; status: TaskStatus };
 
+/** The drink draft made from an accepted idea, as the API sends it. */
+export type IdeaDraft = { id: string; name: string; status: "working" | "done"; convertedAt: string | null };
+
 /** An idea exactly as the API returns it (contract: spec R1-R5, R9, R12). */
 export type Idea = {
   id: string;
@@ -33,5 +36,8 @@ export type Idea = {
   photoCount: number;
   taskId: string | null;
   task: IdeaTask | null;
+  /** The drink draft made from this idea; null until there is one. */
+  draftId: string | null;
+  draft: IdeaDraft | null;
   createdAt: string;
 };

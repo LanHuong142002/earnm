@@ -169,6 +169,9 @@ export function useParentPhotos({ parent, me }: Options): ParentPhotos {
     [parentId, server, waiting, failed, uploading, scope],
   );
   const involved = parent.canManagePhotos;
+  const canManagePhoto = parent.canManagePhoto;
+  // Caption and delete: the parent's say, and for a parent with a per-photo rule that rule too.
+  const mayManage = useCallback((photo: Photo) => involved && (canManagePhoto ? canManagePhoto(photo) : true), [involved, canManagePhoto]);
   const ready = ownerId !== null && cache !== null;
 
   const record = useCallback(
@@ -222,7 +225,7 @@ export function useParentPhotos({ parent, me }: Options): ParentPhotos {
     async (photoId) => {
       const photo = photos.find((p) => p.id === photoId);
       if (!ready || !ownerId || !photo) return { ok: false, reason: "not_ready" };
-      if (!canRemove(involved, photo)) return { ok: false, reason: "not_allowed" };
+      if (!canRemove(mayManage(photo), photo)) return { ok: false, reason: "not_allowed" };
       if (photo.state === "waiting" || photo.state === "failed") {
         // Only on this phone: nothing to delete on the server, so the upload is cancelled.
         await cancelUpload(queue, pendingFiles, photoId, scope);
@@ -236,20 +239,20 @@ export function useParentPhotos({ parent, me }: Options): ParentPhotos {
       await discardFailed(asyncStorageStore, ownerId, photoId, pendingFiles, scope);
       return { ok: true };
     },
-    [photos, ready, ownerId, involved, queue, readLocal, record, projectId, parentId, scope],
+    [photos, ready, ownerId, mayManage, queue, readLocal, record, projectId, parentId, scope],
   );
 
   const setCaption = useCallback<ParentPhotos["setCaption"]>(
     async (photoId, text) => {
       const photo = photos.find((p) => p.id === photoId);
       if (!ready || !photo) return { ok: false, reason: "not_ready" };
-      if (!canCaption(involved, photo)) return { ok: false, reason: "not_allowed" };
+      if (!canCaption(mayManage(photo), photo)) return { ok: false, reason: "not_allowed" };
       const check = captionCheck(text);
       if (!check.canSave) return { ok: false, reason: "too_long" };
       if (check.value !== photo.caption) await record(photoCaptionChange({ projectId, taskId: parentId, entity: scope.entity, id: photoId, caption: check.value, now: new Date() }));
       return { ok: true };
     },
-    [photos, ready, involved, record, projectId, parentId, scope.entity],
+    [photos, ready, mayManage, record, projectId, parentId, scope.entity],
   );
 
   const retry = useCallback(
@@ -287,7 +290,7 @@ export function useParentPhotos({ parent, me }: Options): ParentPhotos {
     setCaption,
     retry,
     discard,
-    canRemove: (photo) => canRemove(involved, photo),
-    canCaption: (photo) => canCaption(involved, photo),
+    canRemove: (photo) => canRemove(mayManage(photo), photo),
+    canCaption: (photo) => canCaption(mayManage(photo), photo),
   };
 }

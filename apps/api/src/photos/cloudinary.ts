@@ -13,11 +13,16 @@ export interface PhotoStore {
   url(publicId: string): string;
   /** Removes the image from Cloudinary. Rejects when Cloudinary refuses or can't be reached. */
   destroy(publicId: string): Promise<void>;
+  /**
+   * Copies the stored original to a new image with its own public id (`type: authenticated`, never overwriting)
+   * and answers the copy's pixel size. Rejects when Cloudinary refuses, times out or can't be reached.
+   */
+  copy(sourcePublicId: string, targetPublicId: string): Promise<{ width: number; height: number }>;
 }
 
 export const UPLOAD_TYPE = "authenticated";
 
-/** A destroy that hangs must not hold a connection forever. */
+/** A destroy or copy that hangs must not hold a connection forever. */
 const DESTROY_TIMEOUT_MS = 10_000;
 
 /** The real store. The secret lives only in this closure and is never returned or logged. */
@@ -27,7 +32,7 @@ export function createCloudinaryStore(account: {
   apiSecret: string;
 }): PhotoStore {
   const { cloudName, apiKey, apiSecret } = account;
-  const deliver = (publicId: string, transformation: Record<string, unknown>) =>
+  const deliver = (publicId: string, transformation?: Record<string, unknown>) =>
     cloudinary.url(publicId, {
       cloud_name: cloudName,
       api_secret: apiSecret,
@@ -36,7 +41,7 @@ export function createCloudinaryStore(account: {
       resource_type: "image",
       sign_url: true,
       format: "jpg",
-      transformation: [transformation],
+      ...(transformation ? { transformation: [transformation] } : {}),
     });
 
   return {
@@ -65,6 +70,31 @@ export function createCloudinaryStore(account: {
       if (result.result !== "ok" && result.result !== "not found") {
         throw new Error(`Cloudinary destroy answered "${String(result.result)}".`);
       }
+    },
+    async copy(sourcePublicId, targetPublicId) {
+      const options = {
+        cloud_name: cloudName,
+        api_key: apiKey,
+        api_secret: apiSecret,
+        public_id: targetPublicId,
+        type: UPLOAD_TYPE,
+        resource_type: "image",
+        overwrite: false,
+        timeout: DESTROY_TIMEOUT_MS,
+      } as const;
+      let result: { width?: number; height?: number };
+      try {
+        // Cloudinary fetches the signed, untransformed original itself. The URL carries a signature, so it is never logged.
+        result = await cloudinary.uploader.upload(deliver(sourcePublicId), options);
+      } catch (cause) {
+        // The SDK rejects with a plain object ({ error: { message, http_code } }), not an Error.
+        const detail = (cause as { error?: { message?: string } } | undefined)?.error?.message;
+        throw new Error(`Cloudinary copy failed${detail ? `: ${detail}` : "."}`);
+      }
+      if (typeof result.width !== "number" || typeof result.height !== "number") {
+        throw new Error("Cloudinary copy answered without an image size.");
+      }
+      return { width: result.width, height: result.height };
     },
   };
 }

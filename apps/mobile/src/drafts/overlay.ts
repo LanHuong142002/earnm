@@ -79,6 +79,9 @@ function created(change: Change, projectId: string): Draft {
     convertedAt: null,
     createdAt: change.createdAt,
     lines: [],
+    ideaId: null,
+    idea: null,
+    photoCount: 0,
   };
   return withFields(base, change.data);
 }

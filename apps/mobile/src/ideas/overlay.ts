@@ -52,6 +52,8 @@ function created(change: Change, projectId: string): Idea {
       photoCount: 0,
       taskId: null,
       task: null,
+      draftId: null,
+      draft: null,
       createdAt: change.createdAt,
     },
     change.data,

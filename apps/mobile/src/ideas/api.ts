@@ -1,4 +1,7 @@
 import { request } from "../lib/api";
+import { withDraftDefaults } from "../drafts/defaults";
+import type { CreateDraftBody } from "../drafts/api";
+import type { Draft } from "../drafts/types";
 import type { ServerComment } from "../tasks/comments/types";
 import type { CommentsApi, PhotosApi } from "../tasks/parent";
 import type { Task } from "../tasks/types";
@@ -52,6 +55,17 @@ export const createTaskFromIdea = (
     body: { taskId, ...fields },
     token,
   }).then((r) => ({ ...r, idea: withVoteCounts(r.idea) }));
+
+/**
+ * Makes the drink draft of an accepted idea, once, and links both ways (spec R6). Needs the network: nothing is
+ * queued. `photosNotCopied` counts idea photos that could not be copied onto the draft.
+ */
+export const createDraftFromIdea = (token: string, projectId: string, ideaId: string, body: CreateDraftBody) =>
+  request<{ draft: Draft; idea: Idea; photosNotCopied: number }>(`${one(projectId, ideaId)}/draft`, {
+    method: "POST",
+    body: { draftId: body.id, name: body.name, sizes: body.sizes, expectedPrice: body.expectedPrice, note: body.note },
+    token,
+  }).then((r) => ({ ...r, draft: withDraftDefaults(r.draft), idea: withVoteCounts(r.idea) }));
 
 /** Sets the caller's vote; 0 takes it back. */
 export const putVote = (token: string, projectId: string, ideaId: string, value: Vote) =>

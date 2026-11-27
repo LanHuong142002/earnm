@@ -1,0 +1,253 @@
+{
+  "tier": "feature",
+  "tierReason": "Links an idea to a new drink draft: schema change plus a new API endpoint (#50)",
+  "sensitiveAreas": [
+    "schema",
+    "data",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "ticket": "50",
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "6c714e5ea91ad9bcc32c4a59ddc995a7d5c4cd061747f408885846ba611d01cf",
+  "planApproval": "321a9070d1b89521e0a6626e66d75ccfdedd95121d191adae4dd5c4ae669cfb0",
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "50",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature for #50 (schema, data, public API)",
+      "why": "User confirmed Feature in Pair before switching to hands-off."
+    },
+    {
+      "id": 2,
+      "decision": "Spec, mockup and plan for #50 approved by the user in Pair",
+      "why": "Approvals recorded with mockup approve and gate approve-plan before hands-off."
+    },
+    {
+      "id": 3,
+      "decision": "D1-D3 in the #50 spec taken on the recommended defaults",
+      "why": "User approved the spec containing them without changing them."
+    },
+    {
+      "id": 4,
+      "decision": "Prefilled draft note is cut to 500 characters, the mobile draft form's existing note limit",
+      "why": "The app's draft form already caps notes at 500 (drafts/view.ts), so a longer note could not be saved from it; the spec assumed 2000."
+    },
+    {
+      "id": 5,
+      "decision": "If recording copied photos fails after the draft was created, reply 201 with every photo counted as not copied and destroy the copies",
+      "why": "The draft and its link already exist and the app already shows the not-carried-over notice; an error would hide a draft that exists."
+    },
+    {
+      "id": 6,
+      "decision": "New draft from idea preselects size M like the normal New draft form",
+      "why": "Spec R2 says sizes start 'as on the normal New draft form', which defaults to M; the mockup shows no selection, so the phone check confirms it."
+    }
+  ],
+  "taskStatus": {
+    "1": {
+      "status": "done"
+    },
+    "2": {
+      "status": "done"
+    },
+    "3": {
+      "status": "done"
+    },
+    "4": {
+      "status": "done"
+    },
+    "5": {
+      "status": "done"
+    },
+    "6": {
+      "status": "done"
+    },
+    "7": {
+      "status": "done"
+    },
+    "8": {
+      "status": "done"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "#50: an idea description longer than 500 characters is cut to 500 in the prefilled draft note, because the app's draft form caps notes at 500 (the API allows 2000). Keep 500, or raise the app's draft note limit to 2000?",
+      "answer": null
+    }
+  ],
+  "review": {
+    "findings": [
+      {
+        "id": 1,
+        "severity": "non-blocking",
+        "text": "apps/api/src/ideas/toDraft.ts step 3 (record copied photos) does not re-check membership with lockedMember; a member removed during the ~10s copy window still gets the copied photos attached to the draft they already created. Cosmetic: the draft was created under the lock.",
+        "resolved": true
+      },
+      {
+        "id": 2,
+        "severity": "blocking",
+        "text": "apps/api/src/drafts/photos.ts:246-248 + ideas/toDraft.ts:140,169: photo_limit_reached branch destroys body.publicId without checking a recorded row owns it, and toDraft gives copied rows an id different from their publicId suffix. Any member can GET a 10-photo draft made from an idea, POST record {id: U, publicId: earnm/A/drafts/D/U} and the copied image is destroyed while its row survives (bypasses adder/Owner rule).",
+        "resolved": true,
+        "attempts": 1
+      },
+      {
+        "id": 3,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts:161-180 step 3 takes no project lock; a draft delete racing step 3 cascades the new rows without destroying their images (orphans on Cloudinary).",
+        "resolved": true
+      },
+      {
+        "id": 4,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts:158-180 step 3 doesn't re-count photos under the lock; photos added during the copy window can push a draft past 10 photos.",
+        "resolved": true
+      },
+      {
+        "id": 5,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts:102-105 a retry with the same draftId after step 1 committed gets 409 idea_already_has_draft instead of the created draft (the app recovers by refreshing).",
+        "resolved": false
+      },
+      {
+        "id": 6,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts: a caller removed from the project during the copy window still gets 201 with the draft and idea bodies (data they saw seconds earlier); could answer 404 instead.",
+        "resolved": false
+      },
+      {
+        "id": 7,
+        "severity": "non-blocking",
+        "text": "ideas/toDraft.ts:185: step 3 transaction (now under the project lock) is not wrapped in withRetry; a lock timeout drops every copied photo (reported in photosNotCopied, per D2).",
+        "resolved": false
+      },
+      {
+        "id": 8,
+        "severity": "non-blocking",
+        "text": "Found in #51's review: ideas/draftPrefill.ts cut the draft name (60) and note (500) by code points while the draft form and server count UTF-16 units, so an emoji-heavy idea title could prefill a name the form refuses. Fixed on this branch by cutting in code units without splitting characters.",
+        "resolved": true
+      }
+    ],
+    "reviewed": "8a8f33f45a60fdb7909f37eb2d34cb3511288aa25cf95785896012481ef11379"
+  },
+  "qa": {
+    "results": {
+      "1": {
+        "result": "pass",
+        "evidence": "API: toDraft.test.ts refuses new/considering/dropped with 409 idea_not_accepted; mobile draftButtonState unit-tested ('available' only for accepted without draft) and used by the idea screen. Button placement on a phone is in the Test Handoff.",
+        "criterion": "R1: on an idea in Đã chọn with no draft, B1's \"Tạo nháp món từ ý tưởng\" shows; on an idea in any other status it doesn't. API test: `idea_not_accepted` for each other status."
+      },
+      "2": {
+        "result": "manual",
+        "evidence": "Prefill logic unit-tested after the UTF-16 fix (draftPrefill.test.ts: name <=60 code units at a word boundary, emoji never split, note <=500 units, 'kèm N ảnh' only when photoCount > 0). Rendered form needs a phone.",
+        "criterion": "R2: open the action on an idea with a 90-character title, a description and 2 photos; the form shows the title cut to ≤60 characters, the description as note, and \"kèm 2 ảnh\". With no photos the \"kèm\" part is absent. Unit test for the prefill."
+      },
+      "3": {
+        "result": "pass",
+        "evidence": "toDraft.test.ts: 201, name/note/sizes/price as sent, ideaId set, 2 photos with new public ids under earnm/<p>/drafts/<d>/, same caption and size, addedById = creator, idea.draft link present, idea photos unchanged.",
+        "criterion": "R3, R15: API test: the endpoint returns 201 with a draft whose name and note are the sent values, `ideaId` set, 2 photos with new public ids, same sizes and captions; the idea's response carries the draft link; the idea's photos are unchanged."
+      },
+      "4": {
+        "result": "pass",
+        "evidence": "toDraft.test.ts covers idea_not_accepted, idea_already_has_draft, id_conflict, draft_limit_reached, 404 (stranger, other project, unknown), 401, body validation; two simultaneous requests give one draft.",
+        "criterion": "R4: API tests for each refusal code, and a concurrency test: two simultaneous requests for one idea yield one draft and one `idea_already_has_draft`."
+      },
+      "5": {
+        "result": "manual",
+        "evidence": "Code: network ApiError maps to ideas.createDraft.needsNetwork, edits kept, nothing queued. Offline behaviour needs a phone.",
+        "criterion": "R5: with the phone offline, saving shows the network message, the form keeps its edits, and nothing appears in the drafts list after reconnecting."
+      },
+      "6": {
+        "result": "manual",
+        "evidence": "API: link on both sides and kept after status change; mobile link card and 'Từ ý tưởng' card with draftStatusKey unit-tested. Taps, navigation and post-conversion state need a phone.",
+        "criterion": "R6–R8: on the phone, after creating, the idea shows B3's link card with the draft's name and status, and tapping it opens the draft; the draft shows \"Từ ý tưởng …\" and tapping it opens the idea. Still true after converting the draft to a product."
+      },
+      "7": {
+        "result": "pass",
+        "evidence": "toDraft.test.ts: deleting the draft frees the idea (create again works); deleting the idea leaves the draft with ideaId null.",
+        "criterion": "R9: API tests: delete the draft, the idea's `draft` is null and creating again succeeds; delete the idea, the draft's `ideaId` is null and the draft remains."
+      },
+      "8": {
+        "result": "pass",
+        "evidence": "toDraft.test.ts: moving the idea to dropped keeps the link in both responses.",
+        "criterion": "R10: API test: move a linked idea to another status; the link stays in both responses."
+      },
+      "9": {
+        "result": "manual",
+        "evidence": "API: drafts/photos.test.ts (~30 tests mirroring idea photos, 11th photo refused). Offline queue and limit message on a phone are in the Test Handoff.",
+        "criterion": "R11: on the phone, add, caption and delete photos on a draft, online and offline; the 11th photo is refused with the limit message. API tests mirror the idea photo tests."
+      },
+      "10": {
+        "result": "pass",
+        "evidence": "photos.test.ts: adder and Owner can edit caption and delete; another member gets 403.",
+        "criterion": "R12: API tests: a member who didn't add a photo gets 403 on caption edit and delete; the adder and an Owner succeed."
+      },
+      "11": {
+        "result": "pass",
+        "evidence": "photos.test.ts: add, edit (even Owner) and delete return 409 draft_converted on a converted draft; listing still works.",
+        "criterion": "R13: API test: add, edit, delete on a converted draft's photos return `409 draft_converted`; listing still works."
+      },
+      "12": {
+        "result": "pass",
+        "evidence": "drafts/routes.test.ts: deleting a draft destroys only that draft's photo images, also for a converted draft; ideas/routes.test.ts: project delete destroys draft photo images.",
+        "criterion": "R14: API test with the fake photo store: deleting a draft destroys each of its photos' images."
+      },
+      "13": {
+        "result": "manual",
+        "evidence": "API: toDraft.test.ts counts a failing copy and keeps the others, hanging copy past timeout, max 3 concurrent, no store. Mobile passes photosNotCopied to PhotosNotCopiedNotice. The notice on screen needs a phone.",
+        "criterion": "R16: API test with a fake store that fails one of 3 copies: 201, 2 photos, `photosNotCopied: 1`; the phone shows \"Không mang theo được 1 ảnh\"."
+      },
+      "14": {
+        "result": "pass",
+        "evidence": "toDraft.test.ts: record step failing destroys only its own copies; also draft deleted, draft converted, caller removed and photos added during the copy window.",
+        "criterion": "R17: API test: a failure after the copies (for example the draft create refused) destroys the copied images."
+      },
+      "15": {
+        "result": "pass",
+        "evidence": "API 930/930 and mobile 1576/1576 tests pass in clean single runs; tsc, expo lint and API build clean.",
+        "criterion": "Existing idea, task, draft and photo tests still pass; `ourkit gate run test`, lint and build pass."
+      }
+    },
+    "checked": "8a8f33f45a60fdb7909f37eb2d34cb3511288aa25cf95785896012481ef11379"
+  },
+  "testHandoff": [
+    {
+      "what": "#50 B1/B3: draft button and link card on the idea screen",
+      "steps": "dev:phone from this branch after db:deploy on the dev DB. Make an idea with a 90-character title, a description and 2 captioned photos, set it to Đã chọn. Expected: 'Tạo nháp món từ ý tưởng' under 'Tạo công việc từ ý tưởng'. Set status to another value: the button disappears. After creating a draft: card 'Đã tạo nháp món · <name> · Đang làm' replaces the button and opens the draft."
+    },
+    {
+      "what": "#50 B2: prefilled New draft form",
+      "steps": "Tap 'Tạo nháp món từ ý tưởng'. Expected: name = title cut to <=60 characters at a word, note = description, line 'Từ ý tưởng “…” · kèm 2 ảnh' with 2 small thumbnails; an idea without photos shows no 'kèm' part. Note which size is preselected (M by default like the normal form)."
+    },
+    {
+      "what": "#50 B2a: offline create",
+      "steps": "Airplane mode, edit the name, tap Tạo nháp. Expected: 'Cần có mạng để tạo nháp từ ý tưởng…' above the button, edits kept, no new draft after reconnecting. Tap again online: draft created."
+    },
+    {
+      "what": "#50 E1/E6: draft side link and photos",
+      "steps": "After creating, the draft opens with the 'Từ ý tưởng' card (tap opens the idea) and the 2 copied photos with captions; idea photos unchanged. Convert the draft to a product: both links remain, photos are read-only (no Thêm, no caption edit or delete)."
+    },
+    {
+      "what": "#50 E3-E5: draft photos",
+      "steps": "On a draft, add, caption and delete a photo online and offline, then reconnect: queue syncs. 11th photo shows the limit message. As another member: caption edit and delete not offered; as Owner: allowed."
+    },
+    {
+      "what": "#50 E2 and real Cloudinary copy",
+      "steps": "Create a draft from an idea with photos against the real Cloudinary account: photos appear on the draft (first real use of PhotoStore.copy). If a copy fails, the grey notice 'Không mang theo được N ảnh…' shows once and ✕ hides it. If every copy fails with a refused-source error, report it: the fallback is Cloudinary's private download URL."
+    },
+    {
+      "what": "#50 F1: dark mode",
+      "steps": "Switch the phone to dark mode and open B1, B2, B3, E1 and E2: colours follow the app's dark theme like other screens."
+    }
+  ],
+  "shipApproval": "8a8f33f45a60fdb7909f37eb2d34cb3511288aa25cf95785896012481ef11379",
+  "pr": "https://github.com/LanHuong142002/earnm/pull/59"
+}

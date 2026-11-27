@@ -4,6 +4,8 @@ import { SIZE_ORDER } from "../products/response.js";
 
 export const draftInclude = {
   lines: { orderBy: [{ position: "asc" }, { id: "asc" }] },
+  idea: { select: { id: true, title: true } },
+  _count: { select: { photos: true } },
 } satisfies Prisma.DraftInclude;
 
 export type DraftRow = Prisma.DraftGetPayload<{ include: typeof draftInclude }>;
@@ -60,6 +62,9 @@ export function draftResponse(draft: DraftRow) {
     note: draft.note,
     status: draft.status,
     productId: draft.productId,
+    ideaId: draft.ideaId,
+    idea: draft.idea ? { id: draft.idea.id, title: draft.idea.title } : null,
+    photoCount: draft._count.photos,
     convertedAt: draft.convertedAt === null ? null : draft.convertedAt.toISOString(),
     createdAt: draft.createdAt.toISOString(),
     lines: draft.lines.map(draftLineResponse),

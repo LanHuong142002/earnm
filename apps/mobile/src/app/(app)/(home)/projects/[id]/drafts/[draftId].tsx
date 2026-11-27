@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "../../../../../../auth/AuthProvider";
+import { draftParent } from "../../../../../../drafts/adapters";
 import { DraftHero } from "../../../../../../drafts/DraftHero";
 import { DraftRecipe } from "../../../../../../drafts/DraftRecipe";
 import { DraftRejectedNoticeView } from "../../../../../../drafts/DraftRejectedNotice";
@@ -11,6 +13,8 @@ import { AddLineSheet, DraftMenuSheet, SizesPriceSheet, StatusSheet, TextSheet }
 import { useDrafts } from "../../../../../../drafts/DraftsProvider";
 import { draftEstimate, missingForDone } from "../../../../../../drafts/estimate";
 import { LinkCard } from "../../../../../../drafts/LinkCard";
+import { PhotosNotCopiedNotice } from "../../../../../../drafts/PhotosNotCopiedNotice";
+import { photosNotCopiedCount } from "../../../../../../ideas/draftLink";
 import type { DraftLineRow } from "../../../../../../drafts/types";
 import { baseSize, convertErrorKey, convertSplit, estimateLines, missingItems, reuseTexts, type MissingItem } from "../../../../../../drafts/view";
 import { baseUnitOf, moneyOf } from "../../../../../../ingredients/display";
@@ -20,6 +24,7 @@ import { OfflineNote } from "../../../../../../projects/OfflineNote";
 import { useProjects } from "../../../../../../projects/ProjectsProvider";
 import { useGoToProjectList, useTapOnce } from "../../../../../../projects/useProjectNav";
 import { projectView } from "../../../../../../projects/routing";
+import { PhotosSection } from "../../../../../../tasks/photos/PhotosSection";
 import { Hint } from "../../../../../../products/ProductBits";
 import { useProducts } from "../../../../../../products/ProductsProvider";
 import { LineSheet } from "../../../../../../products/RecipeSheets";
@@ -47,7 +52,9 @@ export default function DraftScreen() {
   const once = useTapOnce();
   const focused = useIsFocused();
   const { colors, typography, radius, spacing, layout, iconSize } = useTheme();
-  const { id, draftId } = useLocalSearchParams<{ id: string; draftId: string }>();
+  const { id, draftId, photosNotCopied } = useLocalSearchParams<{ id: string; draftId: string; photosNotCopied?: string }>();
+  const { identity } = useAuth();
+  const [noticeHidden, setNoticeHidden] = useState(false);
   const { status, projects } = useProjects();
   const drafts = useDrafts();
   const products = useProducts();
@@ -262,6 +269,23 @@ export default function DraftScreen() {
               onPress={draft.productId ? () => once(() => router.push({ pathname: "/projects/[id]/products/[productId]", params: { id: project.id, productId: draft.productId as string } })) : undefined}
             />
           ) : null}
+          {draft.idea ? (
+            <LinkCard
+              caption={t("drafts.fromIdea")}
+              title={draft.idea.title}
+              onPress={() => once(() => router.push({ pathname: "/projects/[id]/ideas/[ideaId]", params: { id: project.id, ideaId: draft.idea!.id } }))}
+            />
+          ) : null}
+          {photosNotCopiedCount(photosNotCopied) > 0 && !noticeHidden ? (
+            <PhotosNotCopiedNotice
+              count={photosNotCopiedCount(photosNotCopied)}
+              onDismiss={() => {
+                setNoticeHidden(true);
+                // Drop the param too, so coming back to this screen does not show the notice a second time.
+                router.setParams({ photosNotCopied: undefined });
+              }}
+            />
+          ) : null}
           <Text accessibilityRole="header" style={[typography.screenTitle, { color: colors.text }]}>
             {draft.name}
           </Text>
@@ -318,6 +342,11 @@ export default function DraftScreen() {
             defaultOpen={!done && !converted}
             onOpenLine={converted ? undefined : openLine}
             onAdd={converted ? undefined : () => setSheet({ kind: "add" })}
+          />
+
+          <PhotosSection
+            parent={draftParent(project.id, draft.id, draft, identity?.id ?? null, project.role)}
+            onOpenPhoto={(photoId) => router.push({ pathname: "/projects/[id]/drafts/[draftId]/photos", params: { id: project.id, draftId: draft.id, photoId } })}
           />
 
           {converted ? (

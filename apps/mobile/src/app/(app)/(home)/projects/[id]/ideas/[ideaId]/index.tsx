@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../../../../../../auth/AuthProvider";
 import { ideaParent } from "../../../../../../../ideas/adapters";
+import { draftButtonState, draftStatusKey } from "../../../../../../../ideas/draftLink";
 import { IdeaRejectedNotice } from "../../../../../../../ideas/IdeaRejectedNotice";
 import { useIdeas } from "../../../../../../../ideas/IdeasProvider";
 import { createTaskState, ideaAuthorName } from "../../../../../../../ideas/view";
@@ -75,6 +76,7 @@ export default function IdeaDetailsScreen() {
   const pending = pendingFor(project.id).has(idea.id);
   const parent = ideaParent(project.id, idea.id, idea, identity?.id ?? null, project.role);
   const button = createTaskState(idea, isOnline(projectsStatus, profileStatus));
+  const draftState = draftButtonState(idea);
 
   const caption = (text: string) => <Text style={[typography.label, { color: colors.textSecondary }]}>{text}</Text>;
 
@@ -210,6 +212,47 @@ export default function IdeaDetailsScreen() {
                 <Text style={[typography.label, { color: colors.textSecondary }]}>{t("ideas.needsNetwork")}</Text>
               ) : null}
             </View>
+          ) : null}
+          {draftState === "available" ? (
+            <Button
+              label={t("ideas.createDraftButton")}
+              variant="secondary"
+              onPress={() =>
+                once(() => router.push({ pathname: "/projects/[id]/drafts/new", params: { id: project.id, fromIdea: idea.id } }))
+              }
+            />
+          ) : draftState === "linked" && idea.draft ? (
+            <Card flush>
+              <PressableScale
+                accessibilityRole="link"
+                accessibilityLabel={t("ideas.createdDraftA11y", { name: idea.draft.name, status: t(draftStatusKey(idea.draft)) })}
+                onPress={() =>
+                  once(() => router.push({ pathname: "/projects/[id]/drafts/[draftId]", params: { id: project.id, draftId: idea.draft!.id } }))
+                }
+                style={{ minHeight: layout.controlHeight + spacing[1], flexDirection: "row", alignItems: "center", gap: spacing[1] + spacing[0], paddingHorizontal: spacing[2], paddingVertical: spacing[1] }}
+              >
+                <View
+                  style={{
+                    width: layout.controlHeight - spacing[1],
+                    height: layout.controlHeight - spacing[1],
+                    borderRadius: radius.button,
+                    backgroundColor: colors.tile,
+                    borderWidth: 1,
+                    borderColor: colors.tileBorder,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="cafe-outline" size={iconSize.lg} color={colors.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  {caption(t("ideas.createdDraft"))}
+                  <Text style={[typography.bodyStrong, { color: colors.text }]}>{idea.draft.name}</Text>
+                </View>
+                <Text style={[typography.caption, { color: colors.accentStrong }]}>{t(draftStatusKey(idea.draft))}</Text>
+                <Ionicons name="chevron-forward" size={iconSize.sm} color={colors.textSecondary} />
+              </PressableScale>
+            </Card>
           ) : null}
           <BigVote likeCount={idea.likeCount} dislikeCount={idea.dislikeCount} myVote={idea.myVote} onVote={(pressed) => void vote(project.id, idea.id, pressed)} />
         </View>
