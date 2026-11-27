@@ -23,6 +23,7 @@ export function IdeaForm({
   onSubmit,
   photos,
   extra,
+  header,
 }: {
   initial: IdeaFormValues;
   /** The project's labels, to choose from. */
@@ -34,6 +35,8 @@ export function IdeaForm({
   photos: ReactNode;
   /** Set-apart section at the end of the scrolling form, e.g. the delete button. */
   extra?: ReactNode;
+  /** A line above the fields, e.g. the comment the idea is made from. */
+  header?: ReactNode;
 }) {
   const { t } = useTranslation();
   const { colors, typography, spacing } = useTheme();
@@ -80,6 +83,7 @@ export function IdeaForm({
     <Screen edges={[]} keyboardOffset={headerHeight} footer={<Button label={submitLabel} loading={busy} onPress={submit} />}>
       <Enter index={0}>
         <View style={{ gap: spacing[2] }}>
+          {header}
           <TextField
             label={t("ideas.titleLabel")}
             icon="bulb-outline"

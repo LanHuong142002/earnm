@@ -1,8 +1,10 @@
 import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import { CommentSourceLine } from "../../../../../../tasks/comments/CommentSourceLine";
+import { ideaFromComment, readCommentSource } from "../../../../../../tasks/comments/commentSource";
 import { emptyIdeaForm, inputFromIdeaForm } from "../../../../../../ideas/formState";
 import { IdeaForm } from "../../../../../../ideas/IdeaForm";
 import { useIdeas } from "../../../../../../ideas/IdeasProvider";
@@ -19,7 +21,15 @@ export default function NewIdeaScreen() {
   const goToList = useGoToProjectList();
   const focused = useIsFocused();
   const { colors, typography, spacing } = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
+  const id = typeof params.id === "string" ? params.id : undefined;
+  // Opened from a comment: its first sentence and text fill the fields once (they stay editable). Labels start empty.
+  const source = useMemo(() => readCommentSource(params), [params]);
+  const initial = useMemo(() => {
+    if (!source) return emptyIdeaForm();
+    const { title, description } = ideaFromComment(source);
+    return { ...emptyIdeaForm(), title, description };
+  }, [source]);
   const { status, projects } = useProjects();
   const { labelsFor } = useTasks();
   const { create } = useIdeas();
@@ -36,7 +46,8 @@ export default function NewIdeaScreen() {
 
   return (
     <IdeaForm
-      initial={emptyIdeaForm()}
+      initial={initial}
+      header={source ? <CommentSourceLine source={source} /> : undefined}
       labels={labelsFor(project.id)}
       submitLabel={t("ideas.saveNew")}
       // An idea has to exist before photos can be added to it (they are uploaded against its id).

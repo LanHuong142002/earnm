@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { ActionSheetIOS, Alert, Platform, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../auth/AuthProvider";
@@ -11,6 +12,7 @@ import type { DueLanguage } from "../dueDate";
 import type { Parent } from "../parent";
 import { CommentBubble } from "./CommentBubble";
 import { CommentComposer } from "./CommentComposer";
+import { commentSourceParams } from "./commentSource";
 import { formatCommentTime } from "./commentTime";
 import type { CommentOrder } from "./types";
 import { useParentComments, type CommentResult } from "./useParentComments";
@@ -45,6 +47,7 @@ function showSortMenu(t: (key: string) => string, current: CommentOrder, onPick:
 export function CommentsSection({ parent }: { parent: Parent }) {
   const { t, i18n } = useTranslation();
   const { colors, typography, layout, radius, spacing, iconSize } = useTheme();
+  const router = useRouter();
   const { identity } = useAuth();
   const c = useParentComments({ parent, me: identity });
   // Times are judged against the moment the section opened.
@@ -110,6 +113,11 @@ export function CommentsSection({ parent }: { parent: Parent }) {
               onToggleRemind={() => void settle(c.toggleRemind(comment.id))}
               onRetry={() => void c.retry(comment.id)}
               onDiscard={() => void c.discard(comment.id)}
+              onAddAs={(kind) => {
+                // The same screens as "+ Ý tưởng" / "+ Nháp món", opened with the comment as their source (spec R4-R5).
+                const params = { id: parent.projectId, ...commentSourceParams({ text: comment.text, authorName: comment.author?.displayName ?? "", sourceTitle: parent.title ?? "" }) };
+                router.push(kind === "idea" ? { pathname: "/projects/[id]/ideas/new", params } : { pathname: "/projects/[id]/drafts/new", params });
+              }}
             />
           ))}
         </View>

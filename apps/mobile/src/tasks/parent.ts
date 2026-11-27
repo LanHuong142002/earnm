@@ -33,6 +33,8 @@ export type Parent = {
   projectId: string;
   /** The task or idea id. Queued changes and caches call it `taskId` whatever the kind: it is the parent id. */
   id: string;
+  /** The task's or idea's title, to name it as the source of a comment saved as an idea or draft. Absent while it is unknown. */
+  title?: string;
   comments: CommentsScope;
   photos: PhotosScope;
   /**
@@ -66,9 +68,9 @@ export const TASK_PHOTOS: PhotosScope = {
 export function taskParent(
   projectId: string,
   taskId: string,
-  task: Pick<Task, "createdById" | "assignees"> | null,
+  task: (Pick<Task, "createdById" | "assignees"> & Partial<Pick<Task, "title">>) | null,
   myId: string | null,
 ): Parent {
   const involved = task !== null && isInvolved(task, myId);
-  return { kind: "task", projectId, id: taskId, comments: TASK_COMMENTS, photos: TASK_PHOTOS, canFlag: involved, canManagePhotos: involved };
+  return { kind: "task", projectId, id: taskId, title: task?.title, comments: TASK_COMMENTS, photos: TASK_PHOTOS, canFlag: involved, canManagePhotos: involved };
 }

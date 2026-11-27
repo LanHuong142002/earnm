@@ -12,6 +12,8 @@ import { IdeaPhotoStrip } from "../../../../../../ideas/IdeaPhotoStrip";
 import { createDraftErrorKey, ideaDraftBlock, prefilledDraftForm } from "../../../../../../ideas/draftPrefill";
 import { ApiError } from "../../../../../../lib/api";
 import { newProjectId } from "../../../../../../projects/newProjectId";
+import { CommentSourceLine } from "../../../../../../tasks/comments/CommentSourceLine";
+import { draftFromComment, readCommentSource } from "../../../../../../tasks/comments/commentSource";
 import { useDrafts } from "../../../../../../drafts/DraftsProvider";
 import { baseSize, DRAFT_NAME_MAX, DRAFT_NOTE_MAX } from "../../../../../../drafts/view";
 import { useProjects } from "../../../../../../projects/ProjectsProvider";
@@ -34,14 +36,19 @@ export default function NewDraftScreen() {
   const focused = useIsFocused();
   const headerHeight = useHeaderHeight();
   const { colors, typography, spacing } = useTheme();
-  const { id, fromIdea } = useLocalSearchParams<{ id: string; fromIdea?: string }>();
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
+  const id = typeof params.id === "string" ? params.id : undefined;
+  const fromIdea = typeof params.fromIdea === "string" ? params.fromIdea : undefined;
+  // Opened from a comment: its first sentence and text fill the name and note once. Sizes start as on the plain form.
+  const [source] = useState(() => (fromIdea ? null : readCommentSource(params)));
   const { status, projects } = useProjects();
   const { createDraft } = useDrafts();
   const project = projects.find((p) => p.id === id) ?? null;
   const view = projectView(project, status, false);
-  const [name, setName] = useState("");
+  const [prefill] = useState(() => (source ? draftFromComment(source) : { name: "", note: "" }));
+  const [name, setName] = useState(prefill.name);
   const [sizes, setSizes] = useState<SizeName[]>(["M"]);
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(prefill.note);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,6 +91,7 @@ export default function NewDraftScreen() {
   return (
     <Screen edges={[]} keyboardOffset={headerHeight} footer={<Button label={t("drafts.create")} loading={busy} onPress={submit} />}>
       <View style={{ gap: spacing[2] }}>
+        {source ? <CommentSourceLine source={source} /> : null}
         <TextField
           label={t("drafts.nameLabel")}
           icon="cafe-outline"

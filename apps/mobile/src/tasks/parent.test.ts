@@ -6,6 +6,11 @@ import { TASK_COMMENTS, TASK_PHOTOS, taskParent } from "./parent";
 const task = { createdById: "u1", assignees: [{ id: "u2", displayName: "B" }] };
 
 describe("taskParent", () => {
+  it("carries the task's title, for naming it as the source of a comment", () => {
+    expect(taskParent("p1", "t1", { ...task, title: "Chuẩn bị khai trương" }, "u1").title).toBe("Chuẩn bị khai trương");
+    expect(taskParent("p1", "t1", null, "u1").title).toBeUndefined();
+  });
+
   it("files the task under its own caches and queue entities", () => {
     const p = taskParent("p1", "t1", task, "u1");
     expect(p).toMatchObject({ kind: "task", projectId: "p1", id: "t1" });
