@@ -13,6 +13,7 @@ const store: PhotoStore = {
   thumbUrl: (id) => `https://img.test/thumb/${id}`,
   url: (id) => `https://img.test/full/${id}`,
   async destroy() {},
+  copy: async () => ({ width: 1200, height: 900 }),
 };
 
 describe("POST /projects/:projectId/ideas/:ideaId/task", () => {

@@ -18,6 +18,7 @@ function fakeStore() {
     sign: (publicId, timestamp) => `sig(${publicId},${timestamp})`,
     thumbUrl: (publicId) => `https://img.test/thumb/${publicId}`,
     url: (publicId) => `https://img.test/full/${publicId}`,
+    copy: async () => ({ width: 1200, height: 900 }),
     async destroy(publicId) {
       destroyed.push(publicId);
       if (store.hang) await new Promise<never>(() => {});
