@@ -10,7 +10,11 @@ import { useProducts } from "../products/ProductsProvider";
 import { SIZE_NAMES, type SizeName } from "../products/types";
 import { asyncStorageStore } from "../sync/asyncStorageStore";
 import type { Change, NewChange } from "../sync/queue";
-import { convertDraft as apiConvertDraft, listDrafts } from "./api";
+import { photoDeps } from "../tasks/photos/realDeps";
+import { clearPhotoCache, prunePhotoCache, updatePhotoCache } from "../tasks/photos/store";
+import { registerPhotoEntities } from "../tasks/photos/uploads";
+import { DRAFT_PHOTOS } from "./adapters";
+import { convertDraft as apiConvertDraft, draftPhotosApi, listDrafts } from "./api";
 import { recoveredConvert, runConvert, shouldRefreshAfter, type ConvertResult } from "./convert";
 import { DRAFT_LINE_ENTITY, DRAFT_STATUS_ENTITY } from "./entities";
 import { applyDraftOverlay, pendingDraftIds } from "./overlay";
@@ -177,6 +181,8 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
       onNotSignedIn: () => notSignedInRef.current(),
     });
     registerDraftEntities(queue, c.handlers);
+    // Draft photos keep their own refusals (retry or discard each), not the notice, like an idea's.
+    registerPhotoEntities(queue, asyncStorageStore, { ...photoDeps, ...draftPhotosApi }, DRAFT_PHOTOS);
     return c;
   });
 
@@ -252,6 +258,7 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
       genRef.current += 1;
       try {
         await clearDraftCache(asyncStorageStore);
+        await clearPhotoCache(asyncStorageStore, DRAFT_PHOTOS);
       } catch {
         // Best effort.
       }
@@ -262,8 +269,11 @@ export function DraftsProvider({ children }: { children: ReactNode }) {
   // Forget the drafts of projects that are no longer in the project list, once the server confirmed that list.
   useEffect(() => {
     if (!ready || projectsStatus !== "ready") return;
-    const pruned = pruneDraftCache(cacheRef.current, projects.map((p) => p.id));
+    const ids = projects.map((p) => p.id);
+    const pruned = pruneDraftCache(cacheRef.current, ids);
     if (Object.keys(pruned.byProject).length !== Object.keys(cacheRef.current.byProject).length) void publish(pruned);
+    const owner = loadedOwnerRef.current;
+    if (owner) void updatePhotoCache(asyncStorageStore, owner, (c) => prunePhotoCache(c, ids), DRAFT_PHOTOS).catch(() => {});
   }, [ready, projectsStatus, projects, publish]);
 
   const draftsShown = useCallback(

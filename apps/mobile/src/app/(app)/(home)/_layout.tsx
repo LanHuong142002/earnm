@@ -96,6 +96,11 @@ export default function HomeStackLayout() {
       <Stack.Screen name="projects/[id]/drafts/new" options={{ title: t("drafts.newTitle") }} />
       <Stack.Screen name="projects/[id]/drafts/[draftId]" options={{ title: t("drafts.detailTitle") }} />
       <Stack.Screen name="projects/[id]/drafts/[draftId]/line" options={{ title: t("drafts.line.newTitle") }} />
+      {/* The photo viewer: full screen on black, with its own close button. */}
+      <Stack.Screen
+        name="projects/[id]/drafts/[draftId]/photos"
+        options={{ presentation: "fullScreenModal", headerShown: false, animation: "fade", title: t("tasks.photos.viewerTitle") }}
+      />
       <Stack.Screen name="projects/[id]/members" options={{ title: t("members.title") }} />
     </Stack>
   );

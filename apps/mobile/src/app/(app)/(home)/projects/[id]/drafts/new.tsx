@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { getToken } from "../../../../../../auth/token-store";
 import { useIdeas } from "../../../../../../ideas/IdeasProvider";
 import { createDraftFromIdea } from "../../../../../../ideas/api";
+import { IdeaPhotoStrip } from "../../../../../../ideas/IdeaPhotoStrip";
 import { createDraftErrorKey, ideaDraftBlock, prefilledDraftForm } from "../../../../../../ideas/draftPrefill";
 import { ApiError } from "../../../../../../lib/api";
 import { newProjectId } from "../../../../../../projects/newProjectId";
@@ -209,6 +210,7 @@ function NewDraftFromIdea({ projectId, ideaId }: { projectId: string; ideaId: st
               : t("ideas.createDraft.fromLine", { title: form.ideaTitle })}
           </Text>
         </View>
+        {form.photoCount > 0 ? <IdeaPhotoStrip projectId={projectId} idea={idea} /> : null}
         <TextField
           label={t("drafts.nameLabel")}
           icon="cafe-outline"
