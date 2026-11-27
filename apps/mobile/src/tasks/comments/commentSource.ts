@@ -1,5 +1,5 @@
 import { DRAFT_NAME_MAX, DRAFT_NOTE_MAX } from "../../drafts/view";
-import { cutAtWord } from "../../ideas/draftPrefill";
+import { capUnits, cutAtWord } from "../../ideas/draftPrefill";
 import { TITLE_MAX } from "../../ideas/plan";
 import { COMMENT_MAX } from "./view";
 
@@ -15,7 +15,8 @@ export type CommentSource = {
 /** The longest author name or source title carried in the route params. */
 const LABEL_MAX = 120;
 
-const cap = (value: string, max: number): string => [...value].slice(0, max).join("");
+/** Capped in UTF-16 code units, as the forms and the server count, never splitting a character. */
+const cap = capUnits;
 
 /**
  * The first sentence of a comment (spec R6): up to and including the first ".", "!", "?" or "…" that is followed by a

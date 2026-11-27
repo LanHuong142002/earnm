@@ -80,9 +80,11 @@ describe("ideaFromComment", () => {
     expect(long[title.length]).toBe(" ");
   });
 
-  it("counts an emoji as one character", () => {
+  it("keeps the title within 120 UTF-16 code units, as the server counts, without splitting an emoji", () => {
     const { title } = ideaFromComment(source("😀".repeat(130)));
-    expect([...title]).toHaveLength(120);
+    expect(title.length).toBe(120);
+    expect(title).toBe("😀".repeat(60));
+    expect(ideaFromComment(source(`a${"😀".repeat(130)}`)).title).toBe(`a${"😀".repeat(59)}`);
   });
 });
 
@@ -105,11 +107,16 @@ describe("draftFromComment", () => {
 
   it("keeps the whole comment as the note up to 500 characters", () => {
     expect(draftFromComment(source(text)).note).toBe(text);
-    expect([...draftFromComment(source("😀".repeat(600))).note]).toHaveLength(500);
+    const note = draftFromComment(source("😀".repeat(600))).note;
+    expect(note.length).toBe(500);
+    expect(note).toBe("😀".repeat(250));
   });
 
-  it("counts an emoji as one character in the name", () => {
-    expect([...draftFromComment(source("😀".repeat(70))).name]).toHaveLength(60);
+  it("keeps the name and note within the form's code-unit limits without splitting an emoji", () => {
+    expect(draftFromComment(source("😀".repeat(70))).name).toBe("😀".repeat(30));
+    const odd = draftFromComment(source(`a${"😀".repeat(400)}`)).note;
+    expect(odd).toBe(`a${"😀".repeat(249)}`);
+    expect(odd.length).toBeLessThanOrEqual(500);
   });
 });
 
@@ -154,10 +161,10 @@ describe("commentSourceParams and readCommentSource", () => {
     });
   });
 
-  it("caps the text at 1000 characters and the names at 120", () => {
+  it("caps the text at 1000 code units and the names at 120", () => {
     const s = readCommentSource({ fromComment: "1", commentText: "😀".repeat(1500), commentAuthor: "a".repeat(300), commentTitle: "b".repeat(300) })!;
-    expect([...s.text]).toHaveLength(1000);
-    expect([...s.authorName]).toHaveLength(120);
-    expect([...s.sourceTitle]).toHaveLength(120);
+    expect(s.text).toBe("😀".repeat(500));
+    expect(s.authorName).toHaveLength(120);
+    expect(s.sourceTitle).toHaveLength(120);
   });
 });
