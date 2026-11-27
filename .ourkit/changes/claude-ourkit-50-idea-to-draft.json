@@ -136,7 +136,7 @@
         "resolved": true
       }
     ],
-    "reviewed": "29664c6b3553d07755d98c06e4ee7125d7ff095aa9757cdcb800a5a113794e89"
+    "reviewed": "8a8f33f45a60fdb7909f37eb2d34cb3511288aa25cf95785896012481ef11379"
   },
   "qa": {
     "results": {
@@ -147,7 +147,7 @@
       },
       "2": {
         "result": "manual",
-        "evidence": "Prefill logic unit-tested (draftPrefill.test.ts: title cut to <=60 at a word boundary, note from description, 'kèm N ảnh' only when photoCount > 0). Rendered form needs a phone.",
+        "evidence": "Prefill logic unit-tested after the UTF-16 fix (draftPrefill.test.ts: name <=60 code units at a word boundary, emoji never split, note <=500 units, 'kèm N ảnh' only when photoCount > 0). Rendered form needs a phone.",
         "criterion": "R2: open the action on an idea with a 90-character title, a description and 2 photos; the form shows the title cut to ≤60 characters, the description as note, and \"kèm 2 ảnh\". With no photos the \"kèm\" part is absent. Unit test for the prefill."
       },
       "3": {
@@ -216,7 +216,7 @@
         "criterion": "Existing idea, task, draft and photo tests still pass; `ourkit gate run test`, lint and build pass."
       }
     },
-    "checked": "29664c6b3553d07755d98c06e4ee7125d7ff095aa9757cdcb800a5a113794e89"
+    "checked": "8a8f33f45a60fdb7909f37eb2d34cb3511288aa25cf95785896012481ef11379"
   },
   "testHandoff": [
     {
