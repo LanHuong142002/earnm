@@ -1,0 +1,39 @@
+{
+  "tier": "feature",
+  "tierReason": "Links an idea to a new drink draft: schema change plus a new API endpoint (#50)",
+  "sensitiveAreas": [
+    "schema",
+    "data",
+    "api"
+  ],
+  "notSensitiveReason": null,
+  "ticket": "50",
+  "mockup": {
+    "needed": true,
+    "reason": null
+  },
+  "mockupApproval": "6c714e5ea91ad9bcc32c4a59ddc995a7d5c4cd061747f408885846ba611d01cf",
+  "planApproval": "321a9070d1b89521e0a6626e66d75ccfdedd95121d191adae4dd5c4ae669cfb0",
+  "mode": "hands-off",
+  "intake": {
+    "ticket": "50",
+    "accepted": true
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "decision": "Tier Feature for #50 (schema, data, public API)",
+      "why": "User confirmed Feature in Pair before switching to hands-off."
+    },
+    {
+      "id": 2,
+      "decision": "Spec, mockup and plan for #50 approved by the user in Pair",
+      "why": "Approvals recorded with mockup approve and gate approve-plan before hands-off."
+    },
+    {
+      "id": 3,
+      "decision": "D1-D3 in the #50 spec taken on the recommended defaults",
+      "why": "User approved the spec containing them without changing them."
+    }
+  ]
+}
